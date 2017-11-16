@@ -1,0 +1,551 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_QuickNotepad_1.13.java</h1>
+<div class="code">
+<div class="id">
+// {{{ QuickNotepad<br/>
+/*<br/>
+ * QuickNotepad.java<br/>
+ * part of the QuickNotepad plugin for the jEdit text editor<br/>
+ * Copyright (C) 2001 John Gellene<br/>
+ * jgellene@nyc.rr.com<br/>
+ *<br/>
+ * This program is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU General Public License<br/>
+ * as published by the Free Software Foundation; either version 2<br/>
+ * of the License, or any later version.<br/>
+ *<br/>
+ * This program is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br/>
+ * GNU General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU General Public License<br/>
+ * along with this program; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.<br/>
+ *<br/>
+ * $Id: QuickNotepad.java,v 1.13 2006-07-06 12:16:42 vampire0 Exp $<br/>
+ */<br/>
+<br/>
+// {{{ imports<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.Font;<br/>
+import java.awt.event.KeyAdapter;<br/>
+import java.awt.event.KeyEvent;<br/>
+import java.io.BufferedReader;<br/>
+import java.io.File;<br/>
+import java.io.FileNotFoundException;<br/>
+import java.io.FileReader;<br/>
+import java.io.FileWriter;<br/>
+import java.io.IOException;<br/>
+<br/>
+import javax.swing.JFileChooser;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JScrollPane;<br/>
+<br/>
+import org.gjt.sp.jedit.EBComponent;<br/>
+import org.gjt.sp.jedit.EBMessage;<br/>
+import org.gjt.sp.jedit.EditBus;<br/>
+import org.gjt.sp.jedit.GUIUtilities;<br/>
+import org.gjt.sp.jedit.MiscUtilities;<br/>
+import org.gjt.sp.jedit.View;<br/>
+import org.gjt.sp.jedit.jEdit;<br/>
+import org.gjt.sp.jedit.gui.DefaultFocusComponent;<br/>
+import org.gjt.sp.jedit.gui.DockableWindowManager;<br/>
+import org.gjt.sp.jedit.msg.PropertiesChanged;<br/>
+import org.gjt.sp.util.Log;<br/>
+// }}}<br/>
+<br/>
+// {{{ QuickNotePad class<br/>
+/**<br/>
+ * <br/>
+ * QuickNotePad - a dockable JPanel, a demonstration of a jEdit plugin.<br/>
+ *<br/>
+ */<br/>
+public class QuickNotepad extends JPanel<br/>
+    implements EBComponent, QuickNotepadActions, DefaultFocusComponent {<br/>
+<br/>
+    // {{{ Instance Variables<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static final long serialVersionUID = 6412255692894321789L;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private String filename;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private String defaultFilename;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private View view;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean floating;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private QuickNotepadTextArea textArea;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private QuickNotepadToolPanel toolPanel;<br/>
+    // }}}<br/>
+    // {{{ Constructor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param view the current jedit window<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param position a variable passed in from the script in actions.xml,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &nbsp;&nbsp;&nbsp;&nbsp;which can be DockableWindowManager.FLOATING, TOP, BOTTOM, LEFT, RIGHT, etc.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &nbsp;&nbsp;&nbsp;&nbsp;see @ref DockableWindowManager for possible values.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public QuickNotepad(View view, String position) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(new BorderLayout());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.view = view;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.floating = position.equals(DockableWindowManager.FLOATING);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (jEdit.getSettingsDirectory() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.filename = jEdit.getProperty(QuickNotepadPlugin.OPTION_PREFIX<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ "filepath");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.filename == null || this.filename.length() == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.filename = new String(jEdit.getSettingsDirectory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ File.separator + "qn.txt");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.setProperty(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QuickNotepadPlugin.OPTION_PREFIX + "filepath",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.defaultFilename = this.filename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.toolPanel = new QuickNotepadToolPanel(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add(BorderLayout.NORTH, this.toolPanel);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (floating)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.setPreferredSize(new Dimension(500, 250));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea = new QuickNotepadTextArea();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.setFont(QuickNotepadOptionPane.makeFont());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="del">textArea</span>.<span class="del">addKeyListener</span>(<span class="del">new <span class="del"><span class="del">KeyHandler</span></span>()</span>)</span>;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JScrollPane pane = new JScrollPane(textArea);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add(BorderLayout.CENTER, pane);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+    // {{{ Member Functions<br/>
+    <br/>
+    // {{{ focusOnDefaultComponent<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void focusOnDefaultComponent() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.requestFocus();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+    // {{{ getFileName<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public String getFilename() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return filename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// EBComponent implementation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    // {{{ handleMessage<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void handleMessage(EBMessage message) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message instanceof PropertiesChanged) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;propertiesChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    <br/>
+    // {{{ propertiesChanged<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void propertiesChanged() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String propertyFilename = jEdit<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getProperty(QuickNotepadPlugin.OPTION_PREFIX + "filepath");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!MiscUtilities.objectsEqual(defaultFilename, propertyFilename)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;saveFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;toolPanel.propertiesChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultFilename = propertyFilename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;filename = defaultFilename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Font newFont = QuickNotepadOptionPane.makeFont();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!newFont.equals(textArea.getFont())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.setFont(newFont);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// These JComponent methods provide the appropriate points<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// to subscribe and unsubscribe this object to the EditBus.<br/>
+<br/>
+    // {{{ addNotify<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addNotify() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super.addNotify();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EditBus.addToBus(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+     // }}}<br/>
+     <br/>
+    // {{{ removeNotify<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeNotify() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;saveFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super.removeNotify();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EditBus.removeFromBus(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// QuickNotepadActions implementation<br/>
+<br/>
+    // {{{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void saveFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (filename == null || filename.length() == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FileWriter out = new FileWriter(filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.write(textArea.getText());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IOException ioe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR, QuickNotepad.class,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Could not write notepad text to " + filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    <br/>
+    // {{{ chooseFile<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void chooseFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String[] paths = GUIUtilities.showVFSFileDialog(view, null,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JFileChooser.OPEN_DIALOG, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (paths != null &amp;&amp; !paths[0].equals(filename)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;saveFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;filename = paths[0];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;toolPanel.propertiesChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+    // {{{ copyToBuffer<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void copyToBuffer() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.newFile(view);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view.getEditPane().getTextArea().setText(textArea.getText());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    // {{{ readFile()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Helper method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void readFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (filename == null || filename.length() == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader bf = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bf = new BufferedReader(new FileReader(filename));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer sb = new StringBuffer(2048);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String str;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while ((str = bf.readLine()) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(str).append('\n');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bf.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.setText(sb.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (FileNotFoundException fnf) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR, QuickNotepad.class, "notepad file " + filename<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ " does not exist");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IOException ioe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR, QuickNotepad.class,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"could not read notepad file " + filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    // }}}<br/>
+<br/>
+    // {{{ Listener objects<br/>
+    <br/>
+    // {{{ KeyHandler<br/>
+    <span class="del"><span class="del">/**<br/>
+     * &lt;Esc&gt; closes a floating window<br/>
+     */</span><br/>
+    <span class="del">private</span> class <span class="del">KeyHandler</span> extends <span class="del"><span class="del">KeyAdapter</span></span> {   <br/>
+            <span class="del"><span class="del">public</span> <span class="del">void</span> <span class="del">keyPressed</span>(<span class="del"><span class="del"><span class="del">KeyEvent</span></span> <span class="del">evt</span></span>) <span class="del">{   <br/>
+                    <span class="del">if (<span class="del"><span class="del"><span class="del"><span class="del">QuickNotepad</span>.this</span>.<span class="del">floating</span></span>   <br/>
+                                    &amp;&amp; <span class="del"><span class="del"><span class="del">evt</span>.<span class="del">getKeyCode</span>()</span> == <span class="del"><span class="del">KeyEvent</span>.<span class="del">VK_ESCAPE</span></span></span></span>) <span class="del">{   <br/>
+                            <span class="del"><span class="del"><span class="del">evt</span>.<span class="del">consume</span>()</span>;</span>   <br/>
+                            <span class="del"><span class="del"><span class="del">DockableWindowManager</span></span> <span class="del"><span class="del">wm</span> = <span class="del"><span class="del"><span class="del"><span class="del">QuickNotepad</span>.this</span>.<span class="del">view</span></span>   <br/>
+                                            .<span class="del">getDockableWindowManager</span>()</span></span>;</span>   <br/>
+                            <span class="del"><span class="del"><span class="del">wm</span>.<span class="del">removeDockableWindow</span>(<span class="del"><span class="del">QuickNotepadPlugin</span>.<span class="del">NAME</span></span>)</span>;</span>   <br/>
+                    }</span></span>   <br/>
+            }</span></span>   <br/>
+    }</span>   <br/>
+    // }}}<br/>
+    <br/>
+    // }}}<br/>
+}<br/>
+// }}}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_QuickNotepad_1.14.java</h1>
+<div class="code">
+<div class="id">
+// {{{ QuickNotepad<br/>
+/*<br/>
+ * QuickNotepad.java<br/>
+ * part of the QuickNotepad plugin for the jEdit text editor<br/>
+ * Copyright (C) 2001 John Gellene<br/>
+ * jgellene@nyc.rr.com<br/>
+ *<br/>
+ * This program is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU General Public License<br/>
+ * as published by the Free Software Foundation; either version 2<br/>
+ * of the License, or any later version.<br/>
+ *<br/>
+ * This program is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br/>
+ * GNU General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU General Public License<br/>
+ * along with this program; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.<br/>
+ *<br/>
+ * $Id: QuickNotepad.java,v 1.14 2006-07-06 13:30:42 vampire0 Exp $<br/>
+ */<br/>
+<br/>
+// {{{ imports<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.Font;<br/>
+import java.awt.event.KeyAdapter;<br/>
+import java.awt.event.KeyEvent;<br/>
+import java.io.BufferedReader;<br/>
+import java.io.File;<br/>
+import java.io.FileNotFoundException;<br/>
+import java.io.FileReader;<br/>
+import java.io.FileWriter;<br/>
+import java.io.IOException;<br/>
+<br/>
+import javax.swing.JFileChooser;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JScrollPane;<br/>
+<br/>
+import org.gjt.sp.jedit.EBComponent;<br/>
+import org.gjt.sp.jedit.EBMessage;<br/>
+import org.gjt.sp.jedit.EditBus;<br/>
+import org.gjt.sp.jedit.GUIUtilities;<br/>
+import org.gjt.sp.jedit.MiscUtilities;<br/>
+import org.gjt.sp.jedit.View;<br/>
+import org.gjt.sp.jedit.jEdit;<br/>
+import org.gjt.sp.jedit.gui.DefaultFocusComponent;<br/>
+import org.gjt.sp.jedit.gui.DockableWindowManager;<br/>
+import org.gjt.sp.jedit.msg.PropertiesChanged;<br/>
+import org.gjt.sp.util.Log;<br/>
+// }}}<br/>
+<br/>
+// {{{ QuickNotePad class<br/>
+/**<br/>
+ * <br/>
+ * QuickNotePad - a dockable JPanel, a demonstration of a jEdit plugin.<br/>
+ *<br/>
+ */<br/>
+public class QuickNotepad extends JPanel<br/>
+    implements EBComponent, QuickNotepadActions, DefaultFocusComponent {<br/>
+<br/>
+    // {{{ Instance Variables<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static final long serialVersionUID = 6412255692894321789L;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private String filename;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private String defaultFilename;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private View view;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean floating;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private QuickNotepadTextArea textArea;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private QuickNotepadToolPanel toolPanel;<br/>
+    // }}}<br/>
+<br/>
+    // {{{ Constructor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param view the current jedit window<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param position a variable passed in from the script in actions.xml,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &nbsp;&nbsp;&nbsp;&nbsp;which can be DockableWindowManager.FLOATING, TOP, BOTTOM, LEFT, RIGHT, etc.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &nbsp;&nbsp;&nbsp;&nbsp;see @ref DockableWindowManager for possible values.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public QuickNotepad(View view, String position) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(new BorderLayout());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.view = view;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.floating = position.equals(DockableWindowManager.FLOATING);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (jEdit.getSettingsDirectory() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.filename = jEdit.getProperty(QuickNotepadPlugin.OPTION_PREFIX<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ "filepath");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.filename == null || this.filename.length() == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.filename = new String(jEdit.getSettingsDirectory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ File.separator + "qn.txt");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.setProperty(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QuickNotepadPlugin.OPTION_PREFIX + "filepath",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.defaultFilename = this.filename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.toolPanel = new QuickNotepadToolPanel(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add(BorderLayout.NORTH, this.toolPanel);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (floating)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.setPreferredSize(new Dimension(500, 250));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea = new QuickNotepadTextArea();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.setFont(QuickNotepadOptionPane.makeFont());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JScrollPane pane = new JScrollPane(textArea);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add(BorderLayout.CENTER, pane);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+    // {{{ Member Functions<br/>
+    <br/>
+    // {{{ focusOnDefaultComponent<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void focusOnDefaultComponent() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.requestFocus();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+    // {{{ getFileName<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public String getFilename() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return filename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// EBComponent implementation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    // {{{ handleMessage<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void handleMessage(EBMessage message) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message instanceof PropertiesChanged) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;propertiesChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    <br/>
+    // {{{ propertiesChanged<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void propertiesChanged() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String propertyFilename = jEdit<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getProperty(QuickNotepadPlugin.OPTION_PREFIX + "filepath");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!MiscUtilities.objectsEqual(defaultFilename, propertyFilename)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;saveFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;toolPanel.propertiesChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultFilename = propertyFilename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;filename = defaultFilename;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Font newFont = QuickNotepadOptionPane.makeFont();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!newFont.equals(textArea.getFont())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.setFont(newFont);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// These JComponent methods provide the appropriate points<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// to subscribe and unsubscribe this object to the EditBus.<br/>
+<br/>
+    // {{{ addNotify<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addNotify() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super.addNotify();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EditBus.addToBus(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+     // }}}<br/>
+     <br/>
+    // {{{ removeNotify<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeNotify() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;saveFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super.removeNotify();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EditBus.removeFromBus(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// QuickNotepadActions implementation<br/>
+<br/>
+    // {{{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void saveFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (filename == null || filename.length() == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FileWriter out = new FileWriter(filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.write(textArea.getText());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IOException ioe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR, QuickNotepad.class,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Could not write notepad text to " + filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    <br/>
+    // {{{ chooseFile<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void chooseFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String[] paths = GUIUtilities.showVFSFileDialog(view, null,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JFileChooser.OPEN_DIALOG, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (paths != null &amp;&amp; !paths[0].equals(filename)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;saveFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;filename = paths[0];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;toolPanel.propertiesChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+<br/>
+    // {{{ copyToBuffer<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void copyToBuffer() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.newFile(view);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view.getEditPane().getTextArea().setText(textArea.getText());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    // {{{ readFile()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Helper method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void readFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (filename == null || filename.length() == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader bf = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bf = new BufferedReader(new FileReader(filename));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer sb = new StringBuffer(2048);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String str;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while ((str = bf.readLine()) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(str).append('\n');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bf.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textArea.setText(sb.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (FileNotFoundException fnf) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR, QuickNotepad.class, "notepad file " + filename<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ " does not exist");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IOException ioe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR, QuickNotepad.class,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"could not read notepad file " + filename);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    // }}}<br/>
+    // }}}<br/>
+}<br/>
+// }}}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

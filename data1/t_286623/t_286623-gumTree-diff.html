@@ -1,0 +1,412 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_JInterceptorStore_1.5.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2004 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: JInterceptorStore.java,v 1.5 2004-09-01 11:02:41 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.rmi.jrmp.interceptor;<br/>
+<br/>
+import java.rmi.server.UID;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Arrays;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Properties;<br/>
+<br/>
+import org.objectweb.carol.util.configuration.TraceCarol;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt;JInterceptorStore&lt;/code&gt; is the CAROL JRMP Client and Server<br/>
+ * Interceptors Storage System<br/>
+ * @author Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @version 1.0, 10/03/2003<br/>
+ */<br/>
+public class JInterceptorStore {<br/>
+<br/>
+    /**<br/>
+     * Initilazer class prefix<br/>
+     */<br/>
+    public static String INTIALIZER_PREFIX = "org.objectweb.PortableInterceptor.JRMPInitializerClass";<br/>
+<br/>
+    /**<br/>
+     * private boolean for intialisation<br/>
+     */<br/>
+    private static boolean init = false;<br/>
+<br/>
+    /**<br/>
+     * private Interceptor for Context propagation<br/>
+     */<br/>
+    private static JServerRequestInterceptor[] sis = null;<br/>
+<br/>
+    /**<br/>
+     * private Interceptor for Context propagation<br/>
+     */<br/>
+    private static JClientRequestInterceptor[] cis = null;<br/>
+<br/>
+    /**<br/>
+     * private remote Interceptor cache for Context propagation<br/>
+     */<br/>
+    private static JClientRequestInterceptor[] rcis = null;<br/>
+<br/>
+    /**<br/>
+     * private remote UID for cache<br/>
+     */<br/>
+    private static UID uid = null;<br/>
+<br/>
+    /**<br/>
+     * private remote addr for cache<br/>
+     */<br/>
+    private static byte[] address = null;<br/>
+<br/>
+    /**<br/>
+     * private Interceptors Initializers for Context propagation<br/>
+     */<br/>
+    private static String[] initializers = null;<br/>
+<br/>
+    /**<br/>
+     * JRMPINfo Impl<br/>
+     */<br/>
+    private static JRMPInitInfoImpl jrmpInfo = new JRMPInitInfoImpl();<br/>
+<br/>
+    /**<br/>
+     * Intialize interceptors for a carol server<br/>
+     */<br/>
+    static {<br/>
+        if (!init) {<br/>
+            // Load the Interceptors<br/>
+            try {<br/>
+                JInitInfo jrmpInfo = new JRMPInitInfoImpl();<br/>
+                String[] ins = getJRMPInitializers();<br/>
+                for (int i = 0; i &lt; ins.length; i++) {<br/>
+                    JInitializer jinit = (JInitializer) Thread.currentThread().getContextClassLoader()<br/>
+                            .loadClass(ins[i]).newInstance();<br/>
+                    jinit.pre_init(jrmpInfo);<br/>
+                    jinit.post_init(jrmpInfo);<br/>
+                }<br/>
+                sis = jrmpInfo.getServerRequestInterceptors();<br/>
+                cis = jrmpInfo.getClientRequestInterceptors();<br/>
+                // fisrt remote reference = local reference<br/>
+                rcis = cis;<br/>
+                uid = JInterceptorHelper.getSpaceID();<br/>
+                address = JInterceptorHelper.getInetAddress();<br/>
+            } catch (Exception e) {<br/>
+                //we did not found the interceptor do nothing but a trace ?<br/>
+                TraceCarol.error("JrmpPRODelegate(), No interceptors found", e);<br/>
+            }<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * get the local server interceptor<br/>
+     */<br/>
+    public static JServerRequestInterceptor[] getLocalServerInterceptors() {<br/>
+        return sis;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * get the local client interceptor<br/>
+     */<br/>
+    public static JClientRequestInterceptor[] getLocalClientInterceptors() {<br/>
+        return cis;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get Intializers method<br/>
+     * @return JRMP Initializers enuumeration<br/>
+     */<br/>
+    public static String[] getJRMPInitializers() {<br/>
+        if (!init) {<br/>
+            ArrayList ins = new ArrayList();<br/>
+            Properties sys = System.getProperties();<br/>
+            for (Enumeration e = System.getProperties().propertyNames(); e.hasMoreElements();) {<br/>
+                String pkey = (String) e.nextElement();<br/>
+                if (pkey.startsWith(INTIALIZER_PREFIX)) {<br/>
+                    ins.add(pkey.substring(INTIALIZER_PREFIX.length() + 1));<br/>
+                }<br/>
+            }<br/>
+            int sz = ins.size();<br/>
+            initializers = new String[sz];<br/>
+            for (int i = 0; i &lt; sz; i++) {<br/>
+                initializers[i] = (String) ins.get(i);<br/>
+            }<br/>
+            return initializers;<br/>
+        } else {<br/>
+            return initializers;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get interceptor if exist<br/>
+     * @param raddr The remote adress (later)<br/>
+     * @param ruid The remote uid (later)<br/>
+     * @param ia iterceptors initializers<br/>
+     * @return JClientRequestInterceptors [] , the interceptors<br/>
+     */<br/>
+    public synchronized static JClientRequestInterceptor[] setRemoteInterceptors(byte[] raddr, UID ruid, String[] ia) {<br/>
+        if ((Arrays.equals(raddr, address)) &amp;&amp; (ruid.equals(uid))) {<br/>
+            return rcis;<br/>
+        } else {<br/>
+            jrmpInfo.clear();<br/>
+            for (int i = 0; i &lt; ia.length; i++) {<br/>
+                JInitializer jinit = null;<br/>
+                try {<br/>
+                    jinit = (JInitializer) Class.forName(ia[i]).newInstance();<br/>
+                    jinit.pre_init(jrmpInfo);<br/>
+                    jinit.post_init(jrmpInfo);<br/>
+                } catch (Exception e) {<br/>
+                    TraceCarol.error("can not load interceptors", e);<br/>
+                }<br/>
+            }<br/>
+            ruid = uid;<br/>
+            address = raddr;<br/>
+            rcis = jrmpInfo.getClientRequestInterceptors();<br/>
+            return rcis;<br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_JInterceptorStore_1.6.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2004 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: JInterceptorStore.java,v 1.6 2005-03-11 13:55:52 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.rmi.jrmp.interceptor;<br/>
+<br/>
+import java.rmi.server.UID;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Arrays;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Properties;<br/>
+<br/>
+import org.objectweb.carol.util.configuration.TraceCarol;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt;JInterceptorStore&lt;/code&gt; is the CAROL JRMP Client and Server<br/>
+ * Interceptors Storage System<br/>
+ * @author Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @version 1.0, 10/03/2003<br/>
+ */<br/>
+public class JInterceptorStore {<br/>
+<br/>
+    /**<br/>
+     * Initilazer class prefix<br/>
+     */<br/>
+    public static <span class="add">final</span> String INTIALIZER_PREFIX = "org.objectweb.PortableInterceptor.JRMPInitializerClass";<br/>
+<br/>
+    /**<br/>
+     * private boolean for intialisation<br/>
+     */<br/>
+    private static boolean init = false;<br/>
+<br/>
+    /**<br/>
+     * private Interceptor for Context propagation<br/>
+     */<br/>
+    private static JServerRequestInterceptor[] sis = null;<br/>
+<br/>
+    /**<br/>
+     * private Interceptor for Context propagation<br/>
+     */<br/>
+    private static JClientRequestInterceptor[] cis = null;<br/>
+<br/>
+    /**<br/>
+     * private remote Interceptor cache for Context propagation<br/>
+     */<br/>
+    private static JClientRequestInterceptor[] rcis = null;<br/>
+<br/>
+    /**<br/>
+     * private remote UID for cache<br/>
+     */<br/>
+    private static UID uid = null;<br/>
+<br/>
+    /**<br/>
+     * private remote addr for cache<br/>
+     */<br/>
+    private static byte[] address = null;<br/>
+<br/>
+    /**<br/>
+     * private Interceptors Initializers for Context propagation<br/>
+     */<br/>
+    private static String[] initializers = null;<br/>
+<br/>
+    /**<br/>
+     * JRMPINfo Impl<br/>
+     */<br/>
+    private static JRMPInitInfoImpl jrmpInfo = new JRMPInitInfoImpl();<br/>
+<br/>
+    /**<br/>
+     * Intialize interceptors for a carol server<br/>
+     */<br/>
+    static {<br/>
+        if (!init) {<br/>
+            // Load the Interceptors<br/>
+            try {<br/>
+                JInitInfo jrmpInfo = new JRMPInitInfoImpl();<br/>
+                String[] ins = getJRMPInitializers();<br/>
+                for (int i = 0; i &lt; ins.length; i++) {<br/>
+                    JInitializer jinit = (JInitializer) Thread.currentThread().getContextClassLoader()<br/>
+                            .loadClass(ins[i]).newInstance();<br/>
+                    jinit.pre_init(jrmpInfo);<br/>
+                    jinit.post_init(jrmpInfo);<br/>
+                }<br/>
+                sis = jrmpInfo.getServerRequestInterceptors();<br/>
+                cis = jrmpInfo.getClientRequestInterceptors();<br/>
+                // fisrt remote reference = local reference<br/>
+                rcis = cis;<br/>
+                uid = JInterceptorHelper.getSpaceID();<br/>
+                address = JInterceptorHelper.getInetAddress();<br/>
+            } catch (Exception e) {<br/>
+                //we did not found the interceptor do nothing but a trace ?<br/>
+                TraceCarol.error("JrmpPRODelegate(), No interceptors found", e);<br/>
+            }<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * get the local server interceptor<br/>
+     */<br/>
+    public static JServerRequestInterceptor[] getLocalServerInterceptors() {<br/>
+        return sis;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * get the local client interceptor<br/>
+     */<br/>
+    public static JClientRequestInterceptor[] getLocalClientInterceptors() {<br/>
+        return cis;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get Intializers method<br/>
+     * @return JRMP Initializers enuumeration<br/>
+     */<br/>
+    public static String[] getJRMPInitializers() {<br/>
+        if (!init) {<br/>
+            ArrayList ins = new ArrayList();<br/>
+            Properties sys = System.getProperties();<br/>
+            for (Enumeration e = System.getProperties().propertyNames(); e.hasMoreElements();) {<br/>
+                String pkey = (String) e.nextElement();<br/>
+                if (pkey.startsWith(INTIALIZER_PREFIX)) {<br/>
+                    ins.add(pkey.substring(INTIALIZER_PREFIX.length() + 1));<br/>
+                }<br/>
+            }<br/>
+            int sz = ins.size();<br/>
+            initializers = new String[sz];<br/>
+            for (int i = 0; i &lt; sz; i++) {<br/>
+                initializers[i] = (String) ins.get(i);<br/>
+            }<br/>
+            return initializers;<br/>
+        } else {<br/>
+            return initializers;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get interceptor if exist<br/>
+     * @param raddr The remote adress (later)<br/>
+     * @param ruid The remote uid (later)<br/>
+     * @param ia iterceptors initializers<br/>
+     * @return JClientRequestInterceptors [] , the interceptors<br/>
+     */<br/>
+    public synchronized static JClientRequestInterceptor[] setRemoteInterceptors(byte[] raddr, UID ruid, String[] ia) {<br/>
+        if ((Arrays.equals(raddr, address)) &amp;&amp; (ruid.equals(uid))) {<br/>
+            return rcis;<br/>
+        } else {<br/>
+            jrmpInfo.clear();<br/>
+            for (int i = 0; i &lt; ia.length; i++) {<br/>
+                JInitializer jinit = null;<br/>
+                try {<br/>
+                    jinit = (JInitializer) Class.forName(ia[i]).newInstance();<br/>
+                    jinit.pre_init(jrmpInfo);<br/>
+                    jinit.post_init(jrmpInfo);<br/>
+                } catch (Exception e) {<br/>
+                    TraceCarol.error("can not load interceptors", e);<br/>
+                }<br/>
+            }<br/>
+            ruid = uid;<br/>
+            address = raddr;<br/>
+            rcis = jrmpInfo.getClientRequestInterceptors();<br/>
+            return rcis;<br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

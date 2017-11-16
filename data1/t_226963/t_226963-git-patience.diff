@@ -1,0 +1,13 @@
+diff --git a/t_226963/left_Issue_1.140.java b/t_226963/right_Issue_1.141.java
+index 2f95b6a..ab2ed4e 100644
+--- a/t_226963/left_Issue_1.140.java
++++ b/t_226963/right_Issue_1.141.java
+@@ -1137,7 +1137,7 @@ public class Issue
+                          AttachmentPeer.ATTACHMENT_TYPE_ID)
+                 .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, 
+                      Attachment.COMMENT__PK)
+-                .addAscendingOrderByColumn(AttachmentPeer.CREATED_DATE);
++                .addDescendingOrderByColumn(AttachmentPeer.CREATED_DATE);
+             if (!full)
+             {
+                 crit.setLimit(getCommentsLimit());

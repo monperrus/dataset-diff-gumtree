@@ -1,0 +1,12 @@
+diff --git a/t_224863/left_PhraseQuery_1.4.java b/t_224863/right_PhraseQuery_1.5.java
+index e85fd13..cd7af71 100644
+--- a/t_224863/left_PhraseQuery_1.4.java
++++ b/t_224863/right_PhraseQuery_1.5.java
+@@ -108,6 +108,7 @@ public class PhraseQuery extends Query {
+   }
+ 
+   final float sumOfSquaredWeights(Searcher searcher) throws IOException {
++    idf = 0.0f;
+     for (int i = 0; i < terms.size(); i++)	  // sum term IDFs
+       idf += Similarity.idf((Term)terms.elementAt(i), searcher);
+ 

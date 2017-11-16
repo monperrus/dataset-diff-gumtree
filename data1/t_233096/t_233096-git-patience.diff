@@ -1,0 +1,13 @@
+diff --git a/t_233096/left_ColumnConfigDialog_1.7.java b/t_233096/right_ColumnConfigDialog_1.8.java
+index 8f0681c..1a3f5a0 100644
+--- a/t_233096/left_ColumnConfigDialog_1.7.java
++++ b/t_233096/right_ColumnConfigDialog_1.8.java
+@@ -75,7 +75,7 @@ public class ColumnConfigDialog extends JDialog implements ActionListener,
+     private MailFrameMediator mediator;
+ 
+     public ColumnConfigDialog(MailFrameMediator mediator, XmlElement columns) {
+-        super((JFrame) mediator.getView(), true);
++        super((JFrame) mediator.getView().getFrame(), true);
+         setTitle("Configure Columns");
+ 
+         this.mediator = mediator;

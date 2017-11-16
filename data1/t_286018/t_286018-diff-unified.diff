@@ -1,0 +1,11 @@
+--- t_286018/left_JUnitCoreTest_1.3.java	2013-03-17 15:47:06.000000000 +0100
++++ t_286018/right_JUnitCoreTest_1.4.java	2013-03-17 15:47:06.000000000 +0100
+@@ -37,7 +37,7 @@
+ 
+ 	private void runClass(String className, int returnCode) throws IOException, InterruptedException {
+ 		String java= System.getProperty("java.home")+File.separator+"bin"+File.separator+"java";
+-		String classPath= getClass().getClassLoader().getResource(".").getFile() + ";" + System.getProperty("java.class.path");
++		String classPath= getClass().getClassLoader().getResource(".").getFile() + File.pathSeparator + System.getProperty("java.class.path");
+ 		String [] cmd= { java, "-cp", classPath, "org.junit.runner.JUnitCore", className}; 
+ 		Process process= Runtime.getRuntime().exec(cmd);
+ 		InputStream input= process.getInputStream();

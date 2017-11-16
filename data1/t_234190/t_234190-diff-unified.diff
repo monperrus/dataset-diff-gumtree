@@ -1,0 +1,11 @@
+--- t_234190/left_HeaderViewer_1.16.java	2013-03-17 15:47:32.000000000 +0100
++++ t_234190/right_HeaderViewer_1.17.java	2013-03-17 15:47:32.000000000 +0100
+@@ -277,7 +277,7 @@
+ 			JButton moreButton = createAttachmentMoreButton();
+ 
+ 			DynamicItemListPanel p = new DynamicItemListPanel(2, null, true);
+-//			p.setShowLastSeparator(false);
++			p.setShowLastSeparator(false);
+ 			p.setOpaque(false);
+ 
+ 			for (int j = 0; j < value.length; j++) {

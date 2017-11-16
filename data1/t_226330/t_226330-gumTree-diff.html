@@ -1,0 +1,310 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ActivityRule_1.4.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.util.xml;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2001 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */<br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+<br/>
+import org.apache.commons.digester.Digester;<br/>
+<br/>
+import org.tigris.scarab.om.Activity;<br/>
+import org.tigris.scarab.om.Transaction;<br/>
+import org.tigris.scarab.om.Issue;<br/>
+import org.tigris.scarab.om.Attribute;<br/>
+import org.tigris.scarab.om.AttributeOption;<br/>
+import org.tigris.scarab.om.AttributeType;<br/>
+import org.tigris.scarab.om.ParentChildAttributeOption;<br/>
+<br/>
+/**<br/>
+ * Handler for the xpath "scarab/module/issue/transaction/activity"<br/>
+ *<br/>
+ * @author &lt;a href="mailto:kevin.minshull@bitonic.com"&gt;Kevin Minshull&lt;/a&gt;<br/>
+ * @author &lt;a href="mailto:richard.han@bitonic.com"&gt;Richard Han&lt;/a&gt;<br/>
+ */<br/>
+public class ActivityRule extends BaseRule<br/>
+{<br/>
+    public ActivityRule(Digester digester, String state)<br/>
+    {<br/>
+        super(digester, state);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * This method is called when the end of a matching XML element<br/>
+     * is encountered.<br/>
+     */<br/>
+    public void end() throws Exception<br/>
+    {<br/>
+        log().debug("(" + getState() + ") activity end()");<br/>
+        if(getState().equals(<span class="upd"><span class="upd">DBImport</span>.STATE_DB_INSERTION</span>))<br/>
+        {<br/>
+            Activity activity = new Activity();<br/>
+            String description = (String)digester.pop();<br/>
+            AttributeType attributeType = (AttributeType)digester.pop();<br/>
+            String oldValue = (String)digester.pop();<br/>
+            String value = (String)digester.pop();<br/>
+            String name = (String)digester.pop();<br/>
+            Transaction transaction = (Transaction)digester.pop();<br/>
+            Transaction createTransaction = (Transaction)digester.pop();<br/>
+            Issue issue = (Issue)digester.pop();<br/>
+            <br/>
+            Attribute attribute = Attribute.getInstance(name);<br/>
+            // if the attribute is not found, create it<br/>
+            if(attribute == null)<br/>
+            {<br/>
+                attribute = Attribute.getInstance();<br/>
+                attribute.setName(name);<br/>
+                attribute.setAttributeType(attributeType);<br/>
+                attribute.setDescription("Generated by Data import util");<br/>
+                attribute.save();<br/>
+                <br/>
+                if (attribute.isOptionAttribute())<br/>
+                {<br/>
+                    ParentChildAttributeOption newPCAO = <br/>
+                        ParentChildAttributeOption.getInstance();<br/>
+                    newPCAO.setName(name);<br/>
+                    newPCAO.setAttributeId(attribute.getAttributeId());<br/>
+                    newPCAO.save();<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            if (attribute.isOptionAttribute())<br/>
+            {<br/>
+                AttributeOption attributeOption = AttributeOption<br/>
+                    .getInstance(attribute, name);<br/>
+                <br/>
+                // did not find the attribute option, so create it<br/>
+                if (attributeOption == null)<br/>
+                {<br/>
+                    ParentChildAttributeOption newPCAO = <br/>
+                        ParentChildAttributeOption.getInstance();<br/>
+                    newPCAO.setName(name);<br/>
+                    newPCAO.setAttributeId(attribute.getAttributeId());<br/>
+                    newPCAO.save();<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            activity.create(issue, attribute, description, transaction, <br/>
+                            oldValue, value);<br/>
+            <br/>
+            digester.push(issue);<br/>
+            digester.push(createTransaction);<br/>
+            digester.push(transaction);<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ActivityRule_1.5.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.util.xml;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2001 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */<br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+<br/>
+import org.apache.commons.digester.Digester;<br/>
+<br/>
+import org.tigris.scarab.om.Activity;<br/>
+import org.tigris.scarab.om.Transaction;<br/>
+import org.tigris.scarab.om.Issue;<br/>
+import org.tigris.scarab.om.Attribute;<br/>
+import org.tigris.scarab.om.AttributeOption;<br/>
+import org.tigris.scarab.om.AttributeType;<br/>
+import org.tigris.scarab.om.ParentChildAttributeOption;<br/>
+<br/>
+/**<br/>
+ * Handler for the xpath "scarab/module/issue/transaction/activity"<br/>
+ *<br/>
+ * @author &lt;a href="mailto:kevin.minshull@bitonic.com"&gt;Kevin Minshull&lt;/a&gt;<br/>
+ * @author &lt;a href="mailto:richard.han@bitonic.com"&gt;Richard Han&lt;/a&gt;<br/>
+ */<br/>
+public class ActivityRule extends BaseRule<br/>
+{<br/>
+    public ActivityRule(Digester digester, String state)<br/>
+    {<br/>
+        super(digester, state);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * This method is called when the end of a matching XML element<br/>
+     * is encountered.<br/>
+     */<br/>
+    public void end() throws Exception<br/>
+    {<br/>
+        log().debug("(" + getState() + ") activity end()");<br/>
+        if(getState().equals(<span class="upd"><span class="upd">XMLImport</span>.STATE_DB_INSERTION</span>))<br/>
+        {<br/>
+            Activity activity = new Activity();<br/>
+            String description = (String)digester.pop();<br/>
+            AttributeType attributeType = (AttributeType)digester.pop();<br/>
+            String oldValue = (String)digester.pop();<br/>
+            String value = (String)digester.pop();<br/>
+            String name = (String)digester.pop();<br/>
+            Transaction transaction = (Transaction)digester.pop();<br/>
+            Transaction createTransaction = (Transaction)digester.pop();<br/>
+            Issue issue = (Issue)digester.pop();<br/>
+            <br/>
+            Attribute attribute = Attribute.getInstance(name);<br/>
+            // if the attribute is not found, create it<br/>
+            if(attribute == null)<br/>
+            {<br/>
+                attribute = Attribute.getInstance();<br/>
+                attribute.setName(name);<br/>
+                attribute.setAttributeType(attributeType);<br/>
+                attribute.setDescription("Generated by Data import util");<br/>
+                attribute.save();<br/>
+                <br/>
+                if (attribute.isOptionAttribute())<br/>
+                {<br/>
+                    ParentChildAttributeOption newPCAO = <br/>
+                        ParentChildAttributeOption.getInstance();<br/>
+                    newPCAO.setName(name);<br/>
+                    newPCAO.setAttributeId(attribute.getAttributeId());<br/>
+                    newPCAO.save();<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            if (attribute.isOptionAttribute())<br/>
+            {<br/>
+                AttributeOption attributeOption = AttributeOption<br/>
+                    .getInstance(attribute, name);<br/>
+                <br/>
+                // did not find the attribute option, so create it<br/>
+                if (attributeOption == null)<br/>
+                {<br/>
+                    ParentChildAttributeOption newPCAO = <br/>
+                        ParentChildAttributeOption.getInstance();<br/>
+                    newPCAO.setName(name);<br/>
+                    newPCAO.setAttributeId(attribute.getAttributeId());<br/>
+                    newPCAO.save();<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            activity.create(issue, attribute, description, transaction, <br/>
+                            oldValue, value);<br/>
+            <br/>
+            digester.push(issue);<br/>
+            digester.push(createTransaction);<br/>
+            digester.push(transaction);<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+--- t_230595/left_PropertyManager_1.2.java	2013-03-17 15:47:02.000000000 +0100
++++ t_230595/right_PropertyManager_1.3.java	2013-03-17 15:47:02.000000000 +0100
+@@ -35,6 +35,7 @@
+ 		Iterator iter = plugins.iterator();
+ 		while(iter.hasNext())
+ 			total.putAll((Properties)iter.next());
++		total.putAll(site);
+ 		total.putAll(user);
+ 		return total;
+ 	} //}}}

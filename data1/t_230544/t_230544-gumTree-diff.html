@@ -1,0 +1,260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_MacOSPlugin_1.12.java</h1>
+<div class="code">
+<div class="id">
+/* <br/>
+ * :tabSize=8:indentSize=8:noTabs=false:<br/>
+ * :folding=explicit:collapseFolds=1:<br/>
+ *<br/>
+ * MacOSPlugin.java - Main class Mac OS Plugin<br/>
+ * Copyright (C) 2001, 2002 Kris Kopicki<br/>
+ *<br/>
+ * This program is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU General Public License<br/>
+ * as published by the Free Software Foundation; either version 2<br/>
+ * of the License, or any later version.<br/>
+ *<br/>
+ * This program is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br/>
+ * GNU General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU General Public License<br/>
+ * along with this program; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.<br/>
+ */<br/>
+<br/>
+package macos;<br/>
+<br/>
+//{{{ Imports<br/>
+import java.util.Vector;<br/>
+import javax.swing.*;<br/>
+import org.gjt.sp.jedit.*;<br/>
+import org.gjt.sp.jedit.gui.*;<br/>
+import org.gjt.sp.jedit.msg.*;<br/>
+import org.gjt.sp.util.Log;<br/>
+import macos.menu.*;<br/>
+import macos.script.*;<br/>
+import com.apple.cocoa.application.*;<br/>
+import com.apple.eawt.Application;<br/>
+//}}}<br/>
+<br/>
+public class MacOSPlugin extends EBPlugin<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ Variables<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static boolean started = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean osok;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Delegate delegate;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//}}}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ start() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void start()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(osok = osok())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delegate = new Delegate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NSApplication app = NSApplication.sharedApplication();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Macros.registerHandler(new AppleScriptHandler());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Application app2 = new Application();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app2.addApplicationListener(delegate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app2.setEnabledPreferencesMenu(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app2.setEnabledAboutMenu(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app.setDelegate(delegate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//app.setServicesProvider(delegate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ handleMessage() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void handleMessage(EBMessage message)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (osok)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set type/creator codes for files<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message instanceof BufferUpdate)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delegate.handleFileCodes((BufferUpdate)message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (message instanceof PropertiesChanged)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean b = jEdit.getBooleanProperty("MacOSPlugin.useSelection",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.getBooleanProperty("MacOSPlugin.default.useSelection"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (b)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.setColorProperty("view.selectionColor",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UIManager.getColor("textHighlight"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This is necessary to have a file opened from the Finder<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// before jEdit is running set as the currently active<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// buffer.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (!started &amp;&amp; message instanceof ViewUpdate)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delegate.handleOpenFile((ViewUpdate)message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}//}}}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ osok() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean osok()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;final String osname = jEdit.getProperty("MacOSPlugin.depend.os.name");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;final String mrjversion = jEdit.getProperty("MacOSPlugin.depend.mrj.version");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!System.getProperty("os.name").equals(osname))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// According to Slava this is better<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR,this,jEdit.getProperty("MacOSPlugin.dialog.osname.message"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (MiscUtilities.compareStrings(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.getProperty("mrj.version"),mrjversion) &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SwingUtilities.invokeLater( new Runnable() { public void run() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GUIUtilities.error(null,"MacOSPlugin.dialog.mrjversion",new Object[] {mrjversion});<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}});<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}//}}}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_MacOSPlugin_1.13.java</h1>
+<div class="code">
+<div class="id">
+/* <br/>
+ * :tabSize=8:indentSize=8:noTabs=false:<br/>
+ * :folding=explicit:collapseFolds=1:<br/>
+ *<br/>
+ * MacOSPlugin.java - Main class Mac OS Plugin<br/>
+ * Copyright (C) 2001, 2002 Kris Kopicki<br/>
+ *<br/>
+ * This program is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU General Public License<br/>
+ * as published by the Free Software Foundation; either version 2<br/>
+ * of the License, or any later version.<br/>
+ *<br/>
+ * This program is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br/>
+ * GNU General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU General Public License<br/>
+ * along with this program; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.<br/>
+ */<br/>
+<br/>
+package macos;<br/>
+<br/>
+//{{{ Imports<br/>
+import java.util.Vector;<br/>
+import javax.swing.*;<br/>
+import org.gjt.sp.jedit.*;<br/>
+import org.gjt.sp.jedit.gui.*;<br/>
+import org.gjt.sp.jedit.msg.*;<br/>
+import org.gjt.sp.util.Log;<br/>
+import macos.menu.*;<br/>
+import macos.script.*;<br/>
+import com.apple.cocoa.application.*;<br/>
+import com.apple.eawt.Application;<br/>
+//}}}<br/>
+<br/>
+public class MacOSPlugin extends EBPlugin<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ Variables<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static boolean started = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean osok;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Delegate delegate;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//}}}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ start() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void start()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(osok = osok())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delegate = new Delegate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NSApplication app = NSApplication.sharedApplication();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Macros.registerHandler(new AppleScriptHandler());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Application app2 = new Application();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app2.addApplicationListener(delegate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app2.setEnabledPreferencesMenu(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app2.setEnabledAboutMenu(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app.setDelegate(delegate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//app.setServicesProvider(delegate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ handleMessage() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void handleMessage(EBMessage message)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (osok)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set type/creator codes for files<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message instanceof BufferUpdate)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delegate.handleFileCodes((BufferUpdate)message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (message instanceof PropertiesChanged)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean b = jEdit.getBooleanProperty("MacOSPlugin.useSelection",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.getBooleanProperty("MacOSPlugin.default.useSelection"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (b)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jEdit.setColorProperty("view.selectionColor",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UIManager.getColor("textHighlight"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This is necessary to have a file opened from the Finder<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// before jEdit is running set as the currently active<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// buffer.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (!started &amp;&amp; message instanceof ViewUpdate)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delegate.handleOpenFile((ViewUpdate)message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}//}}}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ osok() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean osok()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;final String osname = jEdit.getProperty("MacOSPlugin.depend.os.name");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;final String mrjversion = jEdit.getProperty("MacOSPlugin.depend.mrj.version");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!System.getProperty("os.name").equals(osname))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// According to Slava this is better<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Log.log(Log.ERROR,this,jEdit.getProperty("MacOSPlugin.dialog.osname.message"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (MiscUtilities.compareStrings(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.getProperty("mrj.version"),mrjversion,<span class="add">false</span>) &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SwingUtilities.invokeLater( new Runnable() { public void run() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GUIUtilities.error(null,"MacOSPlugin.dialog.mrjversion",new Object[] {mrjversion});<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}});<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}//}}}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

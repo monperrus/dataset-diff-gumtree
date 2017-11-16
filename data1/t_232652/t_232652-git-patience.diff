@@ -1,0 +1,13 @@
+diff --git a/t_232652/left_ColumnOptionsPlugin_1.7.java b/t_232652/right_ColumnOptionsPlugin_1.8.java
+index 88f7433..ce561d6 100644
+--- a/t_232652/left_ColumnOptionsPlugin_1.7.java
++++ b/t_232652/right_ColumnOptionsPlugin_1.8.java
+@@ -65,7 +65,7 @@ public class ColumnOptionsPlugin extends AbstractFolderOptionsPlugin {
+ 	 */
+ 	public static String[] getColumns() {
+ 		String[] userDefined=
+-			CachedHeaderfields.getUserDefinedHeaderfieldArray();
++			CachedHeaderfields.getUserDefinedHeaderfields();
+ 
+ 		String[] stringList= new String[userDefined.length + COLUMNS.length];
+ 		int index= 0;

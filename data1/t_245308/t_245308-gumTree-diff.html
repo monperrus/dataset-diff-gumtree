@@ -1,0 +1,1326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_update_1.45.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1999 Brian Wellington (bwelling@xbill.org)<br/>
+// Portions Copyright (c) 1999 Network Associates, Inc.<br/>
+<br/>
+import java.net.*;<br/>
+import java.io.*;<br/>
+import java.util.*;<br/>
+import org.xbill.DNS.*;<br/>
+import org.xbill.DNS.utils.*;<br/>
+<br/>
+/** @author Brian Wellington &amp;lt;bwelling@xbill.org&amp;gt; */<br/>
+<br/>
+public class update {<br/>
+<br/>
+Message query, response;<br/>
+Resolver res;<br/>
+String server = null;<br/>
+Name origin, zone;<br/>
+int defaultTTL;<br/>
+short defaultClass = DClass.IN;<br/>
+PrintStream log = null;<br/>
+<br/>
+void<br/>
+print(Object o) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(o);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (log != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.println(o);<br/>
+}<br/>
+<br/>
+public<br/>
+update(InputStream in) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Vector inputs = new Vector();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Vector istreams = new Vector();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;query = new Message();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;query.getHeader().setOpcode(Opcode.UPDATE);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;InputStreamReader isr = new InputStreamReader(in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader br = new BufferedReader(isr);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;inputs.addElement(br);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;istreams.addElement(in);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (true) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String line = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;do {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InputStream is;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is = (InputStream) istreams.lastElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;br = (BufferedReader)inputs.lastElement();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (is == System.in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.print("&gt; ");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line = Master.readExtendedLine(br);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (line == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;br.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputs.removeElement(br);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;istreams.removeElement(is);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (inputs.isEmpty())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} while (line == null);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (log != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.println("&gt; " + line);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (line.length() == 0 || line.charAt(0) == '#')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MyStringTokenizer st = new MyStringTokenizer(line);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!st.hasMoreTokens())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String operation = st.nextToken();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (operation.equals("server")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;server = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("key")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String keyname = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String keydata = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.setTSIGKey(keyname, keydata);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("port")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.setPort(Short.parseShort(st.nextToken()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("tcp")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.setTCP(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("class")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short newClass = DClass.value(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (newClass &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultClass = newClass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid class " + newClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("ttl"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultTTL = TTL.parseTTL(st.nextToken());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("origin"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;origin = new Name(st.nextToken());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("zone"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;zone = new Name(st.nextToken());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("require"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doRequire(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("prohibit"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doProhibit(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("add"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doAdd(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("delete"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doDelete(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("glue"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doGlue(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("help")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;help(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;help(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("echo"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(line.substring(4).trim());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("send")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sendUpdate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query = new Message();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.getHeader().setOpcode(Opcode.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("query"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doQuery(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("quit") ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; operation.equals("q"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (log != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enumeration e = inputs.elements();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (e.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader tbr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tbr = (BufferedReader) e.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tbr.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.exit(0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("file"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doFile(st, inputs, istreams);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("log"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doLog(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("assert")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (doAssert(st) == false)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("invalid keyword: " + operation);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (NullPointerException npe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Parse error");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (InterruptedIOException iioe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Operation timed out");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+sendUpdate() throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (query.getHeader().getCount(Section.ZONE) == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name updzone;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (zone != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updzone = zone;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updzone = origin;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short dclass = defaultClass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (updzone == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enumeration updates = query.getSection(Section.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (updates == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid update");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Record r = (Record) updates.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updzone = new Name(r.getName(), 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dclass = r.getDClass();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Record soa = Record.newRecord(updzone, Type.SOA, dclass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(soa, Section.ZONE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;response = res.send(query);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (response == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;print(response);<br/>
+}<br/>
+<br/>
+/* <br/>
+ * &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data&gt;<br/>
+ * Ignore the class, if present.<br/>
+ */<br/>
+Record<br/>
+parseRR(MyStringTokenizer st, short classValue, int TTLValue)<br/>
+throws IOException<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = new Name(st.nextToken(), origin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int ttl;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;short type;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ttl = TTL.parseTTL(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;catch (NumberFormatException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ttl = TTLValue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (DClass.value(s) &gt;= 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s = st.nextToken();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((type = Type.value(s)) &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Close enough... */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NullPointerException("Parse error");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Record.fromString(name, type, classValue, ttl, st, origin);<br/>
+}<br/>
+<br/>
+/* <br/>
+ * &lt;name&gt; &lt;type&gt;<br/>
+ */<br/>
+Record<br/>
+parseSet(MyStringTokenizer st, short classValue) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = new Name(st.nextToken(), origin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;short type;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((type = Type.value(st.nextToken())) &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IOException("Parse error");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Record.newRecord(name, type, classValue, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+<br/>
+/* <br/>
+ * &lt;name&gt;<br/>
+ */<br/>
+Record<br/>
+parseName(MyStringTokenizer st, short classValue) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = new Name(st.nextToken(), origin);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Record.newRecord(name, Type.ANY, classValue, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+<br/>
+void<br/>
+doRequire(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r")) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-s"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseSet(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-n"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseName(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.PREREQ);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doProhibit(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r")) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-s"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseSet(st, DClass.NONE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-n"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseName(st, DClass.NONE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.PREREQ);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doAdd(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!qualifier.startsWith("-")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;st.putBackToken(qualifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;qualifier = "-r";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, defaultTTL);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doDelete(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, DClass.NONE, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-s"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseSet(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-n"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseName(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doGlue(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!qualifier.startsWith("-")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;st.putBackToken(qualifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;qualifier = "-r";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, defaultTTL);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.ADDITIONAL);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doQuery(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;short type = Type.A, dclass = defaultClass;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;name = new Name(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type = Type.value(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (type &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IOException("Invalid type");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dclass = DClass.value(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (dclass &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IOException("Invalid class");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;rec = Record.newRecord(name, type, dclass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Message newQuery = Message.newQuery(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec.getType() == Type.AXFR)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response = res.sendAXFR(newQuery);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response = res.send(newQuery);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;print(response);<br/>
+}<br/>
+<br/>
+void<br/>
+doFile(MyStringTokenizer st, Vector inputs, Vector istreams) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InputStreamReader isr2;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!s.equals("-")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FileInputStream fis = new FileInputStream(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;isr2 = new InputStreamReader(fis);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;istreams.addElement(fis);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;isr2 = new InputStreamReader(System.in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;istreams.addElement(System.in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader br2 = new BufferedReader(isr2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputs.addElement(br2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;catch (FileNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(s + "not found");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+<br/>
+void<br/>
+doLog(MyStringTokenizer st) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FileOutputStream fos = new FileOutputStream(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log = new PrintStream(fos);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Error opening " + s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+boolean<br/>
+doAssert(MyStringTokenizer st) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String field = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String expected = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String value = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean flag = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int section;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (response == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("No response has been received");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (field.equalsIgnoreCase("rcode")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short rcode = response.getHeader().getRcode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (rcode != Rcode.value(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = Rcode.string(rcode);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flag = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (field.equalsIgnoreCase("serial")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Record [] answers = response.getSectionArray(Section.ANSWER);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (answers.length &lt; 1 || !(answers[0] instanceof SOARecord))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid response (no SOA)");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SOARecord soa = (SOARecord) answers[0];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int serial = soa.getSerial();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (serial != new Integer(expected).intValue()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = new Integer(serial).toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flag = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if ((section = Section.value(field)) &gt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short count = response.getHeader().getCount(section);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (count != Short.parseShort(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = new Short(count).toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flag = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid assertion keyword: " + field);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (flag == false) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Expected " + field + " " + expected + <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      ", received " + value);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return flag;<br/>
+}<br/>
+<br/>
+static void<br/>
+helpResolver() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Resolver options:\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    server &lt;name&gt;" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\tserver that receives the updates\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    key &lt;name&gt; &lt;data&gt;" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\tTSIG key used to sign the messages\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    port &lt;port&gt;" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\tUDP/TCP port the message is sent to (default: 53)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    tcp" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tTCP should be used to send messages (default: unset)\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+static void<br/>
+helpAttributes() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Attributes:\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    class &lt;class&gt;\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "class of the zone to be updated (default: IN)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    ttl &lt;ttl&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "ttl of an added record, if unspecified (default: 0)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    origin &lt;origin&gt;\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "default origin of each record name (default: .)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    zone &lt;zone&gt;\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "zone to update (default: value of &lt;origin&gt;)\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+};<br/>
+<br/>
+static void<br/>
+helpData() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Data:\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    require/prohibit\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "require that a record, set, or name is/is not present\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-r &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-s &lt;name&gt; &lt;type&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-n &lt;name&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    add\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "specify a record to be added\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t[-r] &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    delete\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "specify a record, set, or all records at a name to be deleted\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-r &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-s &lt;name&gt; &lt;type&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-n &lt;name&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    glue\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "specify an additional record\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t[-r] &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    (notes: @ represents the origin " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "and @me@ represents the local IP address)\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+static void<br/>
+helpOperations() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Operations:\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    help [topic]\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "this information\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    echo &lt;text&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "echoes the line\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    send\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "sends the update and resets the current query\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    query &lt;name&gt; &lt;type&gt; &lt;class&gt; \t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "issues a query for this name, type, and class\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    quit\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "quits the program\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    file &lt;file&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "opens the specified file as the new input source\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    log &lt;file&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "opens the specified file and uses it to log output\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    assert &lt;field&gt; &lt;value&gt; [msg]\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tasserts that the value of the field in the last response\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tmatches the value specified.  If not, the message is\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tprinted (if present) and the program exits.\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+static void<br/>
+help(String topic) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (topic != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (topic.equalsIgnoreCase("resolver"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpResolver();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (topic.equalsIgnoreCase("attributes"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpAttributes();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (topic.equalsIgnoreCase("data"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpData();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (topic.equalsIgnoreCase("operations"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpOperations();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println ("Topic " + topic + " unrecognized");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("The help topics are:\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Resolver\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Properties of the resolver and DNS\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Attributes\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Properties of some/all records\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Data\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Prerequisites, updates, and additional records\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Operations\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Actions to be taken\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+public static void<br/>
+main(String args[]) throws IOException {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;InputStream in = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (args.length == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in = new FileInputStream(args[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (FileNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(args[0] + " not found.");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.exit(-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in = System.in;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;update u = new update(in);<br/>
+}<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_update_1.46.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1999 Brian Wellington (bwelling@xbill.org)<br/>
+// Portions Copyright (c) 1999 Network Associates, Inc.<br/>
+<br/>
+import java.net.*;<br/>
+import java.io.*;<br/>
+import java.util.*;<br/>
+import org.xbill.DNS.*;<br/>
+import org.xbill.DNS.utils.*;<br/>
+<br/>
+/** @author Brian Wellington &amp;lt;bwelling@xbill.org&amp;gt; */<br/>
+<br/>
+public class update {<br/>
+<br/>
+Message query, response;<br/>
+Resolver res;<br/>
+String server = null;<br/>
+Name origin, zone;<br/>
+int defaultTTL;<br/>
+short defaultClass = DClass.IN;<br/>
+PrintStream log = null;<br/>
+<br/>
+void<br/>
+print(Object o) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(o);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (log != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.println(o);<br/>
+}<br/>
+<br/>
+public<br/>
+update(InputStream in) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Vector inputs = new Vector();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Vector istreams = new Vector();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;query = new Message();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;query.getHeader().setOpcode(Opcode.UPDATE);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;InputStreamReader isr = new InputStreamReader(in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader br = new BufferedReader(isr);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;inputs.addElement(br);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;istreams.addElement(in);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (true) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String line = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;do {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InputStream is;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is = (InputStream) istreams.lastElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;br = (BufferedReader)inputs.lastElement();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (is == System.in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.print("&gt; ");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line = Master.readExtendedLine(br);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (line == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;br.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputs.removeElement(br);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;istreams.removeElement(is);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (inputs.isEmpty())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} while (line == null);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (log != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.println("&gt; " + line);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (line.length() == 0 || line.charAt(0) == '#')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MyStringTokenizer st = new MyStringTokenizer(line);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!st.hasMoreTokens())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String operation = st.nextToken();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (operation.equals("server")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;server = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("key")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String keyname = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String keydata = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.setTSIGKey(keyname, keydata);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("port")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.setPort(Short.parseShort(st.nextToken()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("tcp")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.setTCP(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("class")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short newClass = DClass.value(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (newClass &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultClass = newClass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid class " + newClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("ttl"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultTTL = TTL.parseTTL(st.nextToken());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("origin"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;origin = new Name(st.nextToken());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("zone"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;zone = new Name(st.nextToken());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("require"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doRequire(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("prohibit"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doProhibit(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("add"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doAdd(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("delete"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doDelete(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("glue"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doGlue(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("help")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;help(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;help(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("echo"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(line.substring(4).trim());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("send")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sendUpdate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query = new Message();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.getHeader().setOpcode(Opcode.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("query"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doQuery(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("quit") ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; operation.equals("q"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (log != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enumeration e = inputs.elements();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (e.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader tbr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tbr = (BufferedReader) e.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tbr.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.exit(0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("file"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doFile(st, inputs, istreams);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("log"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doLog(st);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (operation.equals("assert")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (doAssert(st) == false)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("invalid keyword: " + operation);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (NullPointerException npe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Parse error");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (InterruptedIOException iioe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Operation timed out");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+sendUpdate() throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (query.getHeader().getCount(Section.ZONE) == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name updzone;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (zone != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updzone = zone;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updzone = origin;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short dclass = defaultClass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (updzone == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enumeration updates = query.getSection(Section.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (updates == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid update");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Record r = (Record) updates.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updzone = new Name(r.getName(), 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dclass = r.getDClass();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Record soa = Record.newRecord(updzone, Type.SOA, dclass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(soa, Section.ZONE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;response = res.send(query);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (response == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;print(response);<br/>
+}<br/>
+<br/>
+/* <br/>
+ * &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data&gt;<br/>
+ * Ignore the class, if present.<br/>
+ */<br/>
+Record<br/>
+parseRR(MyStringTokenizer st, short classValue, int TTLValue)<br/>
+throws IOException<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = new Name(st.nextToken(), origin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int ttl;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;short type;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ttl = TTL.parseTTL(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;catch (NumberFormatException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ttl = TTLValue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (DClass.value(s) &gt;= 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s = st.nextToken();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((type = Type.value(s)) &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Close enough... */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NullPointerException("Parse error");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Record.fromString(name, type, classValue, ttl, st, origin);<br/>
+}<br/>
+<br/>
+/* <br/>
+ * &lt;name&gt; &lt;type&gt;<br/>
+ */<br/>
+Record<br/>
+parseSet(MyStringTokenizer st, short classValue) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = new Name(st.nextToken(), origin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;short type;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((type = Type.value(st.nextToken())) &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IOException("Parse error");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Record.newRecord(name, type, classValue, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+<br/>
+/* <br/>
+ * &lt;name&gt;<br/>
+ */<br/>
+Record<br/>
+parseName(MyStringTokenizer st, short classValue) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = new Name(st.nextToken(), origin);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Record.newRecord(name, Type.ANY, classValue, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+<br/>
+void<br/>
+doRequire(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r")) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-s"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseSet(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-n"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseName(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.PREREQ);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doProhibit(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r")) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-s"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseSet(st, DClass.NONE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-n"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseName(st, DClass.NONE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.PREREQ);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doAdd(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!qualifier.startsWith("-")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;st.putBackToken(qualifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;qualifier = "-r";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, defaultTTL);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doDelete(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, DClass.NONE, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-s"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseSet(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (qualifier.equals("-n"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseName(st, DClass.ANY);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.UPDATE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doGlue(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String qualifier = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!qualifier.startsWith("-")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;st.putBackToken(qualifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;qualifier = "-r";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (qualifier.equals("-r"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rec = parseRR(st, defaultClass, defaultTTL);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("qualifier " + qualifier + " not supported");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query.addRecord(rec, Section.ADDITIONAL);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+void<br/>
+doQuery(MyStringTokenizer st) throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Record rec;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name name = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;short type = Type.A, dclass = defaultClass;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;name = new Name(st.nextToken(), <span class="add">origin</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type = Type.value(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (type &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IOException("Invalid type");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dclass = DClass.value(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (dclass &lt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IOException("Invalid class");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;rec = Record.newRecord(name, type, dclass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Message newQuery = Message.newQuery(rec);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (res == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = new SimpleResolver(server);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rec.getType() == Type.AXFR)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response = res.sendAXFR(newQuery);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response = res.send(newQuery);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;print(response);<br/>
+}<br/>
+<br/>
+void<br/>
+doFile(MyStringTokenizer st, Vector inputs, Vector istreams) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InputStreamReader isr2;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!s.equals("-")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FileInputStream fis = new FileInputStream(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;isr2 = new InputStreamReader(fis);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;istreams.addElement(fis);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;isr2 = new InputStreamReader(System.in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;istreams.addElement(System.in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BufferedReader br2 = new BufferedReader(isr2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputs.addElement(br2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;catch (FileNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(s + "not found");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+<br/>
+void<br/>
+doLog(MyStringTokenizer st) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FileOutputStream fos = new FileOutputStream(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log = new PrintStream(fos);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Error opening " + s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+boolean<br/>
+doAssert(MyStringTokenizer st) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String field = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String expected = st.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String value = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean flag = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int section;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (response == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("No response has been received");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (field.equalsIgnoreCase("rcode")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short rcode = response.getHeader().getRcode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (rcode != Rcode.value(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = Rcode.string(rcode);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flag = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if (field.equalsIgnoreCase("serial")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Record [] answers = response.getSectionArray(Section.ANSWER);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (answers.length &lt; 1 || !(answers[0] instanceof SOARecord))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid response (no SOA)");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SOARecord soa = (SOARecord) answers[0];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int serial = soa.getSerial();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (serial != new Integer(expected).intValue()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = new Integer(serial).toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flag = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else if ((section = Section.value(field)) &gt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;short count = response.getHeader().getCount(section);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (count != Short.parseShort(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = new Short(count).toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flag = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Invalid assertion keyword: " + field);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (flag == false) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Expected " + field + " " + expected + <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      ", received " + value);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (st.hasMoreTokens())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(st.nextToken());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return flag;<br/>
+}<br/>
+<br/>
+static void<br/>
+helpResolver() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Resolver options:\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    server &lt;name&gt;" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\tserver that receives the updates\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    key &lt;name&gt; &lt;data&gt;" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\tTSIG key used to sign the messages\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    port &lt;port&gt;" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\tUDP/TCP port the message is sent to (default: 53)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    tcp" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tTCP should be used to send messages (default: unset)\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+static void<br/>
+helpAttributes() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Attributes:\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    class &lt;class&gt;\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "class of the zone to be updated (default: IN)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    ttl &lt;ttl&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "ttl of an added record, if unspecified (default: 0)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    origin &lt;origin&gt;\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "default origin of each record name (default: .)\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    zone &lt;zone&gt;\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "zone to update (default: value of &lt;origin&gt;)\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+};<br/>
+<br/>
+static void<br/>
+helpData() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Data:\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    require/prohibit\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "require that a record, set, or name is/is not present\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-r &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-s &lt;name&gt; &lt;type&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-n &lt;name&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    add\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "specify a record to be added\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t[-r] &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    delete\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "specify a record, set, or all records at a name to be deleted\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-r &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-s &lt;name&gt; &lt;type&gt; \n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t-n &lt;name&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    glue\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "specify an additional record\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t[-r] &lt;name&gt; [ttl] [class] &lt;type&gt; &lt;data ...&gt; \n\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    (notes: @ represents the origin " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "and @me@ represents the local IP address)\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+static void<br/>
+helpOperations() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Operations:\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    help [topic]\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "this information\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    echo &lt;text&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "echoes the line\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    send\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "sends the update and resets the current query\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    query &lt;name&gt; &lt;type&gt; &lt;class&gt; \t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "issues a query for this name, type, and class\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    quit\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "quits the program\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    file &lt;file&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "opens the specified file as the new input source\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    log &lt;file&gt;\t\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "opens the specified file and uses it to log output\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    assert &lt;field&gt; &lt;value&gt; [msg]\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tasserts that the value of the field in the last response\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tmatches the value specified.  If not, the message is\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "\t\t\tprinted (if present) and the program exits.\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+static void<br/>
+help(String topic) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (topic != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (topic.equalsIgnoreCase("resolver"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpResolver();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (topic.equalsIgnoreCase("attributes"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpAttributes();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (topic.equalsIgnoreCase("data"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpData();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (topic.equalsIgnoreCase("operations"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helpOperations();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println ("Topic " + topic + " unrecognized");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("The help topics are:\n" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Resolver\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Properties of the resolver and DNS\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Attributes\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Properties of some/all records\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Data\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Prerequisites, updates, and additional records\n" +<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "    Operations\t" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  "Actions to be taken\n"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;);<br/>
+}<br/>
+<br/>
+public static void<br/>
+main(String args[]) throws IOException {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;InputStream in = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (args.length == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in = new FileInputStream(args[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (FileNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(args[0] + " not found.");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.exit(-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in = System.in;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;update u = new update(in);<br/>
+}<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

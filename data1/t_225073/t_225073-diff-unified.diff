@@ -1,0 +1,11 @@
+--- t_225073/left_IndexWriter_1.21.java	2013-03-17 15:47:08.000000000 +0100
++++ t_225073/right_IndexWriter_1.22.java	2013-03-17 15:47:08.000000000 +0100
+@@ -356,7 +356,7 @@
+     segmentInfos.addElement(new SegmentInfo(mergedName, docCount, directory));
+ 
+     synchronized (directory) {			  // in- & inter-process sync
+-      new Lock.With(directory.makeLock("commit.lock")) {
++      new Lock.With(directory.makeLock("commit.lock"), COMMIT_LOCK_TIMEOUT) {
+ 	  public Object doBody() throws IOException {
+ 	    segmentInfos.write(directory);	  // commit changes
+ 	    return null;

@@ -1,0 +1,400 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ColorUtil_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2004, 2006 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.themes;<br/>
+<br/>
+import java.lang.reflect.Field;<br/>
+import java.lang.reflect.Modifier;<br/>
+import java.util.ArrayList;<br/>
+<br/>
+import org.eclipse.jface.resource.StringConverter;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.graphics.RGB;<br/>
+import org.eclipse.swt.widgets.Display;<br/>
+<br/>
+/**<br/>
+ * Useful color utilities.<br/>
+ * <br/>
+ * @since 3.0 - initial release<br/>
+ * @since 3.2 - public API<br/>
+ */<br/>
+public final class ColorUtil {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static Field[] cachedFields;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Process the given string and return a corresponding RGB object.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the SWT constant &lt;code&gt;String&lt;/code&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the value of the SWT constant, or &lt;code&gt;SWT.COLOR_BLACK&lt;/code&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *         if it could not be determined<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static RGB process(String value) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field [] fields = getFields();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; fields.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field field = fields[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (<span class="mv">value</span>.<span class="mv">equals</span>(field.getName())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getSystemColor(field.getInt(null));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IllegalArgumentException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no op - shouldnt happen. We check for static before calling<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// getInt(null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IllegalAccessException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no op - shouldnt happen. We check for public before calling<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// getInt(null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getSystemColor(SWT.COLOR_BLACK);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Get the SWT constant fields.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the fields<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @since 3.3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static Field[] getFields() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (cachedFields == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Class clazz = SWT.class;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field[] allFields = clazz.getDeclaredFields();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ArrayList applicableFields = new ArrayList(allFields.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; allFields.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field field = allFields[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (field.getType() == Integer.TYPE<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; Modifier.isStatic(field.getModifiers())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; Modifier.isPublic(field.getModifiers())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; Modifier.isFinal(field.getModifiers())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; field.getName().startsWith("COLOR")) { //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applicableFields.add(field);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cachedFields = (Field []) applicableFields.toArray(new Field [applicableFields.size()]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return cachedFields;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Blend the two color values returning a value that is halfway between<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * them.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param val1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the first value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param val2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the second value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the blended color<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static RGB blend(RGB val1, RGB val2) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int red = blend(val1.red, val2.red);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int green = blend(val1.green, val2.green);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int blue = blend(val1.blue, val2.blue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new RGB(red, green, blue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Blend the two color values returning a value that is halfway between<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * them.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param temp1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the first value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param temp2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the second value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the blended int value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static int blend(int temp1, int temp2) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (Math.abs(temp1 - temp2) / 2) + Math.min(temp1, temp2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Return the system color that matches the provided SWT constant value.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param colorId<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the system color identifier<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the RGB value of the supplied system color<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static RGB getSystemColor(int colorId) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return Display.getCurrent().getSystemColor(colorId).getRGB();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Get the RGB value for a given color.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param rawValue<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the raw value, either an RGB triple or an SWT constant name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the RGB value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static RGB getColorValue(String rawValue) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (rawValue == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rawValue = rawValue.trim();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isDirectValue(rawValue)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return process(rawValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StringConverter.asRGB(rawValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Get the RGB values for a given color array.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param rawValues<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the raw values, either RGB triple or an SWT constant<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the RGB values<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static RGB[] getColorValues(String[] rawValues) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RGB[] values = new RGB[rawValues.length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; rawValues.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;values[i] = getColorValue(rawValues[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return values;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Return whether the value returned by &lt;code&gt;getValue()&lt;/code&gt; is already<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in RGB form.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return whether the value returned by &lt;code&gt;getValue()&lt;/code&gt; is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *         already in RGB form<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static boolean isDirectValue(String rawValue) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return rawValue.indexOf(',') &gt;= 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Not intended to be instantiated.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private ColorUtil() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no-op<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ColorUtil_1.6.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2004, 2006 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.themes;<br/>
+<br/>
+import java.lang.reflect.Field;<br/>
+import java.lang.reflect.Modifier;<br/>
+import java.util.ArrayList;<br/>
+<br/>
+import org.eclipse.jface.resource.StringConverter;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.graphics.RGB;<br/>
+import org.eclipse.swt.widgets.Display;<br/>
+<br/>
+/**<br/>
+ * Useful color utilities.<br/>
+ * <br/>
+ * @since 3.0 - initial release<br/>
+ * @since 3.2 - public API<br/>
+ */<br/>
+public final class ColorUtil {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static Field[] cachedFields;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Process the given string and return a corresponding RGB object.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the SWT constant &lt;code&gt;String&lt;/code&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the value of the SWT constant, or &lt;code&gt;SWT.COLOR_BLACK&lt;/code&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *         if it could not be determined<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static RGB process(String value) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field [] fields = getFields();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; fields.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field field = fields[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (field.getName().<span class="mv">equals</span>(<span class="mv">value</span>)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getSystemColor(field.getInt(null));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IllegalArgumentException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no op - shouldnt happen. We check for static before calling<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// getInt(null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (IllegalAccessException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no op - shouldnt happen. We check for public before calling<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// getInt(null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getSystemColor(SWT.COLOR_BLACK);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Get the SWT constant fields.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the fields<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @since 3.3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static Field[] getFields() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (cachedFields == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Class clazz = SWT.class;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field[] allFields = clazz.getDeclaredFields();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ArrayList applicableFields = new ArrayList(allFields.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; allFields.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field field = allFields[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (field.getType() == Integer.TYPE<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; Modifier.isStatic(field.getModifiers())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; Modifier.isPublic(field.getModifiers())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; Modifier.isFinal(field.getModifiers())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; field.getName().startsWith("COLOR")) { //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;applicableFields.add(field);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cachedFields = (Field []) applicableFields.toArray(new Field [applicableFields.size()]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return cachedFields;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Blend the two color values returning a value that is halfway between<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * them.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param val1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the first value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param val2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the second value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the blended color<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static RGB blend(RGB val1, RGB val2) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int red = blend(val1.red, val2.red);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int green = blend(val1.green, val2.green);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int blue = blend(val1.blue, val2.blue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new RGB(red, green, blue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Blend the two color values returning a value that is halfway between<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * them.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param temp1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the first value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param temp2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the second value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the blended int value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static int blend(int temp1, int temp2) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (Math.abs(temp1 - temp2) / 2) + Math.min(temp1, temp2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Return the system color that matches the provided SWT constant value.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param colorId<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the system color identifier<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the RGB value of the supplied system color<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static RGB getSystemColor(int colorId) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return Display.getCurrent().getSystemColor(colorId).getRGB();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Get the RGB value for a given color.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param rawValue<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the raw value, either an RGB triple or an SWT constant name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the RGB value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static RGB getColorValue(String rawValue) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (rawValue == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rawValue = rawValue.trim();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isDirectValue(rawValue)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return process(rawValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StringConverter.asRGB(rawValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Get the RGB values for a given color array.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param rawValues<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *            the raw values, either RGB triple or an SWT constant<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the RGB values<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static RGB[] getColorValues(String[] rawValues) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RGB[] values = new RGB[rawValues.length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; rawValues.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;values[i] = getColorValue(rawValues[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return values;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Return whether the value returned by &lt;code&gt;getValue()&lt;/code&gt; is already<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in RGB form.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return whether the value returned by &lt;code&gt;getValue()&lt;/code&gt; is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *         already in RGB form<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static boolean isDirectValue(String rawValue) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return rawValue.indexOf(',') &gt;= 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Not intended to be instantiated.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private ColorUtil() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no-op<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

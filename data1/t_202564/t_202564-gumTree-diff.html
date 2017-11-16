@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_PropPanelModelElement_1.9.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-2001 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+// 4 Apr 2002: Jeremy Bennett (mail@jeremybennett.com). Icons for extend and<br/>
+// include relationships added.<br/>
+<br/>
+<br/>
+package org.argouml.uml.ui.foundation.core;<br/>
+<br/>
+<br/>
+import java.awt.*;<br/>
+import javax.swing.*;<br/>
+import ru.novosoft.uml.foundation.core.*;<br/>
+import ru.novosoft.uml.foundation.data_types.*;<br/>
+import ru.novosoft.uml.foundation.extension_mechanisms.*;<br/>
+import org.argouml.application.api.*;<br/>
+import org.argouml.uml.ui.*;<br/>
+<br/>
+import org.tigris.gef.util.*;<br/>
+import java.util.*;<br/>
+<br/>
+abstract public class PropPanelModelElement extends PropPanel {<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // constants<br/>
+<br/>
+    protected static ImageIcon _objectIcon = ResourceLoader.lookupIconResource("Object");<br/>
+    protected static ImageIcon _componentInstanceIcon = ResourceLoader.lookupIconResource("ComponentInstance");<br/>
+    protected static ImageIcon _nodeInstanceIcon = ResourceLoader.lookupIconResource("NodeInstance");<br/>
+    protected static ImageIcon _instanceIcon = ResourceLoader.lookupIconResource("Instance");<br/>
+    protected static ImageIcon _linkIcon = ResourceLoader.lookupIconResource("Link");<br/>
+    protected static ImageIcon _stimulusIcon = ResourceLoader.lookupIconResource("Stimulus");<br/>
+    protected static ImageIcon _associationIcon = ResourceLoader.lookupIconResource("Association");<br/>
+    protected static ImageIcon _assocEndIcon = ResourceLoader.lookupIconResource("AssociationEnd");<br/>
+    protected static ImageIcon _generalizationIcon = ResourceLoader.lookupIconResource("Generalization");<br/>
+    protected static ImageIcon _realizationIcon = ResourceLoader.lookupIconResource("Realization");<br/>
+    protected static ImageIcon _classIcon = ResourceLoader.lookupIconResource("Class");<br/>
+    protected static ImageIcon _interfaceIcon = ResourceLoader.lookupIconResource("Interface");<br/>
+    protected static ImageIcon _addOpIcon = ResourceLoader.lookupIconResource("AddOperation");<br/>
+    protected static ImageIcon _addAttrIcon = ResourceLoader.lookupIconResource("AddAttribute");<br/>
+    protected static ImageIcon _addAssocIcon = ResourceLoader.lookupIconResource("Association");<br/>
+    protected static ImageIcon _packageIcon = ResourceLoader.lookupIconResource("Package");<br/>
+    protected static ImageIcon _modelIcon = ResourceLoader.lookupIconResource("Model");<br/>
+    protected static ImageIcon _innerClassIcon = ResourceLoader.lookupIconResource("InnerClass");<br/>
+    protected static ImageIcon _nodeIcon = ResourceLoader.lookupIconResource("Node");<br/>
+    protected static ImageIcon _componentIcon = ResourceLoader.lookupIconResource("Component");<br/>
+    protected static ImageIcon _dataTypeIcon = ResourceLoader.lookupIconResource("DataType");<br/>
+    protected static ImageIcon _actorIcon = ResourceLoader.lookupIconResource("Actor");<br/>
+    protected static ImageIcon _useCaseIcon = ResourceLoader.lookupIconResource("UseCase");<br/>
+    protected static ImageIcon _extendIcon = ResourceLoader.lookupIconResource("Extend");<br/>
+    protected static ImageIcon _extensionPointIcon = ResourceLoader.lookupIconResource("ExtensionPoint");<br/>
+    protected static ImageIcon _includeIcon = ResourceLoader.lookupIconResource("Include");<br/>
+    protected static ImageIcon _dependencyIcon = ResourceLoader.lookupIconResource("Dependency");<br/>
+    protected static ImageIcon _parameterIcon = ResourceLoader.lookupIconResource("Parameter");<br/>
+    protected static ImageIcon _operationIcon = ResourceLoader.lookupIconResource("Operation");<br/>
+    protected static ImageIcon _signalIcon = ResourceLoader.lookupIconResource("SignalSending");<br/>
+    protected static ImageIcon _stereotypeIcon = ResourceLoader.lookupIconResource("Stereotype");<br/>
+    protected static ImageIcon _guardIcon = ResourceLoader.lookupIconResource("Guard");<br/>
+    protected static ImageIcon _transitionIcon = ResourceLoader.lookupIconResource("Transition");<br/>
+    protected static ImageIcon _classifierRoleIcon = ResourceLoader.lookupIconResource("ClassifierRole");<br/>
+    protected static ImageIcon _associationRoleIcon = ResourceLoader.lookupIconResource("AssociationRole");<br/>
+    protected static ImageIcon _callActionIcon = ResourceLoader.lookupIconResource("CallAction");<br/>
+<br/>
+    protected JList namespaceList;<br/>
+    protected JScrollPane namespaceScroll;<br/>
+    protected UMLTextField nameField;<br/>
+    protected JComboBox stereotypeBox;<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // constructors<br/>
+    public PropPanelModelElement(String name, int columns) {<br/>
+        this(name,null,columns);<br/>
+    }<br/>
+<br/>
+    public PropPanelModelElement(String name, ImageIcon icon, int columns) {<br/>
+        super(name,icon,columns);<br/>
+<br/>
+        Class mclass = MModelElement.class;<br/>
+<br/>
+        nameField=new UMLTextField(this,new UMLTextProperty(mclass,"name","getName","setName"));<br/>
+<br/>
+        stereotypeBox = new UMLStereotypeComboBox(this);<br/>
+<br/>
+        namespaceList = new UMLList(new UMLNamespaceListModel(this),true);<br/>
+        namespaceList.setBackground(getBackground());<br/>
+        namespaceList.setForeground(Color.blue);<br/>
+        <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;namespaceScroll = new JScrollPane(namespaceList,JScrollPane.VERTICAL_SCROLLBAR_NEVER,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);<br/>
+    }<br/>
+<br/>
+    public void navigateUp() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MModelElement) {<br/>
+            MNamespace namespace = ((MModelElement) target).getNamespace();<br/>
+            if(namespace != null) {<br/>
+                navigateTo(namespace);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void addRealization() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MModelElement) {<br/>
+            MModelElement modelElement = (MModelElement) target;<br/>
+            MNamespace ns = modelElement.getNamespace();<br/>
+            if(ns != null) {<br/>
+//                MGeneralization newGen = ns.getFactory().createGeneralization();<br/>
+//                if(newGen != null) {<br/>
+//                    newGen.addSpecialization(genElem);<br/>
+//                    ns.addOwnedElement(newGen);<br/>
+//                    navigateTo(newGen);<br/>
+//                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void addDataType() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MNamespace) {<br/>
+            MNamespace ns = (MNamespace) target;<br/>
+            MModelElement ownedElem = ns.getFactory().createDataType();<br/>
+            ns.addOwnedElement(ownedElem);<br/>
+            navigateTo(ownedElem);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void navigateNamespace() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MModelElement) {<br/>
+            MModelElement elem = (MModelElement) target;<br/>
+            MNamespace ns = elem.getNamespace();<br/>
+            if(ns != null) {<br/>
+                navigateTo(ns);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    //<br/>
+    // Pluggable Property Panel support<br/>
+    //<br/>
+    // THIS CLASS MUST NOT IMPLEMENT PluggablePropertyPanel.  These<br/>
+    // are present to provide default implementations for any<br/>
+    // property panel that extends this class.<br/>
+    public PropPanel getPropertyPanel() { return this; } <br/>
+    public boolean isModuleEnabled() { return true; }<br/>
+    public Vector getModulePopUpActions(Vector v, Object o) { return null; }<br/>
+    public boolean shutdownModule() { return true; }<br/>
+    public boolean initializeModule() {<br/>
+        ArgoModule.cat.debug("initializeModule()");<br/>
+        return true;<br/>
+    }<br/>
+    public void setModuleEnabled(boolean enabled) { }<br/>
+    public boolean inContext(Object[] o) { return true; }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_PropPanelModelElement_1.10.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-2001 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+// 4 Apr 2002: Jeremy Bennett (mail@jeremybennett.com). Icons for extend and<br/>
+// include relationships added.<br/>
+<br/>
+<br/>
+package org.argouml.uml.ui.foundation.core;<br/>
+<br/>
+<br/>
+import java.awt.*;<br/>
+import javax.swing.*;<br/>
+import ru.novosoft.uml.foundation.core.*;<br/>
+import ru.novosoft.uml.foundation.data_types.*;<br/>
+import ru.novosoft.uml.foundation.extension_mechanisms.*;<br/>
+import org.argouml.application.api.*;<br/>
+import org.argouml.uml.ui.*;<br/>
+<br/>
+import org.tigris.gef.util.*;<br/>
+import java.util.*;<br/>
+<br/>
+abstract public class PropPanelModelElement extends PropPanel {<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // constants<br/>
+<br/>
+    protected static ImageIcon _objectIcon = ResourceLoader.lookupIconResource("Object");<br/>
+    protected static ImageIcon _componentInstanceIcon = ResourceLoader.lookupIconResource("ComponentInstance");<br/>
+    protected static ImageIcon _nodeInstanceIcon = ResourceLoader.lookupIconResource("NodeInstance");<br/>
+    protected static ImageIcon _instanceIcon = ResourceLoader.lookupIconResource("Instance");<br/>
+    protected static ImageIcon _linkIcon = ResourceLoader.lookupIconResource("Link");<br/>
+    protected static ImageIcon _stimulusIcon = ResourceLoader.lookupIconResource("Stimulus");<br/>
+    protected static ImageIcon _associationIcon = ResourceLoader.lookupIconResource("Association");<br/>
+    protected static ImageIcon _assocEndIcon = ResourceLoader.lookupIconResource("AssociationEnd");<br/>
+    <span class="add"><span class="add">protected</span> <span class="add">static</span> <span class="add"><span class="add">ImageIcon</span></span> <span class="add"><span class="add">_assocEndRoleIcon</span> = <span class="add"><span class="add">ResourceLoader</span>.<span class="add">lookupIconResource</span>(<span class="add">"AssociationEndRole"</span>)</span></span>;</span><br/>
+    protected static ImageIcon _generalizationIcon = ResourceLoader.lookupIconResource("Generalization");<br/>
+    protected static ImageIcon _realizationIcon = ResourceLoader.lookupIconResource("Realization");<br/>
+    protected static ImageIcon _classIcon = ResourceLoader.lookupIconResource("Class");<br/>
+    protected static ImageIcon _interfaceIcon = ResourceLoader.lookupIconResource("Interface");<br/>
+    protected static ImageIcon _addOpIcon = ResourceLoader.lookupIconResource("AddOperation");<br/>
+    protected static ImageIcon _addAttrIcon = ResourceLoader.lookupIconResource("AddAttribute");<br/>
+    protected static ImageIcon _addAssocIcon = ResourceLoader.lookupIconResource("Association");<br/>
+    protected static ImageIcon _packageIcon = ResourceLoader.lookupIconResource("Package");<br/>
+    protected static ImageIcon _modelIcon = ResourceLoader.lookupIconResource("Model");<br/>
+    protected static ImageIcon _innerClassIcon = ResourceLoader.lookupIconResource("InnerClass");<br/>
+    protected static ImageIcon _nodeIcon = ResourceLoader.lookupIconResource("Node");<br/>
+    protected static ImageIcon _componentIcon = ResourceLoader.lookupIconResource("Component");<br/>
+    protected static ImageIcon _dataTypeIcon = ResourceLoader.lookupIconResource("DataType");<br/>
+    protected static ImageIcon _actorIcon = ResourceLoader.lookupIconResource("Actor");<br/>
+    protected static ImageIcon _useCaseIcon = ResourceLoader.lookupIconResource("UseCase");<br/>
+    protected static ImageIcon _extendIcon = ResourceLoader.lookupIconResource("Extend");<br/>
+    protected static ImageIcon _extensionPointIcon = ResourceLoader.lookupIconResource("ExtensionPoint");<br/>
+    protected static ImageIcon _includeIcon = ResourceLoader.lookupIconResource("Include");<br/>
+    protected static ImageIcon _dependencyIcon = ResourceLoader.lookupIconResource("Dependency");<br/>
+    protected static ImageIcon _parameterIcon = ResourceLoader.lookupIconResource("Parameter");<br/>
+    protected static ImageIcon _operationIcon = ResourceLoader.lookupIconResource("Operation");<br/>
+    protected static ImageIcon _signalIcon = ResourceLoader.lookupIconResource("SignalSending");<br/>
+    protected static ImageIcon _stereotypeIcon = ResourceLoader.lookupIconResource("Stereotype");<br/>
+    protected static ImageIcon _guardIcon = ResourceLoader.lookupIconResource("Guard");<br/>
+    protected static ImageIcon _transitionIcon = ResourceLoader.lookupIconResource("Transition");<br/>
+    protected static ImageIcon _classifierRoleIcon = ResourceLoader.lookupIconResource("ClassifierRole");<br/>
+    protected static ImageIcon _associationRoleIcon = ResourceLoader.lookupIconResource("AssociationRole");<br/>
+    protected static ImageIcon _callActionIcon = ResourceLoader.lookupIconResource("CallAction");<br/>
+<br/>
+    protected JList namespaceList;<br/>
+    protected JScrollPane namespaceScroll;<br/>
+    protected UMLTextField nameField;<br/>
+    protected JComboBox stereotypeBox;<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // constructors<br/>
+    public PropPanelModelElement(String name, int columns) {<br/>
+        this(name,null,columns);<br/>
+    }<br/>
+<br/>
+    public PropPanelModelElement(String name, ImageIcon icon, int columns) {<br/>
+        super(name,icon,columns);<br/>
+<br/>
+        Class mclass = MModelElement.class;<br/>
+<br/>
+        nameField=new UMLTextField(this,new UMLTextProperty(mclass,"name","getName","setName"));<br/>
+<br/>
+        stereotypeBox = new UMLStereotypeComboBox(this);<br/>
+<br/>
+        namespaceList = new UMLList(new UMLNamespaceListModel(this),true);<br/>
+        namespaceList.setBackground(getBackground());<br/>
+        namespaceList.setForeground(Color.blue);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;namespaceScroll = new JScrollPane(namespaceList,JScrollPane.VERTICAL_SCROLLBAR_NEVER,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);<br/>
+    }<br/>
+<br/>
+    public void navigateUp() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MModelElement) {<br/>
+            MNamespace namespace = ((MModelElement) target).getNamespace();<br/>
+            if(namespace != null) {<br/>
+                navigateTo(namespace);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void addRealization() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MModelElement) {<br/>
+            MModelElement modelElement = (MModelElement) target;<br/>
+            MNamespace ns = modelElement.getNamespace();<br/>
+            if(ns != null) {<br/>
+//                MGeneralization newGen = ns.getFactory().createGeneralization();<br/>
+//                if(newGen != null) {<br/>
+//                    newGen.addSpecialization(genElem);<br/>
+//                    ns.addOwnedElement(newGen);<br/>
+//                    navigateTo(newGen);<br/>
+//                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void addDataType() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MNamespace) {<br/>
+            MNamespace ns = (MNamespace) target;<br/>
+            MModelElement ownedElem = ns.getFactory().createDataType();<br/>
+            ns.addOwnedElement(ownedElem);<br/>
+            navigateTo(ownedElem);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void navigateNamespace() {<br/>
+        Object target = getTarget();<br/>
+        if(target instanceof MModelElement) {<br/>
+            MModelElement elem = (MModelElement) target;<br/>
+            MNamespace ns = elem.getNamespace();<br/>
+            if(ns != null) {<br/>
+                navigateTo(ns);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    //<br/>
+    // Pluggable Property Panel support<br/>
+    //<br/>
+    // THIS CLASS MUST NOT IMPLEMENT PluggablePropertyPanel.  These<br/>
+    // are present to provide default implementations for any<br/>
+    // property panel that extends this class.<br/>
+    public PropPanel getPropertyPanel() { return this; }<br/>
+    public boolean isModuleEnabled() { return true; }<br/>
+    public Vector getModulePopUpActions(Vector v, Object o) { return null; }<br/>
+    public boolean shutdownModule() { return true; }<br/>
+    public boolean initializeModule() {<br/>
+        ArgoModule.cat.debug("initializeModule()");<br/>
+        return true;<br/>
+    }<br/>
+    public void setModuleEnabled(boolean enabled) { }<br/>
+    public boolean inContext(Object[] o) { return true; }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

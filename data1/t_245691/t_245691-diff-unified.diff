@@ -1,0 +1,19 @@
+--- t_245691/left_Name_1.73.java	2013-03-17 15:47:00.000000000 +0100
++++ t_245691/right_Name_1.74.java	2013-03-17 15:47:00.000000000 +0100
+@@ -607,6 +607,16 @@
+ }
+ 
+ /**
++ * Convert Name to canonical DNS wire format (all lowercase)
++ */
++public byte []
++toWireCanonical() throws IOException {
++	DataByteOutputStream out = new DataByteOutputStream();
++	toWireCanonical(out);
++	return out.toByteArray();
++}
++
++/**
+  * Are these two Names equivalent?
+  */
+ public boolean

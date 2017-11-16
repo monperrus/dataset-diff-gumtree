@@ -1,0 +1,11 @@
+--- t_226330/left_ActivityRule_1.4.java	2013-03-17 15:47:22.000000000 +0100
++++ t_226330/right_ActivityRule_1.5.java	2013-03-17 15:47:22.000000000 +0100
+@@ -78,7 +78,7 @@
+     public void end() throws Exception
+     {
+         log().debug("(" + getState() + ") activity end()");
+-        if(getState().equals(DBImport.STATE_DB_INSERTION))
++        if(getState().equals(XMLImport.STATE_DB_INSERTION))
+         {
+             Activity activity = new Activity();
+             String description = (String)digester.pop();

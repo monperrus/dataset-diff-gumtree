@@ -1,0 +1,18 @@
+diff --git a/t_280319/left_InvokerInterceptor_1.1.java b/t_280319/right_InvokerInterceptor_1.2.java
+index f73ffdf..da6ef94 100644
+--- a/t_280319/left_InvokerInterceptor_1.1.java
++++ b/t_280319/right_InvokerInterceptor_1.2.java
+@@ -76,6 +76,13 @@ public class InvokerInterceptor extends BaseInterceptor {
+     String prefix="/servlet/";
+     int prefixLen=prefix.length();
+ 
++    public void setPrefix(String prefix) {
++        if( prefix != null ) {
++            this.prefix = prefix;
++            prefixLen=this.prefix.length();
++        }
++    }
++
+     public int requestMap(Request req) {
+ 	// If we have an explicit mapper - return
+ 	Container ct=req.getContainer();

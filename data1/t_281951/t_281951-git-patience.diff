@@ -1,0 +1,12 @@
+diff --git a/t_281951/left_LookupDispatchAction_1.9.java b/t_281951/right_LookupDispatchAction_1.10.java
+index bff8ac7..3f8675d 100644
+--- a/t_281951/left_LookupDispatchAction_1.9.java
++++ b/t_281951/right_LookupDispatchAction_1.10.java
+@@ -230,7 +230,6 @@ public abstract class LookupDispatchAction extends DispatchAction {
+         String key = (String) lookupMap.get(name);
+ 
+         String methodName = (String) keyMethodMap.get(key);
+-        Object args[] = { mapping, form, request, response };
+ 
+         return dispatchMethod(mapping, form, request, response, methodName);
+     }

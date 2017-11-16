@@ -1,0 +1,12 @@
+--- t_224771/left_IndexWriter_1.2.java	2013-03-17 15:47:08.000000000 +0100
++++ t_224771/right_IndexWriter_1.3.java	2013-03-17 15:47:08.000000000 +0100
+@@ -206,7 +206,8 @@
+     flushRamSegments();
+     while (segmentInfos.size() > 1 ||
+ 	   (segmentInfos.size() == 1 &&
+-	    SegmentReader.hasDeletions(segmentInfos.info(0)))){
++	    (SegmentReader.hasDeletions(segmentInfos.info(0)) ||
++             segmentInfos.info(0).dir != directory))) {
+       int minSegment = segmentInfos.size() - mergeFactor;
+       mergeSegments(minSegment < 0 ? 0 : minSegment);
+     }

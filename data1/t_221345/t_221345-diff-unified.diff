@@ -1,0 +1,11 @@
+--- t_221345/left_Server_1.187.java	2013-03-17 15:47:10.000000000 +0100
++++ t_221345/right_Server_1.188.java	2013-03-17 15:47:10.000000000 +0100
+@@ -1743,7 +1743,7 @@
+ 					// destroyed target's player?
+ 					if ( targetOwnerId == ( (GameTurn)turns.elementAt(loop) ).getPlayerNum() ) {
+ 					    // Yup. Remove the turn and stop looping.
+-					    turns.removeElement( loop );
++					    turns.removeElementAt( loop );
+ 					    break;
+ 					}
+ 				    } // Check the next turn

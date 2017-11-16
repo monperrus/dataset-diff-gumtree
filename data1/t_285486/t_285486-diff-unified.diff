@@ -1,0 +1,11 @@
+--- t_285486/left_AllTests_1.5.java	2013-03-17 15:47:06.000000000 +0100
++++ t_285486/right_AllTests_1.6.java	2013-03-17 15:47:06.000000000 +0100
+@@ -21,7 +21,7 @@
+ 		suite.addTestSuite(SimpleTestCollectorTest.class);
+ 		suite.addTestSuite(BaseTestRunnerTest.class);
+ 		suite.addTestSuite(TextFeedbackTest.class);
+-		suite.addTestSuite(TextRunnerSingleMethodTest.class);
++		//suite.addTestSuite(TextRunnerSingleMethodTest.class);
+ 		if (!BaseTestRunner.inVAJava()) {
+ 			suite.addTestSuite(TextRunnerTest.class);
+ 			if (!isJDK11())

@@ -1,0 +1,421 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_PropertyManager_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * PropertyManager.java - Manages property files<br/>
+ * :tabSize=8:indentSize=8:noTabs=false:<br/>
+ * :folding=explicit:collapseFolds=1:<br/>
+ *<br/>
+ * Copyright (C) 2004 Slava Pestov<br/>
+ *<br/>
+ * This program is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU General Public License<br/>
+ * as published by the Free Software Foundation; either version 2<br/>
+ * of the License, or any later version.<br/>
+ *<br/>
+ * This program is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br/>
+ * GNU General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU General Public License<br/>
+ * along with this program; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.<br/>
+ */<br/>
+<br/>
+package org.gjt.sp.jedit;<br/>
+<br/>
+import java.io.*;<br/>
+import java.util.*;<br/>
+<br/>
+class PropertyManager<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ getProperties() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Properties getProperties()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Properties total = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total.putAll(system);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator iter = plugins.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(iter.hasNext())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total.putAll((Properties)iter.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total.putAll(user);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return total;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadSystemProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void loadSystemProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(system,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadSiteProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void loadSiteProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(site,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadUserProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void loadUserProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(user,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ saveUserProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void saveUserProps(OutputStream out)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.store(out,"jEdit properties");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadPluginProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Properties loadPluginProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Properties plugin = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(plugin,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugins.add(plugin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return plugin;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ addPluginProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void addPluginProps(Properties props)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugins.add(props);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ removePluginProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void removePluginProps(Properties props)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugins.remove(props);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ getProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String getProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String value = user.getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return value;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getDefaultProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ setProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void setProperty(String name, String value)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String prop = getDefaultProperty(name);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* if value is null:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - if default is null, unset user prop<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - else set user prop to ""<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - if default equals value, ignore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - if default doesn't equal value, set user<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(prop == null || prop.length() == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.put(name,"");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value.equals(prop))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.put(name,value);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ setTemporaryProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setTemporaryProperty(String name, String value)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;system.put(name,value);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ unsetProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void unsetProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(getDefaultProperty(name) != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.put(name,"");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ resetProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void resetProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ Private members<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Properties system = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List plugins = new LinkedList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Properties site = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Properties user = new Properties();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ getDefaultProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private String getDefaultProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String value = site.getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return value;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator iter = plugins.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(iter.hasNext())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = ((Properties)iter.next()).getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return value;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return system.getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void loadProps(Properties into, InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;into.load(in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;finally<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//}}}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_PropertyManager_1.3.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * PropertyManager.java - Manages property files<br/>
+ * :tabSize=8:indentSize=8:noTabs=false:<br/>
+ * :folding=explicit:collapseFolds=1:<br/>
+ *<br/>
+ * Copyright (C) 2004 Slava Pestov<br/>
+ *<br/>
+ * This program is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU General Public License<br/>
+ * as published by the Free Software Foundation; either version 2<br/>
+ * of the License, or any later version.<br/>
+ *<br/>
+ * This program is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br/>
+ * GNU General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU General Public License<br/>
+ * along with this program; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.<br/>
+ */<br/>
+<br/>
+package org.gjt.sp.jedit;<br/>
+<br/>
+import java.io.*;<br/>
+import java.util.*;<br/>
+<br/>
+class PropertyManager<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ getProperties() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Properties getProperties()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Properties total = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total.putAll(system);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator iter = plugins.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(iter.hasNext())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total.putAll((Properties)iter.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">total</span>.<span class="add">putAll</span>(<span class="add">site</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total.putAll(user);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return total;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadSystemProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void loadSystemProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(system,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadSiteProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void loadSiteProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(site,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadUserProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void loadUserProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(user,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ saveUserProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void saveUserProps(OutputStream out)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.store(out,"jEdit properties");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadPluginProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Properties loadPluginProps(InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Properties plugin = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loadProps(plugin,in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugins.add(plugin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return plugin;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ addPluginProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void addPluginProps(Properties props)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugins.add(props);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ removePluginProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void removePluginProps(Properties props)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugins.remove(props);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ getProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String getProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String value = user.getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return value;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getDefaultProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ setProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void setProperty(String name, String value)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String prop = getDefaultProperty(name);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* if value is null:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - if default is null, unset user prop<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - else set user prop to ""<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - if default equals value, ignore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * - if default doesn't equal value, set user<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(prop == null || prop.length() == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.put(name,"");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value.equals(prop))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.put(name,value);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ setTemporaryProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setTemporaryProperty(String name, String value)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;system.put(name,value);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ unsetProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;void unsetProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(getDefaultProperty(name) != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.put(name,"");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ resetProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void resetProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user.remove(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ Private members<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Properties system = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List plugins = new LinkedList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Properties site = new Properties();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Properties user = new Properties();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ getDefaultProperty() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private String getDefaultProperty(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String value = site.getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return value;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator iter = plugins.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(iter.hasNext())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value = ((Properties)iter.next()).getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(value != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return value;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return system.getProperty(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//{{{ loadProps() method<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void loadProps(Properties into, InputStream in)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws IOException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;into.load(in);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;finally<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in.close();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} //}}}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//}}}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

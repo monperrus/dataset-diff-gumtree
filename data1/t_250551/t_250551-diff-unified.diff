@@ -1,0 +1,11 @@
+--- t_250551/left_MetricsInterceptor_1.18.java	2013-03-17 15:47:00.000000000 +0100
++++ t_250551/right_MetricsInterceptor_1.19.java	2013-03-17 15:47:02.000000000 +0100
+@@ -206,7 +206,7 @@
+ 
+             // lookup the connection factory and topic and create a JMS session
+             Context namingContext       = new InitialContext();
+-            TopicConnectionFactory fact = (TopicConnectionFactory)namingContext.lookup("TopicConnectionFactory");
++            TopicConnectionFactory fact = (TopicConnectionFactory)namingContext.lookup("ConnectionFactory");
+ 
+             connection  = fact.createTopicConnection();
+ 

@@ -1,0 +1,29 @@
+--- t_231730/left_Main_1.41.java	2013-03-17 15:47:32.000000000 +0100
++++ t_231730/right_Main_1.42.java	2013-03-17 15:47:32.000000000 +0100
+@@ -113,8 +113,6 @@
+ 
+     MainInterface.clipboardManager = new ClipboardManager();
+ 
+-    //new ImageLoader();
+-
+     MainInterface.processor = new DefaultProcessor();
+     MainInterface.processor.start();
+ 
+@@ -148,6 +146,8 @@
+ 
+     new FrameModel();
+ 
++    frame.setVisible(false);
++
+     if (MailConfig.getAccountList().count() == 0) {
+       try {
+ 
+@@ -161,8 +161,6 @@
+     
+     new CmdLineArgumentHandler(args);
+ 
+-    frame.setVisible(false);
+-
+   } // main
+ 
+   private static void doGuiInits() {

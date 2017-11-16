@@ -1,0 +1,13 @@
+diff --git a/t_279149/left_IntrospectionUtils_1.1.java b/t_279149/right_IntrospectionUtils_1.2.java
+index 3c04cfc..e8d30fd 100644
+--- a/t_279149/left_IntrospectionUtils_1.1.java
++++ b/t_279149/right_IntrospectionUtils_1.2.java
+@@ -83,7 +83,7 @@ public final class IntrospectionUtils {
+ 		    // if the method is declared in a top level class
+ 		    // like BaseInterceptor parent is Object, otherwise
+ 		    // parent is BaseInterceptor or an intermediate class
+-		    if( ! "java.jang.Object".
++		    if( ! "java.lang.Object".
+ 			equals(parentOfDeclaring.getName() )) {
+ 			return true;
+ 		    }

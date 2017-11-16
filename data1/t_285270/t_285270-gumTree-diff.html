@@ -1,0 +1,2371 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_StandardDrawingView_1.26.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)StandardDrawingView.java<br/>
+ *<br/>
+ * Project:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JHotdraw - a GUI framework for technical drawings<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.jhotdraw.org<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://jhotdraw.sourceforge.net<br/>
+ * Copyright:&nbsp;&nbsp;&nbsp;&nbsp;? by the original author(s) and all contributors<br/>
+ * License:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lesser GNU Public License (LGPL)<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.opensource.org/licenses/lgpl-license.html<br/>
+ */<br/>
+<br/>
+package CH.ifa.draw.standard;<br/>
+<br/>
+import java.awt.*;<br/>
+import java.awt.dnd.DragGestureListener;<br/>
+import java.awt.dnd.DragSourceListener;<br/>
+import java.awt.event.*;<br/>
+import java.io.IOException;<br/>
+import java.io.ObjectInputStream;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+<br/>
+import javax.swing.JOptionPane;<br/>
+import javax.swing.JPanel;<br/>
+<br/>
+import CH.ifa.draw.contrib.AutoscrollHelper;<br/>
+import CH.ifa.draw.contrib.dnd.DNDHelper;<br/>
+import CH.ifa.draw.contrib.dnd.DNDInterface;<br/>
+import CH.ifa.draw.framework.*;<br/>
+import CH.ifa.draw.framework.Cursor;<br/>
+import CH.ifa.draw.util.CollectionsFactory;<br/>
+import CH.ifa.draw.util.Command;<br/>
+import CH.ifa.draw.util.Geom;<br/>
+import CH.ifa.draw.util.UndoableCommand;<br/>
+<br/>
+/**<br/>
+ * The standard implementation of DrawingView.<br/>
+ *<br/>
+ * @see DrawingView<br/>
+ * @see Painter<br/>
+ * @see Tool<br/>
+ *<br/>
+ * @version &lt;$CURRENT_VERSION$&gt;<br/>
+ */<br/>
+public class StandardDrawingView<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extends JPanel<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;implements DrawingView, DNDInterface, java.awt.dnd.Autoscroll {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The DrawingEditor of the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #tool<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;transient private DrawingEditor   fEditor;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the registered listeners for selection changes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private transient List fSelectionListeners;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The shown drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Drawing         fDrawing;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the accumulated damaged area<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private transient Rectangle fDamage;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The list of currently selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;transient private List fSelection;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The shown selection handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;transient private List fSelectionHandles;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The preferred size of the view<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The position of the last mouse click<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * inside the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Point fLastClick;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * A List of optional backgrounds. The list contains<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * view painters that are drawn before the contents,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * that is in the background.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List fBackgrounds;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * A List of optional foregrounds. The list contains<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * view painters that are drawn after the contents,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * that is in the foreground.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List fForegrounds;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The update strategy used to repair the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Painter fUpdateStrategy;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The grid used to constrain points for snap to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * grid functionality.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private PointConstrainer fConstrainer;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Scrolling increment<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int MINIMUM_WIDTH = 400;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int MINIMUM_HEIGHT = 300;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int SCROLL_INCR = 100;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int SCROLL_OFFSET = 10;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static int counter;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private int myCounter = counter;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private DNDHelper dndh;<br/>
+<br/>
+    /**<br/>
+     * Listener for mouse clicks.<br/>
+     */<br/>
+    private MouseListener mouseListener;<br/>
+    <br/>
+    /**<br/>
+     * Listener for mouse movements.<br/>
+     */<br/>
+    private MouseMotionListener motionListener;<br/>
+    <br/>
+    /**<br/>
+     * Listener for the keyboard.<br/>
+     */<br/>
+    private KeyListener keyListener;<br/>
+<br/>
+    /**<br/>
+     * Reflects whether the drawing view is in read-only mode (from a user's<br/>
+     * perspective).<br/>
+     */<br/>
+    private boolean readOnly;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Serialization support. In JavaDraw only the Drawing is serialized.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * However, for beans support StandardDrawingView supports<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * serialization<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static final long serialVersionUID = -3878153366174603336L;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private int drawingViewSerializedDataVersion = 1;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Constructs the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StandardDrawingView(DrawingEditor editor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this(editor, MINIMUM_WIDTH, MINIMUM_HEIGHT);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StandardDrawingView(DrawingEditor editor, int width, int height) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setAutoscrolls(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;counter++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fEditor = editor;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ricardo_padilha: changed from setSize(int, int) because it is not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// JScrollPane-friendly. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setPreferredSize(new Dimension(width, height));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addFigureSelectionListener(editor());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setLastClick(new Point(0, 0));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fConstrainer = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// JFC/Swing uses double buffering automatically as default<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDisplayUpdate(createDisplayUpdate());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// TODO: Test FastBufferedUpdateStrategy with JFC/Swing double buffering<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//setDisplayUpdate(new FastBufferedUpdateStrategy());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setBackground(Color.lightGray);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addMouseListener(createMouseListener());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addMouseMotionListener(createMouseMotionListener());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addKeyListener(createKeyListener());<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected MouseListener createMouseListener() {<br/>
+        mouseListener = new DrawingViewMouseListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return mouseListener;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected MouseMotionListener createMouseMotionListener() {<br/>
+        motionListener = new DrawingViewMouseMotionListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return  motionListener;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected KeyListener createKeyListener() {<br/>
+        keyListener = new DrawingViewKeyListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return keyListener;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Factory method which can be overriden by subclasses<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Painter createDisplayUpdate() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new SimpleUpdateStrategy();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//return new ClippingUpdateStrategy();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the view's editor.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setEditor(DrawingEditor editor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fEditor = editor;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the current tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Tool tool() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return editor().tool();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Drawing drawing() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fDrawing;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets and installs another drawing in the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setDrawing(Drawing d) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;clearSelection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().removeDrawingChangeListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fDrawing = d;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().addDrawingChangeListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkMinimumSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the editor.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public DrawingEditor editor() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fEditor;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a figure to the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the added figure.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Figure add(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return drawing().add(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a figure from the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the removed figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Figure remove(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return drawing().remove(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a Collection of figures to the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addAll(Collection figures) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = new FigureEnumerator(figures);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add(fe.nextFigure());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Check existance of figure in the drawing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean figureExists(Figure inf, FigureEnumeration fe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure figure = fe.nextFigure();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (figure.includes(inf)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+     * Inserts a FigureEnumeration of figures and translates them by the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * given offset. This function is used to insert figures from clipboards (cut/copy)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return enumeration which has been added to the drawing. The figures in the enumeration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *         can have changed during adding them (e.g. they could have been decorated).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration insertFigures(FigureEnumeration fe, int dx, int dy, boolean bCheck) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fe == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FigureEnumerator.getEmptyEnumeration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List vCF = CollectionsFactory.current().createList(10);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertIntoDrawingVisitor visitor = new InsertIntoDrawingVisitor(drawing());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure figure = fe.nextFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (figure instanceof ConnectionFigure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vCF.add(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (figure != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.moveBy(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.visit(visitor);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration ecf = new FigureEnumerator(vCF);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (ecf.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ConnectionFigure cf = (ConnectionFigure) ecf.nextFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure sf = cf.startFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure ef = cf.endFigure();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (figureExists(sf, drawing().figures())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; figureExists(ef, drawing().figures())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; (!bCheck || cf.canConnect(sf, ef))) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bCheck) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point sp = sf.center();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point ep = ef.center();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Connector fStartConnector = cf.startFigure().connectorAt(ep.x, ep.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Connector fEndConnector = cf.endFigure().connectorAt(sp.x, sp.y);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fEndConnector != null &amp;&amp; fStartConnector != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.connectStart(fStartConnector);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.connectEnd(fEndConnector);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.updateConnection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.visit(visitor);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addToSelectionAll(visitor.getInsertedFigures());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return visitor.getInsertedFigures();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a FigureEnumeration of connectionfigures attached to this figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration getConnectionFigures(Figure inFigure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If no figure or figure is non connectable, just return null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (inFigure == null || !inFigure.canConnect()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// if (inFigure instanceof ConnectionFigure)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//  return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List result = CollectionsFactory.current().createList(5);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration figures = drawing().figures();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Find all connection figures<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (figures.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure f= figures.nextFigure();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((f instanceof ConnectionFigure) &amp;&amp; !(isFigureSelected(f))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ConnectionFigure cf = (ConnectionFigure) f;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (cf.startFigure().includes(inFigure) || cf.endFigure().includes(inFigure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result.add(f);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new FigureEnumerator(result);<br/>
+   }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the current display update strategy.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Painter<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setDisplayUpdate(Painter updateStrategy) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fUpdateStrategy = updateStrategy;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the current display update strategy.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Painter<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Painter getDisplayUpdate() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fUpdateStrategy;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets an enumeration over the currently selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The selection is a snapshot of the current selection<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * which does not get changed anymore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return an enumeration with the currently selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration selection() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return selectionZOrdered();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the currently selected figures in Z order.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #selection<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return a FigureEnumeration with the selected figures. The enumeration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * represents a snapshot of the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration selectionZOrdered() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List result = CollectionsFactory.current().createList(selectionCount());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result.addAll(fSelection);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new ReverseFigureEnumerator(result);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the number of selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public int selectionCount() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fSelection.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Test whether a given figure is selected.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isFigureSelected(Figure checkFigure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fSelection.contains(checkFigure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a figure to the current selection. The figure is only selected if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * it is also contained in the Drawing associated with this DrawingView.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addToSelection(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(addToSelectionImpl(figure) == true){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected boolean addToSelectionImpl(Figure figure){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean changed = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isFigureSelected(figure) &amp;&amp; drawing().includes(figure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection.add(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.invalidate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;changed = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return changed;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a Collection of figures to the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addToSelectionAll(Collection figures) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addToSelectionAll(new FigureEnumerator(figures));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a FigureEnumeration to the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addToSelectionAll(FigureEnumeration fe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean changed = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;changed |= addToSelectionImpl(fe.nextFigure());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(changed == true){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a figure from the selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeFromSelection(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (isFigureSelected(figure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection.remove(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.invalidate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If a figure isn't selected it is added to the selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Otherwise it is removed from the selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void toggleSelection(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (isFigureSelected(figure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;removeFromSelection(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addToSelection(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Clears the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void clearSelection() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// there is nothing selected - bug fix ID 628818<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (selectionCount() == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// avoid unnecessary selection changed event when nothing has to be cleared<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = selection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fe.nextFigure().invalidate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets an enumeration of the currently active handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected HandleEnumeration selectionHandles() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSelectionHandles == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = selection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure figure = fe.nextFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HandleEnumeration kk = figure.handles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (kk.hasNextHandle()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles.add(kk.nextHandle());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new HandleEnumerator(fSelectionHandles);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the current selection as a FigureSelection. A FigureSelection<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * can be cut, copied, pasted.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureSelection getFigureSelection() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new StandardFigureSelection(selectionZOrdered(), selectionCount());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Finds a handle at the given coordinates.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the hit handle, null if no handle is found.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Handle findHandle(int x, int y) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Handle handle;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HandleEnumeration he = selectionHandles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (he.hasNextHandle()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle = he.nextHandle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (handle.containsPoint(x, y)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return handle;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Informs that the current selection changed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * By default this event is forwarded to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * drawing editor.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void fireSelectionChanged() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSelectionListeners != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; fSelectionListeners.size(); i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureSelectionListener l = (FigureSelectionListener)fSelectionListeners.get(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;l.figureSelectionChanged(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected Rectangle getDamage() {<br/>
+        return fDamage; // clone?<br/>
+    }<br/>
+<br/>
+    protected void setDamage(Rectangle r) {<br/>
+        fDamage = r;<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the position of the last click inside the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Point lastClick() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fLastClick;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void setLastClick(Point newLastClick) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fLastClick = newLastClick;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the grid spacing that is used to constrain points.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setConstrainer(PointConstrainer c) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fConstrainer = c;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the current constrainer.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public PointConstrainer getConstrainer() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fConstrainer;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Constrains a point to the current grid.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Point constrainPoint(Point p) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// constrain to view size<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dimension size = getSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//p.x = Math.min(size.width, Math.max(1, p.x));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//p.y = Math.min(size.height, Math.max(1, p.y));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p.x = Geom.range(1, size.width, p.x);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p.y = Geom.range(1, size.height, p.y);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fConstrainer != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fConstrainer.constrainPoint(p);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return p;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void moveSelection(int dx, int dy) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration figures = selection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (figures.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figures.nextFigure().moveBy(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Refreshes the drawing if there is some accumulated damage<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public synchronized void checkDamage() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator each = drawing().drawingChangeListeners();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (each.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object l = each.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (l instanceof DrawingView) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((DrawingView)l).repairDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void repairDamage() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getDamage() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint(getDamage().x, getDamage().y, getDamage().width, getDamage().height);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDamage(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawingInvalidated(DrawingChangeEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rectangle r = e.getInvalidatedRectangle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getDamage() == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDamage(r);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// don't manipulate rectangle returned by getDamage() directly<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// because it could be a cloned rectangle.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rectangle damagedR = getDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;damagedR.add(r);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDamage(damagedR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawingRequestUpdate(DrawingChangeEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repairDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawingTitleChanged(DrawingChangeEvent e){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Paints the drawing view. The actual drawing is delegated to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the current update strategy.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Painter<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void paintComponent(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDisplayUpdate().draw(g, this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the contents of the drawing view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The view has three layers: background, drawing, handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The layers are drawn in back to front order.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawAll(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean isPrinting = g instanceof PrintGraphics;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawBackground(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fBackgrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fBackgrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawDrawing(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fForegrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fForegrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawHandles(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the given figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The view has three layers: background, drawing, handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The layers are drawn in back to front order.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * No background is drawn.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+   public void draw(Graphics g, FigureEnumeration fe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean isPrinting = g instanceof PrintGraphics;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//drawBackground(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fBackgrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fBackgrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().draw(g, fe);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fForegrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fForegrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawHandles(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the currently active handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawHandles(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HandleEnumeration he = selectionHandles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (he.hasNextHandle()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(he.nextHandle()).draw(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawDrawing(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().draw(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the background. If a background pattern is set it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * is used to fill the background. Otherwise the background<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * is filled in the background color.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawBackground(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g.setColor(getBackground());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g.fillRect(0, 0, getBounds().width, getBounds().height);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void drawPainters(Graphics g, List v) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; v.size(); i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((Painter)v.get(i)).draw(g, this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a background.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addBackground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fBackgrounds == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fBackgrounds = CollectionsFactory.current().createList(3);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fBackgrounds.add(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a background.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeBackground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fBackgrounds != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fBackgrounds.remove(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected List getBackgrounds() {<br/>
+        return fBackgrounds;<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a foreground.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeForeground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fForegrounds != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fForegrounds.remove(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a foreground.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addForeground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fForegrounds == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fForegrounds = CollectionsFactory.current().createList(3);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fForegrounds.add(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected List getForegrounds() {<br/>
+        return fForegrounds;<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Freezes the view by acquiring the drawing lock.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Drawing#lock<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void freezeView() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().lock();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Unfreezes the view by releasing the drawing lock.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Drawing#unlock<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void unfreezeView() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().unlock();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void readObject(ObjectInputStream s)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws ClassNotFoundException, IOException {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s.defaultReadObject();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection = CollectionsFactory.current().createList(); // could use lazy initialization instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// could use lazy initialization instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().addDrawingChangeListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners= CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected void checkMinimumSize() {<br/>
+        Dimension d = getDrawingSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dimension v = getPreferredSize();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (v.height &lt; d.height || v.width &lt; d.width) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;v.height = d.height + SCROLL_OFFSET;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;v.width = d.width + SCROLL_OFFSET;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setPreferredSize(v);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the size of the area occupied by the contained figures inside<br/>
+     * the drawing. This method is called by checkMinimumSize().<br/>
+     */<br/>
+    protected Dimension getDrawingSize() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dimension d = new Dimension(0, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ricardo_padilha: this test had to be introduced because a drawing view<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// can be assigned a null drawing (see setDrawing() ).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = drawing().figures();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rectangle r = fe.nextFigure().displayBox();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d.width = Math.max(d.width, r.x+r.width);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d.height = Math.max(d.height, r.y+r.height);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        return d;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see java.awt.Component#isFocusTraversable()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @deprecated see super class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isFocusTraversable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isInteractive() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void keyTyped(KeyEvent e) {}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void keyReleased(KeyEvent e) {}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Add a listener for selection changes.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param fsl jhotdraw.framework.FigureSelectionListener<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addFigureSelectionListener(FigureSelectionListener fsl) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners.add(fsl);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Remove a listener for selection changes.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param fsl jhotdraw.framework.FigureSelectionListener<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeFigureSelectionListener(FigureSelectionListener fsl) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners.remove(fsl);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public int getDefaultDNDActions() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return java.awt.dnd.DnDConstants.ACTION_COPY_OR_MOVE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/***** Autoscroll support *****/<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private ASH ash = new ASH(10);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void autoscroll(java.awt.Point p) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ash.autoscroll(p);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Insets getAutoscrollInsets() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ash.getAutoscrollInsets();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;class ASH extends AutoscrollHelper {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public ASH(int margin) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(margin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public Dimension getSize() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this.getSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public Rectangle getVisibleRect() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this.getVisibleRect();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void scrollRectToVisible(Rectangle aRect) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;StandardDrawingView.this.scrollRectToVisible(aRect);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "DrawingView Nr: " + myCounter;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+     * Default action when any uncaught exception bubbled from<br/>
+     * the mouse event handlers of the tools. Subclass may override it<br/>
+     * to provide other action.<br/>
+     */<br/>
+    protected void handleMouseEventException(Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JOptionPane.showMessageDialog(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this,<br/>
+            t.getClass().getName() + " - " + t.getMessage(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Error",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JOptionPane.ERROR_MESSAGE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t.printStackTrace();<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public class DrawingViewMouseListener extends MouseAdapter {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse down events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mousePressed(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;requestFocus(); // JDK1.1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point p = constrainPoint(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setLastClick(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseDown(e, p.x, p.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse up events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mouseReleased(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point p = constrainPoint(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseUp(e, p.x, p.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public class DrawingViewMouseMotionListener implements MouseMotionListener {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse drag events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mouseDragged(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point p = constrainPoint(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseDrag(e, p.x, p.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse move events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mouseMoved(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseMove(e, e.getX(), e.getY());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public class DrawingViewKeyListener implements KeyListener {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;private Command deleteCmd;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public DrawingViewKeyListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deleteCmd = createDeleteCommand();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles key down events. Cursor keys are handled<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * by the view the other key events are delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void keyPressed(KeyEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int code = e.getKeyCode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((code == KeyEvent.VK_BACK_SPACE) || (code == KeyEvent.VK_DELETE)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (deleteCmd.isExecutable()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deleteCmd.execute();<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deleteCmd.viewSelectionChanged(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if ((code == KeyEvent.VK_DOWN)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (code == KeyEvent.VK_UP)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (code == KeyEvent.VK_RIGHT)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (code == KeyEvent.VK_LEFT)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleCursorKey(code);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().keyDown(e, code);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles cursor keys by moving all the selected figures<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * one grid point in the cursor direction.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected void handleCursorKey(int key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int dx = 0, dy = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int stepX = 1, stepY = 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// should consider Null Object.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fConstrainer != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stepX = fConstrainer.getStepX();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stepY = fConstrainer.getStepY();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_DOWN:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dy = stepY;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_UP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dy = -stepY;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_RIGHT:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dx = stepX;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_LEFT:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dx = -stepX;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveSelection(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        public void keyTyped(KeyEvent event) {<br/>
+            // do nothing<br/>
+        }<br/>
+<br/>
+        public void keyReleased(KeyEvent event) {<br/>
+            // do nothing<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected Command createDeleteCommand() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new UndoableCommand(new DeleteCommand("Delete", editor()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected DNDHelper createDNDHelper() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new DNDHelper(true, true) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected DrawingView view() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected DrawingEditor editor() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this.editor();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected DNDHelper getDNDHelper() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (dndh == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dndh = createDNDHelper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return dndh;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public DragSourceListener getDragSourceListener(){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getDNDHelper().getDragSourceListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void DNDInitialize(DragGestureListener dgl){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDNDHelper().initialize(dgl);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void DNDDeinitialize() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDNDHelper().deinitialize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    /**<br/>
+     * Asks whether the drawing view is in read-only mode. If so, the user can't<br/>
+     * modify it using mouse or keyboard actions. Yet, it can still be modified<br/>
+     * from inside the program.<br/>
+     */<br/>
+    public boolean getReadOnly() {<br/>
+        return readOnly;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines whether the drawing view is in read-only mode. If so, the user can't<br/>
+     * modify it using mouse or keyboard actions. Yet, it can still be modified<br/>
+     * from inside the program.<br/>
+     */<br/>
+    public void setReadOnly(boolean readOnly) {<br/>
+        if (readOnly != this.readOnly) {<br/>
+            if (readOnly) {<br/>
+                removeMouseListener(mouseListener);<br/>
+                removeMouseMotionListener(motionListener);<br/>
+                removeKeyListener(keyListener);<br/>
+            }<br/>
+            else {<br/>
+                addMouseListener(mouseListener);<br/>
+                addMouseMotionListener(motionListener);<br/>
+                addKeyListener(keyListener);<br/>
+            }<br/>
+            <br/>
+            this.readOnly = readOnly;<br/>
+        }<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see DrawingView#setCursor(Cursor)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see java.awt.Component#setCursor(java.awt.Cursor)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setCursor(Cursor cursor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (cursor instanceof java.awt.Cursor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super.setCursor((java.awt.Cursor) cursor);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_StandardDrawingView_1.27.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)StandardDrawingView.java<br/>
+ *<br/>
+ * Project:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JHotdraw - a GUI framework for technical drawings<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.jhotdraw.org<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://jhotdraw.sourceforge.net<br/>
+ * Copyright:&nbsp;&nbsp;&nbsp;&nbsp;? by the original author(s) and all contributors<br/>
+ * License:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lesser GNU Public License (LGPL)<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.opensource.org/licenses/lgpl-license.html<br/>
+ */<br/>
+<br/>
+package CH.ifa.draw.standard;<br/>
+<br/>
+import java.awt.*;<br/>
+import java.awt.dnd.DragGestureListener;<br/>
+import java.awt.dnd.DragSourceListener;<br/>
+import java.awt.event.*;<br/>
+import java.io.IOException;<br/>
+import java.io.ObjectInputStream;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+<br/>
+import javax.swing.JOptionPane;<br/>
+import javax.swing.JPanel;<br/>
+<br/>
+import CH.ifa.draw.contrib.AutoscrollHelper;<br/>
+import CH.ifa.draw.contrib.dnd.DNDHelper;<br/>
+import CH.ifa.draw.contrib.dnd.DNDInterface;<br/>
+import CH.ifa.draw.framework.*;<br/>
+import CH.ifa.draw.framework.Cursor;<br/>
+import CH.ifa.draw.util.CollectionsFactory;<br/>
+import CH.ifa.draw.util.Command;<br/>
+import CH.ifa.draw.util.Geom;<br/>
+import CH.ifa.draw.util.UndoableCommand;<br/>
+<br/>
+/**<br/>
+ * The standard implementation of DrawingView.<br/>
+ *<br/>
+ * @see DrawingView<br/>
+ * @see Painter<br/>
+ * @see Tool<br/>
+ *<br/>
+ * @version &lt;$CURRENT_VERSION$&gt;<br/>
+ */<br/>
+public class StandardDrawingView<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extends JPanel<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;implements DrawingView, DNDInterface, java.awt.dnd.Autoscroll {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The DrawingEditor of the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #tool<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;transient private DrawingEditor   fEditor;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the registered listeners for selection changes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private transient List fSelectionListeners;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The shown drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Drawing         fDrawing;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the accumulated damaged area<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private transient Rectangle fDamage;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The list of currently selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;transient private List fSelection;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The shown selection handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;transient private List fSelectionHandles;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The preferred size of the view<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The position of the last mouse click<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * inside the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Point fLastClick;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * A List of optional backgrounds. The list contains<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * view painters that are drawn before the contents,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * that is in the background.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List fBackgrounds;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * A List of optional foregrounds. The list contains<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * view painters that are drawn after the contents,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * that is in the foreground.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List fForegrounds;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The update strategy used to repair the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Painter fUpdateStrategy;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The grid used to constrain points for snap to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * grid functionality.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private PointConstrainer fConstrainer;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Scrolling increment<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int MINIMUM_WIDTH = 400;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int MINIMUM_HEIGHT = 300;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int SCROLL_INCR = 100;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static final int SCROLL_OFFSET = 10;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static int counter;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private int myCounter = counter;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private DNDHelper dndh;<br/>
+<br/>
+    /**<br/>
+     * Listener for mouse clicks.<br/>
+     */<br/>
+    private MouseListener mouseListener;<br/>
+    <br/>
+    /**<br/>
+     * Listener for mouse movements.<br/>
+     */<br/>
+    private MouseMotionListener motionListener;<br/>
+    <br/>
+    /**<br/>
+     * Listener for the keyboard.<br/>
+     */<br/>
+    private KeyListener keyListener;<br/>
+<br/>
+    /**<br/>
+     * Reflects whether the drawing view is in read-only mode (from a user's<br/>
+     * perspective).<br/>
+     */<br/>
+    private boolean readOnly;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Serialization support. In JavaDraw only the Drawing is serialized.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * However, for beans support StandardDrawingView supports<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * serialization<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private static final long serialVersionUID = -3878153366174603336L;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private int drawingViewSerializedDataVersion = 1;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Constructs the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StandardDrawingView(DrawingEditor editor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this(editor, MINIMUM_WIDTH, MINIMUM_HEIGHT);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StandardDrawingView(DrawingEditor editor, int width, int height) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setAutoscrolls(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;counter++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fEditor = editor;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ricardo_padilha: changed from setSize(int, int) because it is not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// JScrollPane-friendly. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setPreferredSize(new Dimension(width, height));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addFigureSelectionListener(editor());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setLastClick(new Point(0, 0));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fConstrainer = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// JFC/Swing uses double buffering automatically as default<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDisplayUpdate(createDisplayUpdate());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// TODO: Test FastBufferedUpdateStrategy with JFC/Swing double buffering<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//setDisplayUpdate(new FastBufferedUpdateStrategy());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setBackground(Color.lightGray);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addMouseListener(createMouseListener());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addMouseMotionListener(createMouseMotionListener());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addKeyListener(createKeyListener());<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected MouseListener createMouseListener() {<br/>
+        mouseListener = new DrawingViewMouseListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return mouseListener;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected MouseMotionListener createMouseMotionListener() {<br/>
+        motionListener = new DrawingViewMouseMotionListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return  motionListener;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected KeyListener createKeyListener() {<br/>
+        keyListener = new DrawingViewKeyListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return keyListener;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Factory method which can be overriden by subclasses<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Painter createDisplayUpdate() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new SimpleUpdateStrategy();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//return new ClippingUpdateStrategy();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the view's editor.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setEditor(DrawingEditor editor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fEditor = editor;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the current tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Tool tool() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return editor().tool();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Drawing drawing() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fDrawing;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets and installs another drawing in the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setDrawing(Drawing d) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;clearSelection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().removeDrawingChangeListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fDrawing = d;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().addDrawingChangeListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkMinimumSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the editor.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public DrawingEditor editor() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fEditor;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a figure to the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the added figure.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Figure add(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return drawing().add(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a figure from the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the removed figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Figure remove(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return drawing().remove(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a Collection of figures to the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addAll(Collection figures) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = new FigureEnumerator(figures);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add(fe.nextFigure());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Check existance of figure in the drawing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean figureExists(Figure inf, FigureEnumeration fe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure figure = fe.nextFigure();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (figure.includes(inf)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+     * Inserts a FigureEnumeration of figures and translates them by the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * given offset. This function is used to insert figures from clipboards (cut/copy)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return enumeration which has been added to the drawing. The figures in the enumeration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *         can have changed during adding them (e.g. they could have been decorated).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration insertFigures(FigureEnumeration fe, int dx, int dy, boolean bCheck) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fe == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FigureEnumerator.getEmptyEnumeration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List vCF = CollectionsFactory.current().createList(10);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertIntoDrawingVisitor visitor = new InsertIntoDrawingVisitor(drawing());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure figure = fe.nextFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (figure instanceof ConnectionFigure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vCF.add(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (figure != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.moveBy(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.visit(visitor);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration ecf = new FigureEnumerator(vCF);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (ecf.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ConnectionFigure cf = (ConnectionFigure) ecf.nextFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure sf = cf.startFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure ef = cf.endFigure();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (figureExists(sf, drawing().figures())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; figureExists(ef, drawing().figures())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; (!bCheck || cf.canConnect(sf, ef))) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bCheck) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point sp = sf.center();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point ep = ef.center();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Connector fStartConnector = cf.startFigure().connectorAt(ep.x, ep.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Connector fEndConnector = cf.endFigure().connectorAt(sp.x, sp.y);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fEndConnector != null &amp;&amp; fStartConnector != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.connectStart(fStartConnector);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.connectEnd(fEndConnector);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.updateConnection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cf.visit(visitor);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addToSelectionAll(visitor.getInsertedFigures());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return visitor.getInsertedFigures();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a FigureEnumeration of connectionfigures attached to this figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration getConnectionFigures(Figure inFigure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If no figure or figure is non connectable, just return null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (inFigure == null || !inFigure.canConnect()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// if (inFigure instanceof ConnectionFigure)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//  return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List result = CollectionsFactory.current().createList(5);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration figures = drawing().figures();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Find all connection figures<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (figures.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure f= figures.nextFigure();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((f instanceof ConnectionFigure) &amp;&amp; !(isFigureSelected(f))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ConnectionFigure cf = (ConnectionFigure) f;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (cf.startFigure().includes(inFigure) || cf.endFigure().includes(inFigure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result.add(f);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new FigureEnumerator(result);<br/>
+   }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the current display update strategy.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Painter<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setDisplayUpdate(Painter updateStrategy) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fUpdateStrategy = updateStrategy;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the current display update strategy.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Painter<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Painter getDisplayUpdate() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fUpdateStrategy;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets an enumeration over the currently selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The selection is a snapshot of the current selection<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * which does not get changed anymore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return an enumeration with the currently selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration selection() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return selectionZOrdered();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the currently selected figures in Z order.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #selection<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return a FigureEnumeration with the selected figures. The enumeration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * represents a snapshot of the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration selectionZOrdered() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List result = CollectionsFactory.current().createList(selectionCount());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result.addAll(fSelection);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new ReverseFigureEnumerator(result);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the number of selected figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public int selectionCount() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fSelection.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Test whether a given figure is selected.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isFigureSelected(Figure checkFigure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fSelection.contains(checkFigure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a figure to the current selection. The figure is only selected if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * it is also contained in the Drawing associated with this DrawingView.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addToSelection(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(addToSelectionImpl(figure) == true){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected boolean addToSelectionImpl(Figure figure){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean changed = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isFigureSelected(figure) &amp;&amp; drawing().includes(figure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection.add(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.invalidate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;changed = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return changed;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a Collection of figures to the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addToSelectionAll(Collection figures) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addToSelectionAll(new FigureEnumerator(figures));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a FigureEnumeration to the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addToSelectionAll(FigureEnumeration fe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean changed = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;changed |= addToSelectionImpl(fe.nextFigure());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(changed == true){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a figure from the selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeFromSelection(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (isFigureSelected(figure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection.remove(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figure.invalidate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If a figure isn't selected it is added to the selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Otherwise it is removed from the selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void toggleSelection(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (isFigureSelected(figure)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;removeFromSelection(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addToSelection(figure);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Clears the current selection.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void clearSelection() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// there is nothing selected - bug fix ID 628818<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (selectionCount() == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// avoid unnecessary selection changed event when nothing has to be cleared<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = selection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fe.nextFigure().invalidate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireSelectionChanged();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets an enumeration of the currently active handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected HandleEnumeration selectionHandles() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSelectionHandles == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = selection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Figure figure = fe.nextFigure();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HandleEnumeration kk = figure.handles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (kk.hasNextHandle()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionHandles.add(kk.nextHandle());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new HandleEnumerator(fSelectionHandles);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the current selection as a FigureSelection. A FigureSelection<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * can be cut, copied, pasted.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureSelection getFigureSelection() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new StandardFigureSelection(selectionZOrdered(), selectionCount());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Finds a handle at the given coordinates.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return the hit handle, null if no handle is found.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Handle findHandle(int x, int y) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Handle handle;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HandleEnumeration he = selectionHandles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (he.hasNextHandle()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle = he.nextHandle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (handle.containsPoint(x, y)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return handle;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Informs that the current selection changed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * By default this event is forwarded to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * drawing editor.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void fireSelectionChanged() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSelectionListeners != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; fSelectionListeners.size(); i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureSelectionListener l = (FigureSelectionListener)fSelectionListeners.get(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;l.figureSelectionChanged(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected Rectangle getDamage() {<br/>
+        return fDamage; // clone?<br/>
+    }<br/>
+<br/>
+    protected void setDamage(Rectangle r) {<br/>
+        fDamage = r;<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the position of the last click inside the view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Point lastClick() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fLastClick;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void setLastClick(Point newLastClick) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fLastClick = newLastClick;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the grid spacing that is used to constrain points.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setConstrainer(PointConstrainer c) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fConstrainer = c;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the current constrainer.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public PointConstrainer getConstrainer() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fConstrainer;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Constrains a point to the current grid.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Point constrainPoint(Point p) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// constrain to view size<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dimension size = getSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//p.x = Math.min(size.width, Math.max(1, p.x));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//p.y = Math.min(size.height, Math.max(1, p.y));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p.x = Geom.range(1, size.width, p.x);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p.y = Geom.range(1, size.height, p.y);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fConstrainer != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fConstrainer.constrainPoint(p);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return p;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void moveSelection(int dx, int dy) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration figures = selection();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (figures.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;figures.nextFigure().moveBy(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Refreshes the drawing if there is some accumulated damage<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public synchronized void checkDamage() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator each = drawing().drawingChangeListeners();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (each.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object l = each.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (l instanceof DrawingView) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((DrawingView)l).repairDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void repairDamage() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getDamage() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint(getDamage().x, getDamage().y, getDamage().width, getDamage().height);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDamage(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawingInvalidated(DrawingChangeEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rectangle r = e.getInvalidatedRectangle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getDamage() == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDamage(r);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// don't manipulate rectangle returned by getDamage() directly<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// because it could be a cloned rectangle.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rectangle damagedR = getDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;damagedR.add(r);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDamage(damagedR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawingRequestUpdate(DrawingChangeEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repairDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawingTitleChanged(DrawingChangeEvent e){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Paints the drawing view. The actual drawing is delegated to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the current update strategy.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Painter<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void paintComponent(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDisplayUpdate().draw(g, this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the contents of the drawing view.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The view has three layers: background, drawing, handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The layers are drawn in back to front order.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawAll(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean isPrinting = g instanceof PrintGraphics;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawBackground(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fBackgrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fBackgrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawDrawing(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fForegrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fForegrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawHandles(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the given figures.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The view has three layers: background, drawing, handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The layers are drawn in back to front order.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * No background is drawn.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+   public void draw(Graphics g, FigureEnumeration fe) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean isPrinting = g instanceof PrintGraphics;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//drawBackground(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fBackgrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fBackgrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().draw(g, fe);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((fForegrounds != null) &amp;&amp; !isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawPainters(g, fForegrounds);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isPrinting) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawHandles(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the currently active handles.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawHandles(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HandleEnumeration he = selectionHandles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (he.hasNextHandle()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(he.nextHandle()).draw(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the drawing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawDrawing(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().draw(g);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the background. If a background pattern is set it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * is used to fill the background. Otherwise the background<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * is filled in the background color.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void drawBackground(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g.setColor(getBackground());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g.fillRect(0, 0, getBounds().width, getBounds().height);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void drawPainters(Graphics g, List v) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; v.size(); i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((Painter)v.get(i)).draw(g, this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a background.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addBackground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fBackgrounds == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fBackgrounds = CollectionsFactory.current().createList(3);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fBackgrounds.add(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a background.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeBackground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fBackgrounds != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fBackgrounds.remove(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected List getBackgrounds() {<br/>
+        return fBackgrounds;<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Removes a foreground.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeForeground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fForegrounds != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fForegrounds.remove(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Adds a foreground.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addForeground(Painter painter)  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fForegrounds == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fForegrounds = CollectionsFactory.current().createList(3);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fForegrounds.add(painter);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;repaint();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected List getForegrounds() {<br/>
+        return fForegrounds;<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Freezes the view by acquiring the drawing lock.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Drawing#lock<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void freezeView() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().lock();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Unfreezes the view by releasing the drawing lock.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Drawing#unlock<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void unfreezeView() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().unlock();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void readObject(ObjectInputStream s)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throws ClassNotFoundException, IOException {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s.defaultReadObject();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelection = CollectionsFactory.current().createList(); // could use lazy initialization instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// could use lazy initialization instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawing().addDrawingChangeListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners= CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected void checkMinimumSize() {<br/>
+        Dimension d = getDrawingSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dimension v = getPreferredSize();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (v.height &lt; d.height || v.width &lt; d.width) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;v.height = d.height + SCROLL_OFFSET;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;v.width = d.width + SCROLL_OFFSET;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setPreferredSize(v);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the size of the area occupied by the contained figures inside<br/>
+     * the drawing. This method is called by checkMinimumSize().<br/>
+     */<br/>
+    protected Dimension getDrawingSize() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dimension d = new Dimension(0, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ricardo_padilha: this test had to be introduced because a drawing view<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// can be assigned a null drawing (see setDrawing() ).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (drawing() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FigureEnumeration fe = drawing().figures();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (fe.hasNextFigure()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rectangle r = fe.nextFigure().displayBox();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d.width = Math.max(d.width, r.x+r.width);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d.height = Math.max(d.height, r.y+r.height);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        return d;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see java.awt.Component#isFocusTraversable()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @deprecated see super class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isFocusTraversable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isInteractive() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void keyTyped(KeyEvent e) {}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void keyReleased(KeyEvent e) {}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Add a listener for selection changes.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param fsl jhotdraw.framework.FigureSelectionListener<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addFigureSelectionListener(FigureSelectionListener fsl) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners.add(fsl);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Remove a listener for selection changes.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param fsl jhotdraw.framework.FigureSelectionListener<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeFigureSelectionListener(FigureSelectionListener fsl) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSelectionListeners.remove(fsl);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public int getDefaultDNDActions() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return java.awt.dnd.DnDConstants.ACTION_COPY_OR_MOVE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/***** Autoscroll support *****/<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private ASH ash = new ASH(10);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void autoscroll(java.awt.Point p) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ash.autoscroll(p);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Insets getAutoscrollInsets() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ash.getAutoscrollInsets();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;class ASH extends AutoscrollHelper {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public ASH(int margin) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(margin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public Dimension getSize() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this.getSize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public Rectangle getVisibleRect() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this.getVisibleRect();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void scrollRectToVisible(Rectangle aRect) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;StandardDrawingView.this.scrollRectToVisible(aRect);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "DrawingView Nr: " + myCounter;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+     * Default action when any uncaught exception bubbled from<br/>
+     * the mouse event handlers of the tools. Subclass may override it<br/>
+     * to provide other action.<br/>
+     */<br/>
+    protected void handleMouseEventException(Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JOptionPane.showMessageDialog(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this,<br/>
+            t.getClass().getName() + " - " + t.getMessage(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Error",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JOptionPane.ERROR_MESSAGE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t.printStackTrace();<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public class DrawingViewMouseListener extends MouseAdapter {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse down events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mousePressed(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;requestFocus(); // JDK1.1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point p = constrainPoint(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setLastClick(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseDown(e, p.x, p.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse up events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mouseReleased(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point p = constrainPoint(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseUp(e, p.x, p.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public class DrawingViewMouseMotionListener implements MouseMotionListener {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse drag events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mouseDragged(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Point p = constrainPoint(new Point(e.getX(), e.getY()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseDrag(e, p.x, p.y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles mouse move events. The event is delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void mouseMoved(MouseEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().mouseMove(e, e.getX(), e.getY());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleMouseEventException(t);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public class DrawingViewKeyListener implements KeyListener {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;private Command deleteCmd;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public DrawingViewKeyListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deleteCmd = createDeleteCommand();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles key down events. Cursor keys are handled<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * by the view the other key events are delegated to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * currently active tool.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void keyPressed(KeyEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int code = e.getKeyCode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((code == KeyEvent.VK_BACK_SPACE) || (code == KeyEvent.VK_DELETE)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (deleteCmd.isExecutable()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deleteCmd.execute();<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deleteCmd.viewSelectionChanged(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if ((code == KeyEvent.VK_DOWN)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (code == KeyEvent.VK_UP)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (code == KeyEvent.VK_RIGHT)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (code == KeyEvent.VK_LEFT)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleCursorKey(code);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tool().keyDown(e, code);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkDamage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Handles cursor keys by moving all the selected figures<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * one grid point in the cursor direction.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected void handleCursorKey(int key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int dx = 0, dy = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int stepX = 1, stepY = 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// should consider Null Object.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fConstrainer != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stepX = fConstrainer.getStepX();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stepY = fConstrainer.getStepY();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_DOWN:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dy = stepY;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_UP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dy = -stepY;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_RIGHT:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dx = stepX;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case KeyEvent.VK_LEFT:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dx = -stepX;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveSelection(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        public void keyTyped(KeyEvent event) {<br/>
+            // do nothing<br/>
+        }<br/>
+<br/>
+        public void keyReleased(KeyEvent event) {<br/>
+            // do nothing<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected Command createDeleteCommand() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new UndoableCommand(new DeleteCommand("Delete", editor()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected DNDHelper createDNDHelper() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new DNDHelper(true, true) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected DrawingView view() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected DrawingEditor editor() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return StandardDrawingView.this.editor();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected DNDHelper getDNDHelper() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (dndh == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dndh = createDNDHelper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return dndh;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public DragSourceListener getDragSourceListener(){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getDNDHelper().getDragSourceListener();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void DNDInitialize(DragGestureListener dgl){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDNDHelper().initialize(dgl);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void DNDDeinitialize() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDNDHelper().deinitialize();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    /**<br/>
+     * Asks whether the drawing view is in read-only mode. If so, the user can't<br/>
+     * modify it using mouse or keyboard actions. Yet, it can still be modified<br/>
+     * from inside the program.<br/>
+     */<br/>
+    public boolean getReadOnly() {<br/>
+        return readOnly;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines whether the drawing view is in read-only mode. If so, the user can't<br/>
+     * modify it using mouse or keyboard actions. Yet, it can still be modified<br/>
+     * from inside the program.<br/>
+     */<br/>
+    public void setReadOnly(boolean readOnly) {<br/>
+        if (readOnly != this.readOnly) {<br/>
+            if (readOnly) {<br/>
+                removeMouseListener(mouseListener);<br/>
+                removeMouseMotionListener(motionListener);<br/>
+                removeKeyListener(keyListener);<br/>
+            }<br/>
+            else {<br/>
+                addMouseListener(mouseListener);<br/>
+                addMouseMotionListener(motionListener);<br/>
+                addKeyListener(keyListener);<br/>
+            }<br/>
+            <br/>
+            this.readOnly = readOnly;<br/>
+        }<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see DrawingView#setCursor(Cursor)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see java.awt.Component#setCursor(java.awt.Cursor)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setCursor(Cursor cursor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (cursor instanceof java.awt.Cursor) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super.setCursor((java.awt.Cursor) cursor);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the minimum dimension of the drawing.&lt;br /&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Fixed version (JHotDraw version has a bug).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see StandardDrawingView#getMinimumSize()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see java.awt.Component#getMinimumSize()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">public</span> <span class="add"><span class="add">Dimension</span></span> <span class="add">getMinimumSize</span>() <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">Rectangle</span></span> <span class="add"><span class="add">r</span> = <span class="add">new <span class="add"><span class="add">Rectangle</span></span>()</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">FigureEnumeration</span></span> <span class="add"><span class="add">k</span> = <span class="add"><span class="add"><span class="add">drawing</span>()</span>.<span class="add">figures</span>()</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">while (<span class="add"><span class="add">k</span>.<span class="add">hasNextFigure</span>()</span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">r</span>.<span class="add">add</span>(<span class="add"><span class="add"><span class="add">k</span>.<span class="add">nextFigure</span>()</span>.<span class="add">displayBox</span>()</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="add">new <span class="add"><span class="add">Dimension</span></span>(<span class="add"><span class="add">r</span>.<span class="add">width</span></span>, <span class="add"><span class="add">r</span>.<span class="add">height</span></span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

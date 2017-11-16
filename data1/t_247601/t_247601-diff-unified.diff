@@ -1,0 +1,11 @@
+--- t_247601/left_BaseLocalContainerInvoker_1.2.java	2013-03-17 15:47:00.000000000 +0100
++++ t_247601/right_BaseLocalContainerInvoker_1.3.java	2013-03-17 15:47:00.000000000 +0100
+@@ -60,7 +60,7 @@
+  *
+  *      @author Daniel OConnor (docodan@mvcsoft.com)
+  */
+-public abstract class BaseLocalContainerInvoker implements LocalContainerInvoker
++public class BaseLocalContainerInvoker implements LocalContainerInvoker
+ {
+    // Attributes ----------------------------------------------------
+    protected Container container;

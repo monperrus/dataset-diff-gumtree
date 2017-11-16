@@ -1,0 +1,19 @@
+--- t_266092/left_JarPackageFragment_1.37.java	2013-03-17 15:47:20.000000000 +0100
++++ t_266092/right_JarPackageFragment_1.38.java	2013-03-17 15:47:20.000000000 +0100
+@@ -25,7 +25,6 @@
+ import org.eclipse.jdt.core.IJavaElement;
+ import org.eclipse.jdt.core.IJavaModelStatusConstants;
+ import org.eclipse.jdt.core.JavaModelException;
+-import org.eclipse.jdt.internal.compiler.util.SuffixConstants;
+ import org.eclipse.jdt.internal.core.util.Util;
+ 
+ /**
+@@ -33,7 +32,7 @@
+  *
+  * @see org.eclipse.jdt.core.IPackageFragment
+  */
+-class JarPackageFragment extends PackageFragment implements SuffixConstants {
++class JarPackageFragment extends PackageFragment {
+ /**
+  * Constructs a package fragment that is contained within a jar or a zip.
+  */

@@ -1,0 +1,1490 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ActivityCategoryPreferencePage_1.22.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2005, 2008 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.activities;<br/>
+<br/>
+import java.util.Collections;<br/>
+import java.util.HashSet;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Iterator;<br/>
+import java.util.Properties;<br/>
+import java.util.Set;<br/>
+<br/>
+import org.eclipse.core.runtime.IConfigurationElement;<br/>
+import org.eclipse.core.runtime.IExecutableExtension;<br/>
+import org.eclipse.jface.dialogs.Dialog;<br/>
+import org.eclipse.jface.dialogs.IDialogConstants;<br/>
+import org.eclipse.jface.dialogs.IDialogSettings;<br/>
+import org.eclipse.jface.dialogs.TrayDialog;<br/>
+import org.eclipse.jface.preference.PreferencePage;<br/>
+import org.eclipse.jface.resource.DeviceResourceException;<br/>
+import org.eclipse.jface.resource.ImageDescriptor;<br/>
+import org.eclipse.jface.resource.JFaceResources;<br/>
+import org.eclipse.jface.resource.LocalResourceManager;<br/>
+import org.eclipse.jface.viewers.CheckboxTableViewer;<br/>
+import org.eclipse.jface.viewers.ISelectionChangedListener;<br/>
+import org.eclipse.jface.viewers.IStructuredContentProvider;<br/>
+import org.eclipse.jface.viewers.IStructuredSelection;<br/>
+import org.eclipse.jface.viewers.ITableLabelProvider;<br/>
+import org.eclipse.jface.viewers.LabelProvider;<br/>
+import org.eclipse.jface.viewers.LabelProviderChangedEvent;<br/>
+import org.eclipse.jface.viewers.SelectionChangedEvent;<br/>
+import org.eclipse.jface.viewers.TableViewer;<br/>
+import org.eclipse.jface.viewers.Viewer;<br/>
+import org.eclipse.jface.viewers.ViewerComparator;<br/>
+import org.eclipse.jface.viewers.ViewerFilter;<br/>
+import org.eclipse.osgi.util.NLS;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.events.SelectionAdapter;<br/>
+import org.eclipse.swt.events.SelectionEvent;<br/>
+import org.eclipse.swt.graphics.Image;<br/>
+import org.eclipse.swt.graphics.ImageData;<br/>
+import org.eclipse.swt.graphics.Point;<br/>
+import org.eclipse.swt.layout.GridData;<br/>
+import org.eclipse.swt.layout.GridLayout;<br/>
+import org.eclipse.swt.widgets.Button;<br/>
+import org.eclipse.swt.widgets.Composite;<br/>
+import org.eclipse.swt.widgets.Control;<br/>
+import org.eclipse.swt.widgets.Label;<br/>
+import org.eclipse.swt.widgets.Shell;<br/>
+import org.eclipse.swt.widgets.Table;<br/>
+import org.eclipse.swt.widgets.TableItem;<br/>
+import org.eclipse.swt.widgets.Text;<br/>
+import org.eclipse.ui.IWorkbench;<br/>
+import org.eclipse.ui.IWorkbenchPreferencePage;<br/>
+import org.eclipse.ui.PlatformUI;<br/>
+import org.eclipse.ui.internal.IPreferenceConstants;<br/>
+import org.eclipse.ui.internal.IWorkbenchHelpContextIds;<br/>
+import org.eclipse.ui.internal.OverlayIcon;<br/>
+import org.eclipse.ui.internal.WorkbenchPlugin;<br/>
+import org.eclipse.ui.internal.activities.InternalActivityHelper;<br/>
+import org.eclipse.ui.internal.activities.ws.ActivityEnabler;<br/>
+import org.eclipse.ui.internal.activities.ws.ActivityMessages;<br/>
+import org.eclipse.ui.plugin.AbstractUIPlugin;<br/>
+<br/>
+/**<br/>
+ * Activities preference page that primarily shows categories and can optionally<br/>
+ * show an advanced dialog that allows fine-tune adjustmenet of activities. This<br/>
+ * page may be used by product developers to provide basic ability to tweak the<br/>
+ * enabled activity set. You may provide certain strings to this class via<br/>
+ * method #2 of {@link org.eclipse.core.runtime.IExecutableExtension}.<br/>
+ * <br/>
+ * @see #ACTIVITY_NAME<br/>
+ * @see #ALLOW_ADVANCED<br/>
+ * @see #CAPTION_MESSAGE<br/>
+ * @see #CATEGORY_NAME<br/>
+ * @see #ACTIVITY_PROMPT_BUTTON<br/>
+ * @see #ACTIVITY_PROMPT_BUTTON_TOOLTIP<br/>
+ * <br/>
+ * @since 3.1<br/>
+ */<br/>
+public final class ActivityCategoryPreferencePage extends PreferencePage implements<br/>
+        IWorkbenchPreferencePage, IExecutableExtension {<br/>
+<br/>
+    /**<br/>
+     * The name to use for the activities.  Ie: "Capabilities".<br/>
+     */<br/>
+    public static final String ACTIVITY_NAME = "activityName"; //$NON-NLS-1$<br/>
+<br/>
+    /**<br/>
+     * The parameter to use if you want the page to show the allow button. Must<br/>
+     * be true or false.<br/>
+     */<br/>
+    public static final String ALLOW_ADVANCED = "allowAdvanced"; //$NON-NLS-1$<br/>
+    <br/>
+    /**<br/>
+     * The string to use for the message at the top of the preference page.<br/>
+     */<br/>
+    public static final String CAPTION_MESSAGE = "captionMessage"; //$NON-NLS-1$<br/>
+    <br/>
+    /**<br/>
+     * The name to use for the activity categories.  Ie: "Roles".<br/>
+     */<br/>
+    public static final String CATEGORY_NAME = "categoryName"; //$NON-NLS-1$<br/>
+    <br/>
+    /**<br/>
+     * The label to be used for the prompt button. Ie: "&amp;Prompt when enabling capabilities".<br/>
+     */    <br/>
+    public static final String ACTIVITY_PROMPT_BUTTON = "activityPromptButton"; //$NON-NLS-1$<br/>
+<br/>
+    /**<br/>
+     * The tooltip to be used for the prompt button. Ie: "Prompt when a feature is first used that requires enablement of capabilities".<br/>
+     */    <br/>
+    public static final String ACTIVITY_PROMPT_BUTTON_TOOLTIP = "activityPromptButtonTooltip"; //$NON-NLS-1$<br/>
+    <br/>
+    private class AdvancedDialog extends TrayDialog {<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;private static final String DIALOG_SETTINGS_SECTION = "ActivityCategoryPreferencePageAdvancedDialogSettings"; //$NON-NLS-1$<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        ActivityEnabler enabler;<br/>
+        /**<br/>
+         * @param parentShell<br/>
+         */<br/>
+        protected AdvancedDialog(Shell parentShell) {<br/>
+            super(parentShell);<br/>
+         }<br/>
+        <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.window.Window#configureShell(org.eclipse.swt.widgets.Shell)<br/>
+         */<br/>
+        protected void configureShell(Shell newShell) {<br/>
+            super.configureShell(newShell);<br/>
+            String activityName = strings.getProperty(ACTIVITY_NAME, ActivityMessages.ActivityEnabler_activities);<br/>
+            activityName = activityName.replaceAll("&amp;", ""); //strips possible mnemonic //$NON-NLS-1$ //$NON-NLS-2$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;newShell.setText(NLS.bind(           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ActivityMessages.ActivitiesPreferencePage_advancedDialogTitle,<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;activityName&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+            ));<br/>
+        }<br/>
+        <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets.Composite)<br/>
+         */<br/>
+        protected Control createDialogArea(Composite parent) {<br/>
+            Composite composite = (Composite) super.createDialogArea(parent);<br/>
+            enabler = new ActivityEnabler(workingCopy, strings);<br/>
+            Control enablerControl = enabler.createControl(composite);<br/>
+            enablerControl.setLayoutData(new GridData(GridData.FILL_BOTH));<br/>
+            return composite;<br/>
+        }<br/>
+<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.dialogs.Dialog#okPressed()<br/>
+         */<br/>
+        protected void okPressed() {<br/>
+            enabler.updateActivityStates();            <br/>
+            super.okPressed();<br/>
+        }<br/>
+        <br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;/* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.window.Dialog#getDialogBoundsSettings()<br/>
+         * <br/>
+         * @since 3.2<br/>
+         */<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;protected IDialogSettings getDialogBoundsSettings() {<br/>
+            IDialogSettings settings = WorkbenchPlugin.getDefault().getDialogSettings();<br/>
+            IDialogSettings section = settings.getSection(DIALOG_SETTINGS_SECTION);<br/>
+            if (section == null) {<br/>
+                section = settings.addNewSection(DIALOG_SETTINGS_SECTION);<br/>
+            } <br/>
+            return section;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * @see org.eclipse.jface.dialogs.Dialog#isResizable()<br/>
+         */<br/>
+        protected boolean isResizable() {<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+        }<br/>
+    }<br/>
+    private class CategoryLabelProvider extends LabelProvider implements<br/>
+            ITableLabelProvider, IActivityManagerListener {<br/>
+<br/>
+        private LocalResourceManager manager = new LocalResourceManager(<br/>
+                JFaceResources.getResources());<br/>
+<br/>
+        private ImageDescriptor lockDescriptor;<br/>
+<br/>
+        private boolean decorate;<br/>
+<br/>
+        /**<br/>
+         * @param decorate<br/>
+         */<br/>
+        public CategoryLabelProvider(boolean decorate) {<br/>
+            this.decorate = decorate;<br/>
+            lockDescriptor = AbstractUIPlugin.imageDescriptorFromPlugin(<br/>
+                    PlatformUI.PLUGIN_ID, "icons/full/ovr16/lock_ovr.gif"); //$NON-NLS-1$<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.ITableLabelProvider#getColumnImage(java.lang.Object,<br/>
+         *      int)<br/>
+         */<br/>
+        public Image getColumnImage(Object element, int columnIndex) {<br/>
+            ICategory category = (ICategory) element;<br/>
+            ImageDescriptor descriptor = PlatformUI.getWorkbench()<br/>
+                    .getActivitySupport().getImageDescriptor(category);<br/>
+            if (descriptor != null) {<br/>
+                try {<br/>
+                    if (decorate) {<br/>
+                        if (isLocked(category)) {<br/>
+                            ImageData originalImageData = descriptor<br/>
+                                    .getImageData();<br/>
+                            OverlayIcon overlay = new OverlayIcon(<br/>
+                                    descriptor, lockDescriptor, new Point(<br/>
+                                            originalImageData.width,<br/>
+                                            originalImageData.height));<br/>
+                            return manager.createImage(overlay);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+                    return manager.createImage(descriptor);<br/>
+                } catch (DeviceResourceException e) {<br/>
+                    WorkbenchPlugin.log(e);<br/>
+                }<br/>
+            }  <br/>
+            return null;<br/>
+        }<br/>
+      <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.viewers.LabelProvider#getText(java.lang.Object)<br/>
+         */<br/>
+        public String getText(Object element) {<br/>
+            String name = null;<br/>
+            ICategory category = (ICategory) element;<br/>
+            try {<br/>
+                name = category.getName();<br/>
+            } catch (NotDefinedException e) {<br/>
+                name = category.getId();<br/>
+            }<br/>
+            if (decorate &amp;&amp; isLocked(category)) {<br/>
+                name = NLS.bind(ActivityMessages.ActivitiesPreferencePage_lockedMessage, name);<br/>
+            }<br/>
+            return name;<br/>
+        }   <br/>
+       <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.viewers.ITableLabelProvider#getColumnText(java.lang.Object, int)<br/>
+         */<br/>
+        public String getColumnText(Object element, int columnIndex) {<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;return getText(element);<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IBaseLabelProvider#dispose()<br/>
+         */<br/>
+        public void dispose() {<br/>
+            super.dispose();<br/>
+            manager.dispose();<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.ui.activities.IActivityManagerListener#activityManagerChanged(org.eclipse.ui.activities.ActivityManagerEvent)<br/>
+         */<br/>
+        public void activityManagerChanged(<br/>
+                ActivityManagerEvent activityManagerEvent) {<br/>
+            if (activityManagerEvent.haveEnabledActivityIdsChanged()) {<br/>
+                updateCategoryCheckState();<br/>
+                fireLabelProviderChanged(new LabelProviderChangedEvent(this));<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private class CategoryContentProvider implements IStructuredContentProvider {<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IStructuredContentProvider#getElements(java.lang.Object)<br/>
+         */<br/>
+        public Object[] getElements(Object inputElement) {<br/>
+            // convert to category objects<br/>
+            return WorkbenchActivityHelper.resolveCategories(workingCopy,<br/>
+                    (Set) inputElement);<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IContentProvider#dispose()<br/>
+         */<br/>
+        public void dispose() {<br/>
+<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IContentProvider#inputChanged(org.eclipse.jface.viewers.Viewer,<br/>
+         *      java.lang.Object, java.lang.Object)<br/>
+         */<br/>
+        public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {<br/>
+<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private class EmptyCategoryFilter extends ViewerFilter {<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.ViewerFilter#select(org.eclipse.jface.viewers.Viewer,<br/>
+         *      java.lang.Object, java.lang.Object)<br/>
+         */<br/>
+        public boolean select(Viewer viewer, Object parentElement,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object element) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory category = (ICategory) element;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (InternalActivityHelper.getActivityIdsForCategory(workingCopy,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;category).isEmpty()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    protected IWorkbench workbench;<br/>
+<br/>
+    private CheckboxTableViewer categoryViewer;<br/>
+<br/>
+    private TableViewer dependantViewer;<br/>
+<br/>
+    private Text descriptionText;<br/>
+<br/>
+    private IMutableActivityManager workingCopy;<br/>
+<br/>
+    private Button activityPromptButton;<br/>
+<br/>
+    private boolean allowAdvanced = false;<br/>
+<br/>
+    private Button advancedButton;<br/>
+    <br/>
+    private Properties strings = new Properties();<br/>
+<br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.jface.preference.PreferencePage#createContents(org.eclipse.swt.widgets.Composite)<br/>
+     */<br/>
+    protected Control createContents(Composite parent) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;initializeDialogUnits(parent);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        Composite composite = new Composite(parent, SWT.NONE);  <br/>
+        GridLayout layout = new GridLayout(2, false);<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);<br/>
+        composite.setLayout(layout);<br/>
+        Label label = new Label(composite, SWT.WRAP);<br/>
+        label<br/>
+                .setText(strings.getProperty(CAPTION_MESSAGE, ActivityMessages.ActivitiesPreferencePage_captionMessage));<br/>
+        GridData data = new GridData(GridData.FILL_HORIZONTAL);<br/>
+        data.widthHint = 400;<br/>
+        data.horizontalSpan = 2;        <br/>
+        label.setLayoutData(data);<br/>
+        label = new Label(composite, SWT.NONE); //spacer<br/>
+        data = new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING);<br/>
+        data.horizontalSpan = 2;<br/>
+        label.setLayoutData(data);<br/>
+        createPromptButton(composite);<br/>
+        createCategoryArea(composite);<br/>
+        createDetailsArea(composite);<br/>
+        createButtons(composite);<br/>
+        <br/>
+        workbench.getHelpSystem().setHelp(parent,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IWorkbenchHelpContextIds.CAPABILITY_PREFERENCE_PAGE);<br/>
+        <br/>
+        Dialog.applyDialogFont(composite);<br/>
+        <br/>
+        return composite;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param composite<br/>
+     */<br/>
+    private void createPromptButton(Composite composite) {<br/>
+        activityPromptButton = new Button(composite, SWT.CHECK);<br/>
+        activityPromptButton.setText(strings.getProperty(ACTIVITY_PROMPT_BUTTON, ActivityMessages.activityPromptButton));<br/>
+        activityPromptButton.setToolTipText(strings.getProperty(ACTIVITY_PROMPT_BUTTON_TOOLTIP, ActivityMessages.activityPromptToolTip));<br/>
+        GridData data = new GridData();<br/>
+        data.horizontalSpan = 2;<br/>
+        activityPromptButton.setLayoutData(data);<br/>
+        activityPromptButton.setSelection(getPreferenceStore()<br/>
+                .getBoolean(<br/>
+                        IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT));<br/>
+    }<br/>
+<br/>
+    private void createButtons(final Composite parent) {<br/>
+        Composite composite = new Composite(parent, SWT.NONE);<br/>
+        GridLayout layout = new GridLayout(4, false);<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);<br/>
+        composite.setLayout(layout);<br/>
+        GridData data = new GridData(GridData.FILL_HORIZONTAL);<br/>
+        data.horizontalSpan = 2;<br/>
+        composite.setLayoutData(data);<br/>
+<br/>
+        Button enableAll = new Button(composite, SWT.PUSH);<br/>
+        enableAll.addSelectionListener(new SelectionAdapter() {<br/>
+<br/>
+            /*<br/>
+             * (non-Javadoc)<br/>
+             * <br/>
+             * @see org.eclipse.swt.events.SelectionListener#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+             */<br/>
+            public void widgetSelected(SelectionEvent e) {<br/>
+                workingCopy.setEnabledActivityIds(workingCopy<br/>
+                        .getDefinedActivityIds());<br/>
+            }<br/>
+        });<br/>
+        enableAll.setText(ActivityMessages.ActivityEnabler_selectAll); <br/>
+        setButtonLayoutData(enableAll);<br/>
+<br/>
+        Button disableAll = new Button(composite, SWT.PUSH);<br/>
+        disableAll.addSelectionListener(new SelectionAdapter() {<br/>
+            /*<br/>
+             * (non-Javadoc)<br/>
+             * <br/>
+             * @see org.eclipse.swt.events.SelectionAdapter#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+             */<br/>
+            public void widgetSelected(SelectionEvent e) {<br/>
+                workingCopy.setEnabledActivityIds(Collections.EMPTY_SET);<br/>
+            }<br/>
+        });<br/>
+        disableAll.setText(ActivityMessages.ActivityEnabler_deselectAll); <br/>
+        setButtonLayoutData(disableAll);<br/>
+        <br/>
+        if (allowAdvanced) {<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Label spacer = new Label(composite, SWT.NONE);<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = new GridData(GridData.GRAB_HORIZONTAL);<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;spacer.setLayoutData(data);<br/>
+            advancedButton = new Button(composite, SWT.PUSH);<br/>
+            advancedButton.addSelectionListener(new SelectionAdapter() {<br/>
+<br/>
+                /*<br/>
+                 * (non-Javadoc)<br/>
+                 * <br/>
+                 * @see org.eclipse.swt.events.SelectionAdapter#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+                 */<br/>
+                public void widgetSelected(SelectionEvent e) {<br/>
+                    AdvancedDialog dialog = new AdvancedDialog(parent.getShell());<br/>
+                    dialog.open(); // logic for updating the working copy is in the dialog class.                    <br/>
+                }<br/>
+            });<br/>
+            advancedButton.setText(ActivityMessages.ActivitiesPreferencePage_advancedButton);<br/>
+            setButtonLayoutData(advancedButton);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param parent<br/>
+     */<br/>
+    private void createDetailsArea(Composite parent) {<br/>
+        Composite composite = new Composite(parent, SWT.NONE);<br/>
+        GridLayout layout = new GridLayout();<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);<br/>
+        composite.setLayout(layout);<br/>
+        composite.setLayoutData(new GridData(GridData.FILL_BOTH));<br/>
+<br/>
+        new Label(composite, SWT.NONE).setText(ActivityMessages.ActivityEnabler_description);<br/>
+        descriptionText = new Text(composite, SWT.WRAP | SWT.READ_ONLY | SWT.BORDER);<br/>
+        GridData data = new GridData(GridData.FILL_BOTH);<br/>
+        data.heightHint = 100;<br/>
+        data.widthHint = 200;<br/>
+        descriptionText.setLayoutData(data);<br/>
+<br/>
+        new Label(composite, SWT.NONE).setText(ActivityMessages.ActivitiesPreferencePage_requirements);            <br/>
+        dependantViewer = new TableViewer(composite, SWT.BORDER);<br/>
+        dependantViewer.getControl().setLayoutData(<br/>
+                new GridData(GridData.FILL_BOTH));<br/>
+        dependantViewer.setContentProvider(new CategoryContentProvider());<br/>
+        dependantViewer.addFilter(new EmptyCategoryFilter());<br/>
+        dependantViewer.setLabelProvider(new CategoryLabelProvider(false));<br/>
+        dependantViewer.setInput(Collections.EMPTY_SET);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param parent<br/>
+     */<br/>
+    private void createCategoryArea(Composite parent) {<br/>
+        Composite composite = new Composite(parent, SWT.NONE);<br/>
+        GridLayout layout = new GridLayout();<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);        <br/>
+        composite.setLayout(layout);<br/>
+        GridData data = new GridData(GridData.FILL_BOTH);<br/>
+        data.widthHint = 200;<br/>
+        composite.setLayoutData(data);<br/>
+        Label label = new Label(composite, SWT.NONE);<br/>
+        label.setText(strings.getProperty(CATEGORY_NAME, ActivityMessages.ActivityEnabler_categories) + ':');<br/>
+        Table table = new Table(composite, SWT.CHECK | SWT.BORDER | SWT.SINGLE);<br/>
+        table.addSelectionListener(new SelectionAdapter() {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * (non-Javadoc)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * @see org.eclipse.swt.events.SelectionListener#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void widgetSelected(SelectionEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (e.detail == SWT.CHECK) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TableItem tableItem = (TableItem) e.item;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory category = (ICategory) tableItem.getData();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (isLocked(category)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tableItem.setChecked(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.doit = false; // veto the check<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set activitySet = WorkbenchActivityHelper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getActivityIdsForCategory(category);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tableItem.getChecked()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;activitySet.addAll(workingCopy.getEnabledActivityIds());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HashSet newSet = new HashSet(workingCopy<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getEnabledActivityIds());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;newSet.removeAll(activitySet);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;activitySet = newSet;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;workingCopy.setEnabledActivityIds(activitySet);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateCategoryCheckState(); // even though we're reacting to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// a check change we may need to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// refresh a greying change.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Just process the whole thing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+        categoryViewer = new CheckboxTableViewer(table);<br/>
+        categoryViewer.getControl().setLayoutData(<br/>
+                new GridData(GridData.FILL_BOTH));<br/>
+        categoryViewer.setContentProvider(new CategoryContentProvider());<br/>
+        CategoryLabelProvider categoryLabelProvider = new CategoryLabelProvider(<br/>
+                true);<br/>
+        workingCopy.addActivityManagerListener(categoryLabelProvider);<br/>
+        categoryViewer.setLabelProvider(categoryLabelProvider);<br/>
+        categoryViewer.setComparator(new ViewerComparator());<br/>
+        categoryViewer.addFilter(new EmptyCategoryFilter());<br/>
+<br/>
+        categoryViewer<br/>
+                .addSelectionChangedListener(new ISelectionChangedListener() {<br/>
+<br/>
+                    /*<br/>
+                     * (non-Javadoc)<br/>
+                     * <br/>
+                     * @see org.eclipse.jface.viewers.ISelectionChangedListener#selectionChanged(org.eclipse.jface.viewers.SelectionChangedEvent)<br/>
+                     */<br/>
+                    public void selectionChanged(SelectionChangedEvent event) {<br/>
+                        ICategory element = (ICategory) ((IStructuredSelection) event<br/>
+                                .getSelection()).getFirstElement();<br/>
+                        setDetails(element);<br/>
+                    }<br/>
+                });<br/>
+        categoryViewer.setInput(workingCopy.getDefinedCategoryIds());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateCategoryCheckState(); <br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Updates the check and grey state of the categories in the category viewer.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @since 3.2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void updateCategoryCheckState() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory[] enabledCategories = getEnabledCategories();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory[] partiallyEnabledCategories = getPartialCategories();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object[] allChecked = new Object[enabledCategories.length<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ partiallyEnabledCategories.length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(enabledCategories, 0, allChecked, 0, enabledCategories.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(partiallyEnabledCategories, 0, allChecked, enabledCategories.length, partiallyEnabledCategories.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;categoryViewer.setCheckedElements(allChecked);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;categoryViewer.setGrayedElements(partiallyEnabledCategories);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    private ICategory[] getPartialCategories() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return WorkbenchActivityHelper.resolveCategories(workingCopy,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InternalActivityHelper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getPartiallyEnabledCategories(workingCopy));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private ICategory[] getEnabledCategories() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return WorkbenchActivityHelper.resolveCategories(workingCopy,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InternalActivityHelper.getEnabledCategories(workingCopy));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected void setDetails(ICategory category) {<br/>
+        if (category == null) {<br/>
+            clearDetails();<br/>
+            return;<br/>
+        }<br/>
+        Set categories = null;<br/>
+        if (WorkbenchActivityHelper.isEnabled(workingCopy, category.getId())) {<br/>
+            categories = WorkbenchActivityHelper.getDisabledCategories(<br/>
+                    workingCopy, category.getId());<br/>
+<br/>
+        } else {<br/>
+            categories = WorkbenchActivityHelper.getEnabledCategories(<br/>
+                    workingCopy, category.getId());<br/>
+        }<br/>
+<br/>
+        categories = WorkbenchActivityHelper.getContainedCategories(<br/>
+                workingCopy, category.getId());<br/>
+        dependantViewer.setInput(categories);<br/>
+        try {<br/>
+            descriptionText.setText(category.getDescription());<br/>
+        } catch (NotDefinedException e) {<br/>
+            descriptionText.setText(""); //$NON-NLS-1$<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Clear the details area.<br/>
+     */<br/>
+    protected void clearDetails() {<br/>
+        dependantViewer.setInput(Collections.EMPTY_SET);<br/>
+        descriptionText.setText(""); //$NON-NLS-1$<br/>
+    }<br/>
+<br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.ui.IWorkbenchPreferencePage#init(org.eclipse.ui.IWorkbench)<br/>
+     */<br/>
+    public void init(IWorkbench workbench) {<br/>
+        this.workbench = workbench;<br/>
+        workingCopy = workbench.getActivitySupport().createWorkingCopy();<br/>
+        setPreferenceStore(WorkbenchPlugin.getDefault().getPreferenceStore());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return whether the category is locked.<br/>
+     * <br/>
+     * @param category<br/>
+     *            the category to test<br/>
+     * @return whether the category is locked<br/>
+     */<br/>
+    protected boolean isLocked(ICategory category) {<br/>
+        return !WorkbenchActivityHelper.getDisabledCategories(workingCopy,<br/>
+                category.getId()).isEmpty();<br/>
+    }<br/>
+<br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.jface.preference.PreferencePage#performOk()<br/>
+     */<br/>
+    public boolean performOk() {<br/>
+        workbench.getActivitySupport().setEnabledActivityIds(<br/>
+                workingCopy.getEnabledActivityIds());<br/>
+        getPreferenceStore().setValue(<br/>
+                IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT,<br/>
+                activityPromptButton.getSelection());<br/>
+        return true;<br/>
+    }<br/>
+<br/>
+    /* (non-Javadoc)<br/>
+     * @see org.eclipse.jface.preference.PreferencePage#performDefaults()<br/>
+     */<br/>
+    protected void performDefaults() {<br/>
+        super.performDefaults();<br/>
+        activityPromptButton.setSelection(getPreferenceStore()<br/>
+                .getDefaultBoolean(<br/>
+                        IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT));<br/>
+        <br/>
+        Set defaultEnabled = new HashSet();<br/>
+        Set activityIds = workingCopy.getDefinedActivityIds();<br/>
+        for (Iterator i = activityIds.iterator(); i.hasNext();) {<br/>
+            String activityId = (String) i.next();<br/>
+            IActivity activity = workingCopy.getActivity(activityId);<br/>
+            try {<br/>
+                if (activity.isDefaultEnabled()) {<br/>
+                    defaultEnabled.add(activityId);<br/>
+                }<br/>
+            } catch (NotDefinedException e) {<br/>
+                // this can't happen - we're iterating over defined activities.<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        workingCopy.setEnabledActivityIds(defaultEnabled);<br/>
+    }<br/>
+    <br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.core.runtime.IExecutableExtension#setInitializationData(org.eclipse.core.runtime.IConfigurationElement,<br/>
+     *      java.lang.String, java.lang.Object)<br/>
+     */<br/>
+    public void setInitializationData(IConfigurationElement config,<br/>
+            String propertyName, Object data) {<br/>
+        if (data instanceof Hashtable) {<br/>
+            Hashtable table = (Hashtable)data;<br/>
+            allowAdvanced = Boolean.valueOf((String) table.remove(ALLOW_ADVANCED)).booleanValue();<br/>
+            strings.putAll(table);<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ActivityCategoryPreferencePage_1.23.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2005, 2008 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.activities;<br/>
+<br/>
+import java.util.Collections;<br/>
+import java.util.HashSet;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Iterator;<br/>
+import java.util.Properties;<br/>
+import java.util.Set;<br/>
+<br/>
+import org.eclipse.core.runtime.IConfigurationElement;<br/>
+import org.eclipse.core.runtime.IExecutableExtension;<br/>
+import org.eclipse.jface.dialogs.Dialog;<br/>
+import org.eclipse.jface.dialogs.IDialogConstants;<br/>
+import org.eclipse.jface.dialogs.IDialogSettings;<br/>
+import org.eclipse.jface.dialogs.TrayDialog;<br/>
+import org.eclipse.jface.preference.PreferencePage;<br/>
+import org.eclipse.jface.resource.DeviceResourceException;<br/>
+import org.eclipse.jface.resource.ImageDescriptor;<br/>
+import org.eclipse.jface.resource.JFaceResources;<br/>
+import org.eclipse.jface.resource.LocalResourceManager;<br/>
+import org.eclipse.jface.viewers.CheckboxTableViewer;<br/>
+import org.eclipse.jface.viewers.ISelectionChangedListener;<br/>
+import org.eclipse.jface.viewers.IStructuredContentProvider;<br/>
+import org.eclipse.jface.viewers.IStructuredSelection;<br/>
+import org.eclipse.jface.viewers.ITableLabelProvider;<br/>
+import org.eclipse.jface.viewers.LabelProvider;<br/>
+import org.eclipse.jface.viewers.LabelProviderChangedEvent;<br/>
+import org.eclipse.jface.viewers.SelectionChangedEvent;<br/>
+import org.eclipse.jface.viewers.TableViewer;<br/>
+import org.eclipse.jface.viewers.Viewer;<br/>
+import org.eclipse.jface.viewers.ViewerComparator;<br/>
+import org.eclipse.jface.viewers.ViewerFilter;<br/>
+import org.eclipse.osgi.util.NLS;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.events.SelectionAdapter;<br/>
+import org.eclipse.swt.events.SelectionEvent;<br/>
+import org.eclipse.swt.graphics.Image;<br/>
+import org.eclipse.swt.graphics.ImageData;<br/>
+import org.eclipse.swt.graphics.Point;<br/>
+import org.eclipse.swt.layout.GridData;<br/>
+import org.eclipse.swt.layout.GridLayout;<br/>
+import org.eclipse.swt.widgets.Button;<br/>
+import org.eclipse.swt.widgets.Composite;<br/>
+import org.eclipse.swt.widgets.Control;<br/>
+import org.eclipse.swt.widgets.Label;<br/>
+import org.eclipse.swt.widgets.Shell;<br/>
+import org.eclipse.swt.widgets.Table;<br/>
+import org.eclipse.swt.widgets.TableItem;<br/>
+import org.eclipse.swt.widgets.Text;<br/>
+import org.eclipse.ui.IWorkbench;<br/>
+import org.eclipse.ui.IWorkbenchPreferencePage;<br/>
+import org.eclipse.ui.PlatformUI;<br/>
+import org.eclipse.ui.internal.IPreferenceConstants;<br/>
+import org.eclipse.ui.internal.IWorkbenchHelpContextIds;<br/>
+import org.eclipse.ui.internal.OverlayIcon;<br/>
+import org.eclipse.ui.internal.WorkbenchPlugin;<br/>
+import org.eclipse.ui.internal.activities.InternalActivityHelper;<br/>
+import org.eclipse.ui.internal.activities.ws.ActivityEnabler;<br/>
+import org.eclipse.ui.internal.activities.ws.ActivityMessages;<br/>
+import org.eclipse.ui.plugin.AbstractUIPlugin;<br/>
+<br/>
+/**<br/>
+ * Activities preference page that primarily shows categories and can optionally<br/>
+ * show an advanced dialog that allows fine-tune adjustmenet of activities. This<br/>
+ * page may be used by product developers to provide basic ability to tweak the<br/>
+ * enabled activity set. You may provide certain strings to this class via<br/>
+ * method #2 of {@link org.eclipse.core.runtime.IExecutableExtension}.<br/>
+ * <br/>
+ * @see #ACTIVITY_NAME<br/>
+ * @see #ALLOW_ADVANCED<br/>
+ * @see #CAPTION_MESSAGE<br/>
+ * @see #CATEGORY_NAME<br/>
+ * @see #ACTIVITY_PROMPT_BUTTON<br/>
+ * @see #ACTIVITY_PROMPT_BUTTON_TOOLTIP<br/>
+ * <br/>
+ * @since 3.1<br/>
+ */<br/>
+public final class ActivityCategoryPreferencePage extends PreferencePage implements<br/>
+        IWorkbenchPreferencePage, IExecutableExtension {<br/>
+<br/>
+    /**<br/>
+     * The name to use for the activities.  Ie: "Capabilities".<br/>
+     */<br/>
+    public static final String ACTIVITY_NAME = "activityName"; //$NON-NLS-1$<br/>
+<br/>
+    /**<br/>
+     * The parameter to use if you want the page to show the allow button. Must<br/>
+     * be true or false.<br/>
+     */<br/>
+    public static final String ALLOW_ADVANCED = "allowAdvanced"; //$NON-NLS-1$<br/>
+    <br/>
+    /**<br/>
+     * The string to use for the message at the top of the preference page.<br/>
+     */<br/>
+    public static final String CAPTION_MESSAGE = "captionMessage"; //$NON-NLS-1$<br/>
+    <br/>
+    /**<br/>
+     * The name to use for the activity categories.  Ie: "Roles".<br/>
+     */<br/>
+    public static final String CATEGORY_NAME = "categoryName"; //$NON-NLS-1$<br/>
+    <br/>
+    /**<br/>
+     * The label to be used for the prompt button. Ie: "&amp;Prompt when enabling capabilities".<br/>
+     */    <br/>
+    public static final String ACTIVITY_PROMPT_BUTTON = "activityPromptButton"; //$NON-NLS-1$<br/>
+<br/>
+    /**<br/>
+     * The tooltip to be used for the prompt button. Ie: "Prompt when a feature is first used that requires enablement of capabilities".<br/>
+     */    <br/>
+    public static final String ACTIVITY_PROMPT_BUTTON_TOOLTIP = "activityPromptButtonTooltip"; //$NON-NLS-1$<br/>
+    <br/>
+    private class AdvancedDialog extends TrayDialog {<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;private static final String DIALOG_SETTINGS_SECTION = "ActivityCategoryPreferencePageAdvancedDialogSettings"; //$NON-NLS-1$<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        ActivityEnabler enabler;<br/>
+        /**<br/>
+         * @param parentShell<br/>
+         */<br/>
+        protected AdvancedDialog(Shell parentShell) {<br/>
+            super(parentShell);<br/>
+         }<br/>
+        <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.window.Window#configureShell(org.eclipse.swt.widgets.Shell)<br/>
+         */<br/>
+        protected void configureShell(Shell newShell) {<br/>
+            super.configureShell(newShell);<br/>
+            String activityName = strings.getProperty(ACTIVITY_NAME, ActivityMessages.ActivityEnabler_activities);<br/>
+            activityName = activityName.replaceAll("&amp;", ""); //strips possible mnemonic //$NON-NLS-1$ //$NON-NLS-2$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;newShell.setText(NLS.bind(           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ActivityMessages.ActivitiesPreferencePage_advancedDialogTitle,<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;activityName&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+            ));<br/>
+        }<br/>
+        <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets.Composite)<br/>
+         */<br/>
+        protected Control createDialogArea(Composite parent) {<br/>
+            Composite composite = (Composite) super.createDialogArea(parent);<br/>
+            enabler = new ActivityEnabler(workingCopy, strings);<br/>
+            Control enablerControl = enabler.createControl(composite);<br/>
+            enablerControl.setLayoutData(new GridData(GridData.FILL_BOTH));<br/>
+            return composite;<br/>
+        }<br/>
+<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.dialogs.Dialog#okPressed()<br/>
+         */<br/>
+        protected void okPressed() {<br/>
+            enabler.updateActivityStates();            <br/>
+            super.okPressed();<br/>
+        }<br/>
+        <br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;/* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.window.Dialog#getDialogBoundsSettings()<br/>
+         * <br/>
+         * @since 3.2<br/>
+         */<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;protected IDialogSettings getDialogBoundsSettings() {<br/>
+            IDialogSettings settings = WorkbenchPlugin.getDefault().getDialogSettings();<br/>
+            IDialogSettings section = settings.getSection(DIALOG_SETTINGS_SECTION);<br/>
+            if (section == null) {<br/>
+                section = settings.addNewSection(DIALOG_SETTINGS_SECTION);<br/>
+            } <br/>
+            return section;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * @see org.eclipse.jface.dialogs.Dialog#isResizable()<br/>
+         */<br/>
+        protected boolean isResizable() {<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+        }<br/>
+    }<br/>
+    private class CategoryLabelProvider extends LabelProvider implements<br/>
+            ITableLabelProvider, IActivityManagerListener {<br/>
+<br/>
+        private LocalResourceManager manager = new LocalResourceManager(<br/>
+                JFaceResources.getResources());<br/>
+<br/>
+        private ImageDescriptor lockDescriptor;<br/>
+<br/>
+        private boolean decorate;<br/>
+<br/>
+        /**<br/>
+         * @param decorate<br/>
+         */<br/>
+        public CategoryLabelProvider(boolean decorate) {<br/>
+            this.decorate = decorate;<br/>
+            lockDescriptor = AbstractUIPlugin.imageDescriptorFromPlugin(<br/>
+                    PlatformUI.PLUGIN_ID, "icons/full/ovr16/lock_ovr.gif"); //$NON-NLS-1$<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.ITableLabelProvider#getColumnImage(java.lang.Object,<br/>
+         *      int)<br/>
+         */<br/>
+        public Image getColumnImage(Object element, int columnIndex) {<br/>
+            ICategory category = (ICategory) element;<br/>
+            ImageDescriptor descriptor = PlatformUI.getWorkbench()<br/>
+                    .getActivitySupport().getImageDescriptor(category);<br/>
+            if (descriptor != null) {<br/>
+                try {<br/>
+                    if (decorate) {<br/>
+                        if (isLocked(category)) {<br/>
+                            ImageData originalImageData = descriptor<br/>
+                                    .getImageData();<br/>
+                            OverlayIcon overlay = new OverlayIcon(<br/>
+                                    descriptor, lockDescriptor, new Point(<br/>
+                                            originalImageData.width,<br/>
+                                            originalImageData.height));<br/>
+                            return manager.createImage(overlay);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+                    return manager.createImage(descriptor);<br/>
+                } catch (DeviceResourceException e) {<br/>
+                    WorkbenchPlugin.log(e);<br/>
+                }<br/>
+            }  <br/>
+            return null;<br/>
+        }<br/>
+      <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.viewers.LabelProvider#getText(java.lang.Object)<br/>
+         */<br/>
+        public String getText(Object element) {<br/>
+            String name = null;<br/>
+            ICategory category = (ICategory) element;<br/>
+            try {<br/>
+                name = category.getName();<br/>
+            } catch (NotDefinedException e) {<br/>
+                name = category.getId();<br/>
+            }<br/>
+            if (decorate &amp;&amp; isLocked(category)) {<br/>
+                name = NLS.bind(ActivityMessages.ActivitiesPreferencePage_lockedMessage, name);<br/>
+            }<br/>
+            return name;<br/>
+        }   <br/>
+       <br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.jface.viewers.ITableLabelProvider#getColumnText(java.lang.Object, int)<br/>
+         */<br/>
+        public String getColumnText(Object element, int columnIndex) {<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;return getText(element);<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IBaseLabelProvider#dispose()<br/>
+         */<br/>
+        public void dispose() {<br/>
+            super.dispose();<br/>
+            manager.dispose();<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.ui.activities.IActivityManagerListener#activityManagerChanged(org.eclipse.ui.activities.ActivityManagerEvent)<br/>
+         */<br/>
+        public void activityManagerChanged(<br/>
+                ActivityManagerEvent activityManagerEvent) {<br/>
+            if (activityManagerEvent.haveEnabledActivityIdsChanged()) {<br/>
+                updateCategoryCheckState();<br/>
+                fireLabelProviderChanged(new LabelProviderChangedEvent(this));<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private class CategoryContentProvider implements IStructuredContentProvider {<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IStructuredContentProvider#getElements(java.lang.Object)<br/>
+         */<br/>
+        public Object[] getElements(Object inputElement) {<br/>
+            // convert to category objects<br/>
+            return WorkbenchActivityHelper.resolveCategories(workingCopy,<br/>
+                    (Set) inputElement);<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IContentProvider#dispose()<br/>
+         */<br/>
+        public void dispose() {<br/>
+<br/>
+        }<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.IContentProvider#inputChanged(org.eclipse.jface.viewers.Viewer,<br/>
+         *      java.lang.Object, java.lang.Object)<br/>
+         */<br/>
+        public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {<br/>
+<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private class EmptyCategoryFilter extends ViewerFilter {<br/>
+<br/>
+        /*<br/>
+         * (non-Javadoc)<br/>
+         * <br/>
+         * @see org.eclipse.jface.viewers.ViewerFilter#select(org.eclipse.jface.viewers.Viewer,<br/>
+         *      java.lang.Object, java.lang.Object)<br/>
+         */<br/>
+        public boolean select(Viewer viewer, Object parentElement,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object element) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory category = (ICategory) element;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (InternalActivityHelper.getActivityIdsForCategory(workingCopy,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;category).isEmpty()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    protected IWorkbench workbench;<br/>
+<br/>
+    private CheckboxTableViewer categoryViewer;<br/>
+<br/>
+    private TableViewer dependantViewer;<br/>
+<br/>
+    private Text descriptionText;<br/>
+<br/>
+    private IMutableActivityManager workingCopy;<br/>
+<br/>
+    private Button activityPromptButton;<br/>
+<br/>
+    private boolean allowAdvanced = false;<br/>
+<br/>
+    private Button advancedButton;<br/>
+    <br/>
+    private Properties strings = new Properties();<br/>
+<br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.jface.preference.PreferencePage#createContents(org.eclipse.swt.widgets.Composite)<br/>
+     */<br/>
+    protected Control createContents(Composite parent) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;initializeDialogUnits(parent);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        Composite composite = new Composite(parent, SWT.NONE);  <br/>
+        GridLayout layout = new GridLayout(2, false);<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);<br/>
+        composite.setLayout(layout);<br/>
+        Label label = new Label(composite, SWT.WRAP);<br/>
+        label<br/>
+                .setText(strings.getProperty(CAPTION_MESSAGE, ActivityMessages.ActivitiesPreferencePage_captionMessage));<br/>
+        GridData data = new GridData(GridData.FILL_HORIZONTAL);<br/>
+        data.widthHint = 400;<br/>
+        data.horizontalSpan = 2;        <br/>
+        label.setLayoutData(data);<br/>
+        label = new Label(composite, SWT.NONE); //spacer<br/>
+        data = new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING);<br/>
+        data.horizontalSpan = 2;<br/>
+        label.setLayoutData(data);<br/>
+        createPromptButton(composite);<br/>
+        createCategoryArea(composite);<br/>
+        createDetailsArea(composite);<br/>
+        createButtons(composite);<br/>
+        <br/>
+        workbench.getHelpSystem().setHelp(parent,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IWorkbenchHelpContextIds.CAPABILITY_PREFERENCE_PAGE);<br/>
+        <br/>
+        Dialog.applyDialogFont(composite);<br/>
+        <br/>
+        return composite;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param composite<br/>
+     */<br/>
+    private void createPromptButton(Composite composite) {<br/>
+        activityPromptButton = new Button(composite, SWT.CHECK);<br/>
+        activityPromptButton.setText(strings.getProperty(ACTIVITY_PROMPT_BUTTON, ActivityMessages.activityPromptButton));<br/>
+        activityPromptButton.setToolTipText(strings.getProperty(ACTIVITY_PROMPT_BUTTON_TOOLTIP, ActivityMessages.activityPromptToolTip));<br/>
+        GridData data = new GridData();<br/>
+        data.horizontalSpan = 2;<br/>
+        activityPromptButton.setLayoutData(data);<br/>
+        activityPromptButton.setSelection(getPreferenceStore()<br/>
+                .getBoolean(<br/>
+                        IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT));<br/>
+    }<br/>
+<br/>
+    private void createButtons(final Composite parent) {<br/>
+        Composite composite = new Composite(parent, SWT.NONE);<br/>
+        GridLayout layout = new GridLayout(4, false);<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);<br/>
+        composite.setLayout(layout);<br/>
+        GridData data = new GridData(GridData.FILL_HORIZONTAL);<br/>
+        data.horizontalSpan = 2;<br/>
+        composite.setLayoutData(data);<br/>
+<br/>
+        Button enableAll = new Button(composite, SWT.PUSH);<br/>
+        enableAll.addSelectionListener(new SelectionAdapter() {<br/>
+<br/>
+            /*<br/>
+             * (non-Javadoc)<br/>
+             * <br/>
+             * @see org.eclipse.swt.events.SelectionListener#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+             */<br/>
+            public void widgetSelected(SelectionEvent e) {<br/>
+                workingCopy.setEnabledActivityIds(workingCopy<br/>
+                        .getDefinedActivityIds());<br/>
+            }<br/>
+        });<br/>
+        enableAll.setText(ActivityMessages.ActivityEnabler_selectAll); <br/>
+        setButtonLayoutData(enableAll);<br/>
+<br/>
+        Button disableAll = new Button(composite, SWT.PUSH);<br/>
+        disableAll.addSelectionListener(new SelectionAdapter() {<br/>
+            /*<br/>
+             * (non-Javadoc)<br/>
+             * <br/>
+             * @see org.eclipse.swt.events.SelectionAdapter#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+             */<br/>
+            public void widgetSelected(SelectionEvent e) {<br/>
+                workingCopy.setEnabledActivityIds(Collections.EMPTY_SET);<br/>
+            }<br/>
+        });<br/>
+        disableAll.setText(ActivityMessages.ActivityEnabler_deselectAll); <br/>
+        setButtonLayoutData(disableAll);<br/>
+        <br/>
+        if (allowAdvanced) {<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Label spacer = new Label(composite, SWT.NONE);<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = new GridData(GridData.GRAB_HORIZONTAL);<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;spacer.setLayoutData(data);<br/>
+            advancedButton = new Button(composite, SWT.PUSH);<br/>
+            advancedButton.addSelectionListener(new SelectionAdapter() {<br/>
+<br/>
+                /*<br/>
+                 * (non-Javadoc)<br/>
+                 * <br/>
+                 * @see org.eclipse.swt.events.SelectionAdapter#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+                 */<br/>
+                public void widgetSelected(SelectionEvent e) {<br/>
+                    AdvancedDialog dialog = new AdvancedDialog(parent.getShell());<br/>
+                    dialog.open(); // logic for updating the working copy is in the dialog class.                    <br/>
+                }<br/>
+            });<br/>
+            advancedButton.setText(ActivityMessages.ActivitiesPreferencePage_advancedButton);<br/>
+            setButtonLayoutData(advancedButton);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param parent<br/>
+     */<br/>
+    private void createDetailsArea(Composite parent) {<br/>
+        Composite composite = new Composite(parent, SWT.NONE);<br/>
+        GridLayout layout = new GridLayout();<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);<br/>
+        composite.setLayout(layout);<br/>
+        composite.setLayoutData(new GridData(GridData.FILL_BOTH));<br/>
+<br/>
+        new Label(composite, SWT.NONE).setText(ActivityMessages.ActivityEnabler_description);<br/>
+        descriptionText = new Text(composite, SWT.WRAP | SWT.READ_ONLY | SWT.BORDER);<br/>
+        GridData data = new GridData(GridData.FILL_BOTH);<br/>
+        data.heightHint = 100;<br/>
+        data.widthHint = 200;<br/>
+        descriptionText.setLayoutData(data);<br/>
+<br/>
+        new Label(composite, SWT.NONE).setText(ActivityMessages.ActivitiesPreferencePage_requirements);            <br/>
+        dependantViewer = new TableViewer(composite, SWT.BORDER);<br/>
+        dependantViewer.getControl().setLayoutData(<br/>
+                new GridData(GridData.FILL_BOTH));<br/>
+        dependantViewer.setContentProvider(new CategoryContentProvider());<br/>
+        dependantViewer.addFilter(new EmptyCategoryFilter());<br/>
+        dependantViewer.setLabelProvider(new CategoryLabelProvider(false));<br/>
+        dependantViewer.setInput(Collections.EMPTY_SET);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param parent<br/>
+     */<br/>
+    private void createCategoryArea(Composite parent) {<br/>
+        Composite composite = new Composite(parent, SWT.NONE);<br/>
+        GridLayout layout = new GridLayout();<br/>
+        layout.marginHeight = layout.marginWidth = 0;<br/>
+        layout.horizontalSpacing = convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING);<br/>
+        layout.verticalSpacing = convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING);        <br/>
+        composite.setLayout(layout);<br/>
+        GridData data = new GridData(GridData.FILL_BOTH);<br/>
+        data.widthHint = 200;<br/>
+        composite.setLayoutData(data);<br/>
+        Label label = new Label(composite, SWT.NONE);<br/>
+        label.setText(strings.getProperty(CATEGORY_NAME, ActivityMessages.ActivityEnabler_categories) + ':');<br/>
+        Table table = new Table(composite, SWT.CHECK | SWT.BORDER | SWT.SINGLE);<br/>
+        table.addSelectionListener(new SelectionAdapter() {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * (non-Javadoc)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * @see org.eclipse.swt.events.SelectionListener#widgetSelected(org.eclipse.swt.events.SelectionEvent)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void widgetSelected(SelectionEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (e.detail == SWT.CHECK) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TableItem tableItem = (TableItem) e.item;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory category = (ICategory) tableItem.getData();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (isLocked(category)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tableItem.setChecked(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;e.doit = false; // veto the check<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set activitySet = WorkbenchActivityHelper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getActivityIdsForCategory(category);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tableItem.getChecked()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;activitySet.addAll(workingCopy.getEnabledActivityIds());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HashSet newSet = new HashSet(workingCopy<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getEnabledActivityIds());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;newSet.removeAll(activitySet);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;activitySet = newSet;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;workingCopy.setEnabledActivityIds(activitySet);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateCategoryCheckState(); // even though we're reacting to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// a check change we may need to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// refresh a greying change.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Just process the whole thing.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+        categoryViewer = new CheckboxTableViewer(table);<br/>
+        categoryViewer.getControl().setLayoutData(<br/>
+                new GridData(GridData.FILL_BOTH));<br/>
+        categoryViewer.setContentProvider(new CategoryContentProvider());<br/>
+        CategoryLabelProvider categoryLabelProvider = new CategoryLabelProvider(<br/>
+                true);<br/>
+        workingCopy.addActivityManagerListener(categoryLabelProvider);<br/>
+        categoryViewer.setLabelProvider(categoryLabelProvider);<br/>
+        categoryViewer.setComparator(new ViewerComparator());<br/>
+        categoryViewer.addFilter(new EmptyCategoryFilter());<br/>
+<br/>
+        categoryViewer<br/>
+                .addSelectionChangedListener(new ISelectionChangedListener() {<br/>
+<br/>
+                    /*<br/>
+                     * (non-Javadoc)<br/>
+                     * <br/>
+                     * @see org.eclipse.jface.viewers.ISelectionChangedListener#selectionChanged(org.eclipse.jface.viewers.SelectionChangedEvent)<br/>
+                     */<br/>
+                    public void selectionChanged(SelectionChangedEvent event) {<br/>
+                        ICategory element = (ICategory) ((IStructuredSelection) event<br/>
+                                .getSelection()).getFirstElement();<br/>
+                        setDetails(element);<br/>
+                    }<br/>
+                });<br/>
+        categoryViewer.setInput(workingCopy.getDefinedCategoryIds());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateCategoryCheckState(); <br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Updates the check and grey state of the categories in the category viewer.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @since 3.2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void updateCategoryCheckState() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory[] enabledCategories = getEnabledCategories();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICategory[] partiallyEnabledCategories = getPartialCategories();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object[] allChecked = new Object[enabledCategories.length<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ partiallyEnabledCategories.length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(enabledCategories, 0, allChecked, 0, enabledCategories.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(partiallyEnabledCategories, 0, allChecked, enabledCategories.length, partiallyEnabledCategories.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;categoryViewer.setCheckedElements(allChecked);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;categoryViewer.setGrayedElements(partiallyEnabledCategories);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    private ICategory[] getPartialCategories() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return WorkbenchActivityHelper.resolveCategories(workingCopy,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InternalActivityHelper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getPartiallyEnabledCategories(workingCopy));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private ICategory[] getEnabledCategories() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return WorkbenchActivityHelper.resolveCategories(workingCopy,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InternalActivityHelper.getEnabledCategories(workingCopy));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    protected void setDetails(ICategory category) {<br/>
+        if (category == null) {<br/>
+            clearDetails();<br/>
+            return;<br/>
+        }<br/>
+        Set categories = null;<br/>
+        if (WorkbenchActivityHelper.isEnabled(workingCopy, category.getId())) {<br/>
+            categories = WorkbenchActivityHelper.getDisabledCategories(<br/>
+                    workingCopy, category.getId());<br/>
+<br/>
+        } else {<br/>
+            categories = WorkbenchActivityHelper.getEnabledCategories(<br/>
+                    workingCopy, category.getId());<br/>
+        }<br/>
+<br/>
+        categories = WorkbenchActivityHelper.getContainedCategories(<br/>
+                workingCopy, category.getId());<br/>
+        dependantViewer.setInput(categories);<br/>
+        try {<br/>
+            descriptionText.setText(category.getDescription());<br/>
+        } catch (NotDefinedException e) {<br/>
+            descriptionText.setText(""); //$NON-NLS-1$<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Clear the details area.<br/>
+     */<br/>
+    protected void clearDetails() {<br/>
+        dependantViewer.setInput(Collections.EMPTY_SET);<br/>
+        descriptionText.setText(""); //$NON-NLS-1$<br/>
+    }<br/>
+<br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.ui.IWorkbenchPreferencePage#init(org.eclipse.ui.IWorkbench)<br/>
+     */<br/>
+    public void init(IWorkbench workbench) {<br/>
+        this.workbench = workbench;<br/>
+        workingCopy = workbench.getActivitySupport().createWorkingCopy();<br/>
+        setPreferenceStore(WorkbenchPlugin.getDefault().getPreferenceStore());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return whether the category is locked.<br/>
+     * <br/>
+     * @param category<br/>
+     *            the category to test<br/>
+     * @return whether the category is locked<br/>
+     */<br/>
+    protected boolean isLocked(ICategory category) {<br/>
+        return !WorkbenchActivityHelper.getDisabledCategories(workingCopy,<br/>
+                category.getId()).isEmpty();<br/>
+    }<br/>
+<br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.jface.preference.PreferencePage#performOk()<br/>
+     */<br/>
+    public boolean performOk() {<br/>
+        workbench.getActivitySupport().setEnabledActivityIds(<br/>
+                workingCopy.getEnabledActivityIds());<br/>
+        getPreferenceStore().setValue(<br/>
+                IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT,<br/>
+                activityPromptButton.getSelection());<br/>
+        return true;<br/>
+    }<br/>
+<br/>
+    /* (non-Javadoc)<br/>
+     * @see org.eclipse.jface.preference.PreferencePage#performDefaults()<br/>
+     */<br/>
+    protected void performDefaults() {<br/>
+        super.performDefaults();<br/>
+        activityPromptButton.setSelection(getPreferenceStore()<br/>
+                .getDefaultBoolean(<br/>
+                        IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT));<br/>
+        <br/>
+        Set defaultEnabled = new HashSet();<br/>
+        Set activityIds = workingCopy.getDefinedActivityIds();<br/>
+        for (Iterator i = activityIds.iterator(); i.hasNext();) {<br/>
+            String activityId = (String) i.next();<br/>
+            IActivity activity = workingCopy.getActivity(activityId);<br/>
+            try {<br/>
+                if (activity.isDefaultEnabled()) {<br/>
+                    defaultEnabled.add(activityId);<br/>
+                }<br/>
+            } catch (NotDefinedException e) {<br/>
+                // this can't happen - we're iterating over defined activities.<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        workingCopy.setEnabledActivityIds(defaultEnabled);<br/>
+    }<br/>
+    <br/>
+    /*<br/>
+     * (non-Javadoc)<br/>
+     * <br/>
+     * @see org.eclipse.core.runtime.IExecutableExtension#setInitializationData(org.eclipse.core.runtime.IConfigurationElement,<br/>
+     *      java.lang.String, java.lang.Object)<br/>
+     */<br/>
+    public void setInitializationData(IConfigurationElement config,<br/>
+            String propertyName, Object data) {<br/>
+        if (data instanceof Hashtable) {<br/>
+            Hashtable table = (Hashtable)data;<br/>
+            allowAdvanced = Boolean.valueOf((String) table.remove(ALLOW_ADVANCED)).booleanValue();<br/>
+            strings.putAll(table);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /* (non-Javadoc)<br/>
+     * @see org.eclipse.jface.dialogs.DialogPage#dispose()<br/>
+     */<br/>
+    <span class="add"><span class="add">public</span> <span class="add">void</span> <span class="add">dispose</span>() <span class="add">{<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add">workingCopy</span> != <span class="add">null</span></span>) <span class="add">{<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">workingCopy</span>.<span class="add">removeActivityManagerListener</span>(<span class="add">(<span class="add"><span class="add">CategoryLabelProvider</span></span>)<span class="add"><span class="add">categoryViewer</span>.<span class="add">getLabelProvider</span>()</span></span>)</span>;</span><br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">super.<span class="add">dispose</span>()</span>;</span><br/>
+    }</span></span><br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

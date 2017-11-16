@@ -1,0 +1,374 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_PropPanelUseCase_1.39.java</h1>
+<div class="code">
+<div class="id">
+// $Id: PropPanelUseCase.java,v 1.39 2003-11-28 15:55:05 jhraigniac Exp $<br/>
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+// File: PropPanelUseCase.java<br/>
+// Classes: PropPanelUseCase<br/>
+// Original Author: your email address here<br/>
+// $Id: PropPanelUseCase.java,v 1.39 2003-11-28 15:55:05 jhraigniac Exp $<br/>
+<br/>
+// 21 Mar 2002: Jeremy Bennett (mail@jeremybennett.com). Changed to use the<br/>
+// labels "Generalizes:" for inheritance (needs Specializes some time).<br/>
+<br/>
+// 21 Mar 2002: Jeremy Bennett (mail@jeremybennett.com). Specializes field<br/>
+// added. Factoring to use PropPanelModifiers and tidying up of layout.<br/>
+<br/>
+// 4 Apr 2002: Jeremy Bennett (mail@jeremybennett.com). Tool tip changed to<br/>
+// "Add use case".<br/>
+<br/>
+package org.argouml.uml.ui.behavior.use_cases;<br/>
+<br/>
+import javax.swing.JList;<br/>
+import javax.swing.JScrollPane;<br/>
+<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.model.ModelFacade;<br/>
+import org.argouml.model.uml.behavioralelements.usecases.UseCasesFactory;<br/>
+<br/>
+import org.argouml.ui.targetmanager.TargetManager;<br/>
+import org.argouml.uml.ui.PropPanelButton;<br/>
+import org.argouml.uml.ui.PropPanelModifiers;<br/>
+import org.argouml.uml.ui.UMLComboBoxNavigator;<br/>
+import org.argouml.uml.ui.UMLLinkedList;<br/>
+import org.argouml.uml.ui.UMLMutableLinkedList;<br/>
+import org.argouml.uml.ui.foundation.core.PropPanelClassifier;<br/>
+import org.argouml.util.ConfigLoader;<br/>
+<br/>
+/**<br/>
+ * &lt;p&gt;Builds the property panel for a use case.&lt;/p&gt;<br/>
+ *<br/>
+ * &lt;p&gt;This is a type of Classifier, and like other Classifiers can have<br/>
+ *   attributes and operations (some processes use these to define<br/>
+ *   requirements). &lt;em&gt;Note&lt;/em&gt;. ArgoUML does not currently support separate<br/>
+ *   compartments on the display for this.&lt;/p&gt;<br/>
+ */<br/>
+<br/>
+public class PropPanelUseCase extends PropPanelClassifier {<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Constructor. Builds up the various fields required.&lt;/p&gt;<br/>
+     */<br/>
+    public PropPanelUseCase() {<br/>
+        // Invoke the Classifier constructor, but passing in our name and<br/>
+        // representation and requesting 3 columns<br/>
+        super("UseCase", ConfigLoader.getTabPropsOrientation());<br/>
+<br/>
+        addField(Translator.localize("UMLMenu", "label.name"), getNameTextField());<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.stereotype"), new UMLComboBoxNavigator(this, Translator.localize("UMLMenu", "tooltip.nav-stereo"), getStereotypeBox()));<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.namespace"), getNamespaceComboBox());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PropPanelModifiers mPanel = new PropPanelModifiers(3);<br/>
+        Class mclass = (Class) ModelFacade.USE_CASE;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// since when do we know abstract usecases?<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//    mPanel.add("isAbstract", mclass, "isAbstract", "setAbstract",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//               Translator.localize("UMLMenu", "checkbox.abstract-lc"), this);<br/>
+        mPanel.add("isLeaf", mclass, "isLeaf", "setLeaf",<br/>
+                Translator.localize("UMLMenu", "checkbox.final-lc"), this);<br/>
+        mPanel.add("isRoot", mclass, "isRoot", "setRoot",<br/>
+                   localize("root"), this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.modifiers"), mPanel);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JList extensionPoints = new UMLMutableLinkedList(new UMLUseCaseExtensionPointListModel(), null, ActionNewUseCaseExtensionPoint.SINGLETON);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.extension-points"),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new JScrollPane(extensionPoints));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addSeperator();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.generalizations"), getGeneralizationScroll());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.specializations"), getSpecializationScroll());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JList extendsList = new UMLLinkedList(new UMLUseCaseExtendListModel());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.extends"),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new JScrollPane(extendsList));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JList includesList = new UMLLinkedList(new UMLUseCaseIncludeListModel());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.includes"),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new JScrollPane(includesList));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addSeperator();<br/>
+<br/>
+<br/>
+        new PropPanelButton(this, buttonPanel, _navUpIcon,<br/>
+                Translator.localize("UMLMenu", "button.go-up"), "navigateNamespace",<br/>
+                            null);<br/>
+        new PropPanelButton(this, buttonPanel, _useCaseIcon,<br/>
+                Translator.localize("UMLMenu", "button.add-usecase"), "newUseCase",<br/>
+                            null);<br/>
+        new PropPanelButton(this, buttonPanel, _extensionPointIcon,<br/>
+                            localize("Add extension point"),<br/>
+                            "newExtensionPoint",<br/>
+                            null);<br/>
+        new PropPanelButton(this, buttonPanel, _deleteIcon,<br/>
+                            localize("Delete"), "removeElement",<br/>
+                            null);<br/>
+<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Invoked by the "Add use case" toolbar button to create a new use case<br/>
+     *   property panel in the same namespace as the current use case.&lt;/p&gt;<br/>
+     *<br/>
+     * &lt;p&gt;This code uses getFactory and adds the use case explicitly to the<br/>
+     *   namespace. Extended to actually navigate to the new use case.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public void newUseCase() {<br/>
+        Object target = getTarget();<br/>
+<br/>
+        if (ModelFacade.isAUseCase(target)) {<br/>
+            Object ns = ModelFacade.getNamespace(target);<br/>
+<br/>
+            if (ns != null) {<br/>
+                Object useCase = UseCasesFactory.getFactory().createUseCase();<br/>
+                ModelFacade.addOwnedElement(ns, useCase);<br/>
+                TargetManager.getInstance().setTarget(useCase);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Invoked by the "Add extension point" toolbar button to create a new<br/>
+     *   extension point for this use case in the same namespace as the current<br/>
+     *   use case.&lt;/p&gt;<br/>
+     *<br/>
+     * &lt;p&gt;This code uses getFactory and adds the extension point explicitly to<br/>
+     *   the, making its associated use case the current use case.&lt;/p&gt;<br/>
+     */<br/>
+    public void newExtensionPoint() {<br/>
+        Object target = getTarget();<br/>
+<br/>
+        if (ModelFacade.isAUseCase(target)) {<br/>
+            TargetManager.getInstance().setTarget(UseCasesFactory.getFactory().buildExtensionPoint(target));<br/>
+        }<br/>
+    }<br/>
+} /* end class PropPanelUseCase */<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_PropPanelUseCase_1.40.java</h1>
+<div class="code">
+<div class="id">
+// $Id: PropPanelUseCase.java,v 1.40 2003-12-06 07:56:44 mkl Exp $<br/>
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+// File: PropPanelUseCase.java<br/>
+// Classes: PropPanelUseCase<br/>
+// Original Author: your email address here<br/>
+// $Id: PropPanelUseCase.java,v 1.40 2003-12-06 07:56:44 mkl Exp $<br/>
+<br/>
+// 21 Mar 2002: Jeremy Bennett (mail@jeremybennett.com). Changed to use the<br/>
+// labels "Generalizes:" for inheritance (needs Specializes some time).<br/>
+<br/>
+// 21 Mar 2002: Jeremy Bennett (mail@jeremybennett.com). Specializes field<br/>
+// added. Factoring to use PropPanelModifiers and tidying up of layout.<br/>
+<br/>
+// 4 Apr 2002: Jeremy Bennett (mail@jeremybennett.com). Tool tip changed to<br/>
+// "Add use case".<br/>
+<br/>
+package org.argouml.uml.ui.behavior.use_cases;<br/>
+<br/>
+import javax.swing.JList;<br/>
+import javax.swing.JScrollPane;<br/>
+<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.model.ModelFacade;<br/>
+import org.argouml.model.uml.behavioralelements.usecases.UseCasesFactory;<br/>
+<br/>
+import org.argouml.ui.targetmanager.TargetManager;<br/>
+import org.argouml.uml.ui.PropPanelButton;<br/>
+import org.argouml.uml.ui.PropPanelModifiers;<br/>
+import org.argouml.uml.ui.UMLComboBoxNavigator;<br/>
+import org.argouml.uml.ui.UMLLinkedList;<br/>
+import org.argouml.uml.ui.UMLMutableLinkedList;<br/>
+import org.argouml.uml.ui.foundation.core.PropPanelClassifier;<br/>
+import org.argouml.util.ConfigLoader;<br/>
+<br/>
+/**<br/>
+ * &lt;p&gt;Builds the property panel for a use case.&lt;/p&gt;<br/>
+ *<br/>
+ * &lt;p&gt;This is a type of Classifier, and like other Classifiers can have<br/>
+ *   attributes and operations (some processes use these to define<br/>
+ *   requirements). &lt;em&gt;Note&lt;/em&gt;. ArgoUML does not currently support separate<br/>
+ *   compartments on the display for this.&lt;/p&gt;<br/>
+ */<br/>
+<br/>
+public class PropPanelUseCase extends PropPanelClassifier {<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Constructor. Builds up the various fields required.&lt;/p&gt;<br/>
+     */<br/>
+    public PropPanelUseCase() {<br/>
+        // Invoke the Classifier constructor, but passing in our name and<br/>
+        // representation and requesting 3 columns<br/>
+        super("UseCase", ConfigLoader.getTabPropsOrientation());<br/>
+<br/>
+        addField(Translator.localize("UMLMenu", "label.name"), getNameTextField());<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.stereotype"), new UMLComboBoxNavigator(this, Translator.localize("UMLMenu", "tooltip.nav-stereo"), getStereotypeBox()));<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.namespace"), getNamespaceComboBox());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PropPanelModifiers mPanel = new PropPanelModifiers(3);<br/>
+        Class mclass = (Class) ModelFacade.USE_CASE;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// since when do we know abstract usecases?<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//    mPanel.add("isAbstract", mclass, "isAbstract", "setAbstract",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//               Translator.localize("UMLMenu", "checkbox.abstract-lc"), this);<br/>
+        mPanel.add("isLeaf", mclass, "isLeaf", "setLeaf",<br/>
+                Translator.localize("UMLMenu", "checkbox.final-lc"), this);<br/>
+        mPanel.add("isRoot", mclass, "isRoot", "setRoot",<br/>
+                   localize("root"), this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.modifiers"), mPanel);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JList extensionPoints = new UMLMutableLinkedList(new UMLUseCaseExtensionPointListModel(), null, ActionNewUseCaseExtensionPoint.SINGLETON);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.extension-points"),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new JScrollPane(extensionPoints));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addSeperator();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.generalizations"), getGeneralizationScroll());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.specializations"), getSpecializationScroll());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JList extendsList = new UMLLinkedList(new UMLUseCaseExtendListModel());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.extends"),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new JScrollPane(extendsList));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JList includesList = new UMLLinkedList(new UMLUseCaseIncludeListModel());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addField(Translator.localize("UMLMenu", "label.includes"),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new JScrollPane(includesList));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addSeperator();<br/>
+<br/>
+        <span class="add"><span class="add"><span class="add">addField</span>(<span class="add"><span class="add">Translator</span>.<span class="add">localize</span>(<span class="add">"UMLMenu"</span>, <span class="add">"label.association-ends"</span>)</span>, <br/>
+            <span class="add"><span class="add">getAssociationEndScroll</span>()</span>)</span>;</span><br/>
+<br/>
+        <br/>
+<br/>
+        new PropPanelButton(this, buttonPanel, _navUpIcon,<br/>
+                Translator.localize("UMLMenu", "button.go-up"), "navigateNamespace",<br/>
+                            null);<br/>
+        new PropPanelButton(this, buttonPanel, _useCaseIcon,<br/>
+                Translator.localize("UMLMenu", "button.add-usecase"), "newUseCase",<br/>
+                            null);<br/>
+        new PropPanelButton(this, buttonPanel, _extensionPointIcon,<br/>
+                            localize("Add extension point"),<br/>
+                            "newExtensionPoint",<br/>
+                            null);<br/>
+        new PropPanelButton(this, buttonPanel, _deleteIcon,<br/>
+                            localize("Delete"), "removeElement",<br/>
+                            null);<br/>
+<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Invoked by the "Add use case" toolbar button to create a new use case<br/>
+     *   property panel in the same namespace as the current use case.&lt;/p&gt;<br/>
+     *<br/>
+     * &lt;p&gt;This code uses getFactory and adds the use case explicitly to the<br/>
+     *   namespace. Extended to actually navigate to the new use case.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public void newUseCase() {<br/>
+        Object target = getTarget();<br/>
+<br/>
+        if (ModelFacade.isAUseCase(target)) {<br/>
+            Object ns = ModelFacade.getNamespace(target);<br/>
+<br/>
+            if (ns != null) {<br/>
+                Object useCase = UseCasesFactory.getFactory().createUseCase();<br/>
+                ModelFacade.addOwnedElement(ns, useCase);<br/>
+                TargetManager.getInstance().setTarget(useCase);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Invoked by the "Add extension point" toolbar button to create a new<br/>
+     *   extension point for this use case in the same namespace as the current<br/>
+     *   use case.&lt;/p&gt;<br/>
+     *<br/>
+     * &lt;p&gt;This code uses getFactory and adds the extension point explicitly to<br/>
+     *   the, making its associated use case the current use case.&lt;/p&gt;<br/>
+     */<br/>
+    public void newExtensionPoint() {<br/>
+        Object target = getTarget();<br/>
+<br/>
+        if (ModelFacade.isAUseCase(target)) {<br/>
+            TargetManager.getInstance().setTarget(UseCasesFactory.getFactory().buildExtensionPoint(target));<br/>
+        }<br/>
+    }<br/>
+} /* end class PropPanelUseCase */<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

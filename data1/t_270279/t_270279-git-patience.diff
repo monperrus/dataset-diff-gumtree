@@ -1,0 +1,24 @@
+diff --git a/t_270279/left_DecorationScheduler_1.27.java b/t_270279/right_DecorationScheduler_1.28.java
+index ad8a112..fd82ba9 100644
+--- a/t_270279/left_DecorationScheduler_1.27.java
++++ b/t_270279/right_DecorationScheduler_1.28.java
+@@ -231,7 +231,8 @@ public class DecorationScheduler {
+ 									.getLightweightManager()
+ 									.getDecorations(
+ 									adapted,
+-									cacheResult);
++									cacheResult,
++									true);
+ 								if (cacheResult.hasValue()) {
+ 									adaptedResult = cacheResult.createResult();
+ 								}
+@@ -251,7 +252,8 @@ public class DecorationScheduler {
+ 							.getLightweightManager()
+ 							.getDecorations(
+ 							element,
+-							cacheResult);
++							cacheResult,
++							false);
+ 
+ 						//If we should update regardless then put a result anyways
+ 						if (cacheResult.hasValue()

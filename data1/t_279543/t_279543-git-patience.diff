@@ -1,0 +1,13 @@
+diff --git a/t_279543/left_HeaderMatch_1.1.java b/t_279543/right_HeaderMatch_1.2.java
+index 3a9ab0f..0f53d62 100644
+--- a/t_279543/left_HeaderMatch_1.1.java
++++ b/t_279543/right_HeaderMatch_1.2.java
+@@ -169,7 +169,7 @@ public class HeaderMatch extends Matcher {
+ 		String respValue=(resH==null)? "": resH.getValue();
+ 		if( respValue==null || respValue.indexOf( value ) <0 ) {
+ 		    log("ERROR expecting header " + key + ":" +
+-			value + " \nGOT: " + respValue+ " HEADERS(" +
++			value + " \r\nGOT: " + respValue+ " HEADERS(" +
+ 			Header.toString(headers) + ")");
+ 		    
+ 		    return false;

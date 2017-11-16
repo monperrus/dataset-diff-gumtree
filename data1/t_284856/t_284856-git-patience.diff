@@ -1,0 +1,13 @@
+diff --git a/t_284856/left_ThrowableInformation_1.15.java b/t_284856/right_ThrowableInformation_1.16.java
+index 3af471e..7bf8afe 100644
+--- a/t_284856/left_ThrowableInformation_1.15.java
++++ b/t_284856/right_ThrowableInformation_1.16.java
+@@ -174,7 +174,7 @@ class VectorWriter extends PrintWriter {
+   }
+ 
+   public void println(Object o) {
+-    v.addElement(o.toString());
++      v.addElement(String.valueOf(o));
+   }
+ 
+   // JDK 1.1.x apprenly uses this form of println while in

@@ -1,0 +1,699 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ThemeElementHelper_1.17.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2004, 2007 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.internal.themes;<br/>
+<br/>
+import java.util.Arrays;<br/>
+import java.util.SortedSet;<br/>
+import java.util.TreeSet;<br/>
+<br/>
+import org.eclipse.jface.preference.IPreferenceStore;<br/>
+import org.eclipse.jface.preference.PreferenceConverter;<br/>
+import org.eclipse.jface.resource.ColorRegistry;<br/>
+import org.eclipse.jface.resource.FontRegistry;<br/>
+import org.eclipse.swt.graphics.FontData;<br/>
+import org.eclipse.swt.graphics.RGB;<br/>
+import org.eclipse.ui.internal.Workbench;<br/>
+import org.eclipse.ui.internal.WorkbenchPlugin;<br/>
+import org.eclipse.ui.themes.ITheme;<br/>
+import org.eclipse.ui.themes.IThemeManager;<br/>
+<br/>
+/**<br/>
+ * @since 3.0<br/>
+ */<br/>
+public final class ThemeElementHelper {<br/>
+<br/>
+    public static void populateRegistry(ITheme theme,<br/>
+            FontDefinition[] definitions, IPreferenceStore store) {<br/>
+        // sort the definitions by dependant ordering so that we process <br/>
+        // ancestors before children.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        FontDefinition[] copyOfDefinitions = null;<br/>
+<br/>
+        // the colors to set a default value for, but not a registry value<br/>
+        FontDefinition[] defaults = null;<br/>
+        if (!theme.getId().equals(IThemeManager.DEFAULT_THEME)) {<br/>
+            definitions = addDefaulted(definitions);<br/>
+            //compute the defaults only if we're setting preferences at this time<br/>
+            if (store != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaults = getDefaults(definitions);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        }<br/>
+<br/>
+        copyOfDefinitions = new FontDefinition[definitions.length];<br/>
+        System.arraycopy(definitions, 0, copyOfDefinitions, 0,<br/>
+                definitions.length);<br/>
+        Arrays.sort(copyOfDefinitions, new IThemeRegistry.HierarchyComparator(<br/>
+                definitions));<br/>
+<br/>
+        for (int i = 0; i &lt; copyOfDefinitions.length; i++) {<br/>
+            FontDefinition definition = copyOfDefinitions[i];<br/>
+            installFont(definition, theme, store, true);<br/>
+        }<br/>
+<br/>
+        if (defaults != null) {<br/>
+            for (int i = 0; i &lt; defaults.length; i++) {<br/>
+                installFont(defaults[i], theme, store, false);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param definitions<br/>
+     * @return<br/>
+     */<br/>
+    private static FontDefinition[] addDefaulted(FontDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        FontDefinition[] allDefs = registry.getFonts();<br/>
+<br/>
+        SortedSet set = addDefaulted(definitions, allDefs);<br/>
+        return (FontDefinition[]) set.toArray(new FontDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Installs the given font in the preference store and optionally the font <br/>
+     * registry.<br/>
+     * <br/>
+     * @param definition<br/>
+     *            the font definition<br/>
+     * @param registry<br/>
+     *            the font registry<br/>
+     * @param store<br/>
+     *            the preference store from which to set and obtain font data<br/>
+     * @param setInRegistry<br/>
+     * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  whether the color should be put into the registry as well as<br/>
+     *            having its default preference set<br/>
+     */<br/>
+    private static void installFont(FontDefinition definition, ITheme theme,<br/>
+            IPreferenceStore store, boolean setInRegistry) {<br/>
+        FontRegistry registry = theme.getFontRegistry();<br/>
+<br/>
+        String id = definition.getId();<br/>
+        String key = createPreferenceKey(theme, id);<br/>
+        FontData[] prefFont = store != null ? PreferenceConverter<br/>
+                .getFontDataArray(store, key) : null;<br/>
+        FontData[] defaultFont = null;<br/>
+        if (definition.getValue() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultFont = definition.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (definition.getDefaultsTo() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultFont = registry.filterData(registry<br/>
+                    .getFontData(definition.getDefaultsTo()), Workbench<br/>
+                    .getInstance().getDisplay());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+            // values pushed in from jface property files.  Very ugly.<br/>
+            defaultFont = registry.bestDataArray(<span class="mv"><span class="upd">registry</span>.<span class="mv">getFontData</span>(<span class="upd">key</span>)</span>,<br/>
+                    Workbench.getInstance().getDisplay());<br/>
+        }<br/>
+<br/>
+        if (setInRegistry) {<br/>
+            if (prefFont == null<br/>
+                    || prefFont == PreferenceConverter.FONTDATA_ARRAY_DEFAULT_DEFAULT) {<br/>
+                prefFont = defaultFont;<br/>
+            }<br/>
+<br/>
+            if (prefFont != null) {<br/>
+                registry.put(id, prefFont);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if (defaultFont != null &amp;&amp; store != null) {<br/>
+            PreferenceConverter.setDefault(store, key, defaultFont);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public static void populateRegistry(ITheme theme,<br/>
+            ColorDefinition[] definitions, IPreferenceStore store) {<br/>
+        // sort the definitions by dependant ordering so that we process <br/>
+        // ancestors before children.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+        ColorDefinition[] copyOfDefinitions = null;<br/>
+<br/>
+        // the colors to set a default value for, but not a registry value<br/>
+        ColorDefinition[] defaults = null;<br/>
+        if (!theme.getId().equals(IThemeManager.DEFAULT_THEME)) {<br/>
+            definitions = addDefaulted(definitions);<br/>
+            //compute defaults only if we're setting preferences<br/>
+            if (store != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaults = getDefaults(definitions);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        }<br/>
+<br/>
+        copyOfDefinitions = new ColorDefinition[definitions.length];<br/>
+        System.arraycopy(definitions, 0, copyOfDefinitions, 0,<br/>
+                definitions.length);<br/>
+        Arrays.sort(copyOfDefinitions, new IThemeRegistry.HierarchyComparator(<br/>
+                definitions));<br/>
+<br/>
+        for (int i = 0; i &lt; copyOfDefinitions.length; i++) {<br/>
+            ColorDefinition definition = copyOfDefinitions[i];<br/>
+            installColor(definition, theme, store, true);<br/>
+        }<br/>
+<br/>
+        if (defaults != null) {<br/>
+            for (int i = 0; i &lt; defaults.length; i++) {<br/>
+                installColor(defaults[i], theme, store, false);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the definitions that should have their default preference value<br/>
+     * set but nothing else.<br/>
+     * <br/>
+     * @param definitions the definitions that will be fully handled<br/>
+     * @return the remaining definitions that should be defaulted<br/>
+     */<br/>
+    private static ColorDefinition[] getDefaults(ColorDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        ColorDefinition[] allDefs = registry.getColors();<br/>
+<br/>
+        SortedSet set = new TreeSet(IThemeRegistry.ID_COMPARATOR);<br/>
+        set.addAll(Arrays.asList(allDefs));<br/>
+        set.removeAll(Arrays.asList(definitions));<br/>
+        return (ColorDefinition[]) set.toArray(new ColorDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the definitions that should have their default preference value<br/>
+     * set but nothing else.<br/>
+     * <br/>
+     * @param definitions the definitions that will be fully handled<br/>
+     * @return the remaining definitions that should be defaulted<br/>
+     */<br/>
+    private static FontDefinition[] getDefaults(FontDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        FontDefinition[] allDefs = registry.getFonts();<br/>
+<br/>
+        SortedSet set = new TreeSet(IThemeRegistry.ID_COMPARATOR);<br/>
+        set.addAll(Arrays.asList(allDefs));<br/>
+        set.removeAll(Arrays.asList(definitions));<br/>
+        return (FontDefinition[]) set.toArray(new FontDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param definitions<br/>
+     * @return<br/>
+     */<br/>
+    private static ColorDefinition[] addDefaulted(ColorDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        ColorDefinition[] allDefs = registry.getColors();<br/>
+<br/>
+        SortedSet set = addDefaulted(definitions, allDefs);<br/>
+        return (ColorDefinition[]) set.toArray(new ColorDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param definitions<br/>
+     * @param allDefs<br/>
+     * @return<br/>
+     */<br/>
+    private static SortedSet addDefaulted(<br/>
+            IHierarchalThemeElementDefinition[] definitions,<br/>
+            IHierarchalThemeElementDefinition[] allDefs) {<br/>
+        SortedSet set = new TreeSet(IThemeRegistry.ID_COMPARATOR);<br/>
+        set.addAll(Arrays.asList(definitions));<br/>
+        <br/>
+        IHierarchalThemeElementDefinition copy [] = new IHierarchalThemeElementDefinition[allDefs.length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(allDefs, 0, copy, 0, allDefs.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        Arrays.sort(allDefs, new IThemeRegistry.HierarchyComparator(copy));<br/>
+        for (int i = 0; i &lt; allDefs.length; i++) {<br/>
+            IHierarchalThemeElementDefinition def = allDefs[i];<br/>
+            if (def.getDefaultsTo() != null) {<br/>
+                if (set.contains(def.getDefaultsTo())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set.add(def);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+        }<br/>
+        return set;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Installs the given color in the preference store and optionally the color <br/>
+     * registry.<br/>
+     * <br/>
+     * @param definition<br/>
+     *            the color definition<br/>
+     * @param registry<br/>
+     *            the color registry<br/>
+     * @param store<br/>
+     *            the preference store from which to set and obtain color data<br/>
+     * @param setInRegistry<br/>
+     * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  whether the color should be put into the registry as well as<br/>
+     *            having its default preference set<br/>
+     */<br/>
+    private static void installColor(ColorDefinition definition, ITheme theme,<br/>
+            IPreferenceStore store, boolean setInRegistry) {<br/>
+<br/>
+        ColorRegistry registry = theme.getColorRegistry();<br/>
+<br/>
+        String id = definition.getId();<br/>
+        String key = createPreferenceKey(theme, id);<br/>
+        RGB prefColor = store != null ? PreferenceConverter<br/>
+                .getColor(store, key) : null;<br/>
+        RGB defaultColor = null;<br/>
+        if (definition.getValue() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultColor = definition.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultColor = registry.getRGB(definition.getDefaultsTo());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        if (setInRegistry) {<br/>
+            if (prefColor == null<br/>
+                    || prefColor == PreferenceConverter.COLOR_DEFAULT_DEFAULT) {<br/>
+                prefColor = defaultColor;<br/>
+            }<br/>
+<br/>
+            if (prefColor != null) {<br/>
+                registry.put(id, prefColor);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if (defaultColor != null &amp;&amp; store != null) {<br/>
+            PreferenceConverter.setDefault(store, key, defaultColor);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param theme<br/>
+     * @param id<br/>
+     * @return<br/>
+     */<br/>
+    public static String createPreferenceKey(ITheme theme, String id) {<br/>
+        String themeId = theme.getId();<br/>
+        if (themeId.equals(IThemeManager.DEFAULT_THEME)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return id;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        return themeId + '.' + id;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param theme<br/>
+     * @param property<br/>
+     * @return<br/>
+     */<br/>
+    public static String[] splitPropertyName(Theme theme, String property) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;IThemeDescriptor[] descriptors = WorkbenchPlugin.getDefault()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getThemeRegistry().getThemes();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; descriptors.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IThemeDescriptor themeDescriptor = descriptors[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String id = themeDescriptor.getId();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (property.startsWith(id + '.')) { // the property starts with<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// a known theme ID -<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// extract and return it and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the remaining property<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new String[] { property.substring(0, id.length()),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;property.substring(id.length() + 1) };<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// default is simply return the default theme ID and the raw property<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new String[] { IThemeManager.DEFAULT_THEME, property };<br/>
+    }<br/>
+<br/>
+    /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Not intended to be instantiated.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+    private ThemeElementHelper() {<br/>
+        // no-op<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ThemeElementHelper_1.18.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2004, 2007 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.internal.themes;<br/>
+<br/>
+import java.util.Arrays;<br/>
+import java.util.SortedSet;<br/>
+import java.util.TreeSet;<br/>
+<br/>
+import org.eclipse.jface.preference.IPreferenceStore;<br/>
+import org.eclipse.jface.preference.PreferenceConverter;<br/>
+import org.eclipse.jface.resource.ColorRegistry;<br/>
+import org.eclipse.jface.resource.FontRegistry;<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">eclipse</span></span>.<span class="add">jface</span></span>.<span class="add">resource</span></span>.<span class="add">JFaceResources</span></span>;</span><br/>
+import org.eclipse.swt.graphics.FontData;<br/>
+import org.eclipse.swt.graphics.RGB;<br/>
+import org.eclipse.ui.internal.Workbench;<br/>
+import org.eclipse.ui.internal.WorkbenchPlugin;<br/>
+import org.eclipse.ui.themes.ITheme;<br/>
+import org.eclipse.ui.themes.IThemeManager;<br/>
+<br/>
+/**<br/>
+ * @since 3.0<br/>
+ */<br/>
+public final class ThemeElementHelper {<br/>
+<br/>
+    public static void populateRegistry(ITheme theme,<br/>
+            FontDefinition[] definitions, IPreferenceStore store) {<br/>
+        // sort the definitions by dependant ordering so that we process <br/>
+        // ancestors before children.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        FontDefinition[] copyOfDefinitions = null;<br/>
+<br/>
+        // the colors to set a default value for, but not a registry value<br/>
+        FontDefinition[] defaults = null;<br/>
+        if (!theme.getId().equals(IThemeManager.DEFAULT_THEME)) {<br/>
+            definitions = addDefaulted(definitions);<br/>
+            //compute the defaults only if we're setting preferences at this time<br/>
+            if (store != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaults = getDefaults(definitions);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        }<br/>
+<br/>
+        copyOfDefinitions = new FontDefinition[definitions.length];<br/>
+        System.arraycopy(definitions, 0, copyOfDefinitions, 0,<br/>
+                definitions.length);<br/>
+        Arrays.sort(copyOfDefinitions, new IThemeRegistry.HierarchyComparator(<br/>
+                definitions));<br/>
+<br/>
+        for (int i = 0; i &lt; copyOfDefinitions.length; i++) {<br/>
+            FontDefinition definition = copyOfDefinitions[i];<br/>
+            installFont(definition, theme, store, true);<br/>
+        }<br/>
+<br/>
+        if (defaults != null) {<br/>
+            for (int i = 0; i &lt; defaults.length; i++) {<br/>
+                installFont(defaults[i], theme, store, false);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param definitions<br/>
+     * @return<br/>
+     */<br/>
+    private static FontDefinition[] addDefaulted(FontDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        FontDefinition[] allDefs = registry.getFonts();<br/>
+<br/>
+        SortedSet set = addDefaulted(definitions, allDefs);<br/>
+        return (FontDefinition[]) set.toArray(new FontDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Installs the given font in the preference store and optionally the font <br/>
+     * registry.<br/>
+     * <br/>
+     * @param definition<br/>
+     *            the font definition<br/>
+     * @param registry<br/>
+     *            the font registry<br/>
+     * @param store<br/>
+     *            the preference store from which to set and obtain font data<br/>
+     * @param setInRegistry<br/>
+     * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  whether the color should be put into the registry as well as<br/>
+     *            having its default preference set<br/>
+     */<br/>
+    private static void installFont(FontDefinition definition, ITheme theme,<br/>
+            IPreferenceStore store, boolean setInRegistry) {<br/>
+        FontRegistry registry = theme.getFontRegistry();<br/>
+<br/>
+        String id = definition.getId();<br/>
+        String key = createPreferenceKey(theme, id);<br/>
+        FontData[] prefFont = store != null ? PreferenceConverter<br/>
+                .getFontDataArray(store, key) : null;<br/>
+        FontData[] defaultFont = null;<br/>
+        if (definition.getValue() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultFont = definition.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (definition.getDefaultsTo() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultFont = registry.filterData(registry<br/>
+                    .getFontData(definition.getDefaultsTo()), Workbench<br/>
+                    .getInstance().getDisplay());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+            // values pushed in from jface property files.  Very ugly.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultFont = registry.bestDataArray(<span class="add"><span class="mv"><span class="upd">JFaceResources</span>.<span class="upd">getFontRegistry</span>()</span>.<span class="mv">getFontData</span>(<span class="add">id</span>)</span>,<br/>
+                    Workbench.getInstance().getDisplay());<br/>
+        }<br/>
+<br/>
+        if (setInRegistry) {<br/>
+            if (prefFont == null<br/>
+                    || prefFont == PreferenceConverter.FONTDATA_ARRAY_DEFAULT_DEFAULT) {<br/>
+                prefFont = defaultFont;<br/>
+            }<br/>
+<br/>
+            if (prefFont != null) {<br/>
+                registry.put(id, prefFont);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if (defaultFont != null &amp;&amp; store != null) {<br/>
+            PreferenceConverter.setDefault(store, key, defaultFont);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public static void populateRegistry(ITheme theme,<br/>
+            ColorDefinition[] definitions, IPreferenceStore store) {<br/>
+        // sort the definitions by dependant ordering so that we process <br/>
+        // ancestors before children.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+        ColorDefinition[] copyOfDefinitions = null;<br/>
+<br/>
+        // the colors to set a default value for, but not a registry value<br/>
+        ColorDefinition[] defaults = null;<br/>
+        if (!theme.getId().equals(IThemeManager.DEFAULT_THEME)) {<br/>
+            definitions = addDefaulted(definitions);<br/>
+            //compute defaults only if we're setting preferences<br/>
+            if (store != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaults = getDefaults(definitions);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        }<br/>
+<br/>
+        copyOfDefinitions = new ColorDefinition[definitions.length];<br/>
+        System.arraycopy(definitions, 0, copyOfDefinitions, 0,<br/>
+                definitions.length);<br/>
+        Arrays.sort(copyOfDefinitions, new IThemeRegistry.HierarchyComparator(<br/>
+                definitions));<br/>
+<br/>
+        for (int i = 0; i &lt; copyOfDefinitions.length; i++) {<br/>
+            ColorDefinition definition = copyOfDefinitions[i];<br/>
+            installColor(definition, theme, store, true);<br/>
+        }<br/>
+<br/>
+        if (defaults != null) {<br/>
+            for (int i = 0; i &lt; defaults.length; i++) {<br/>
+                installColor(defaults[i], theme, store, false);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the definitions that should have their default preference value<br/>
+     * set but nothing else.<br/>
+     * <br/>
+     * @param definitions the definitions that will be fully handled<br/>
+     * @return the remaining definitions that should be defaulted<br/>
+     */<br/>
+    private static ColorDefinition[] getDefaults(ColorDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        ColorDefinition[] allDefs = registry.getColors();<br/>
+<br/>
+        SortedSet set = new TreeSet(IThemeRegistry.ID_COMPARATOR);<br/>
+        set.addAll(Arrays.asList(allDefs));<br/>
+        set.removeAll(Arrays.asList(definitions));<br/>
+        return (ColorDefinition[]) set.toArray(new ColorDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the definitions that should have their default preference value<br/>
+     * set but nothing else.<br/>
+     * <br/>
+     * @param definitions the definitions that will be fully handled<br/>
+     * @return the remaining definitions that should be defaulted<br/>
+     */<br/>
+    private static FontDefinition[] getDefaults(FontDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        FontDefinition[] allDefs = registry.getFonts();<br/>
+<br/>
+        SortedSet set = new TreeSet(IThemeRegistry.ID_COMPARATOR);<br/>
+        set.addAll(Arrays.asList(allDefs));<br/>
+        set.removeAll(Arrays.asList(definitions));<br/>
+        return (FontDefinition[]) set.toArray(new FontDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param definitions<br/>
+     * @return<br/>
+     */<br/>
+    private static ColorDefinition[] addDefaulted(ColorDefinition[] definitions) {<br/>
+        IThemeRegistry registry = WorkbenchPlugin.getDefault()<br/>
+                .getThemeRegistry();<br/>
+        ColorDefinition[] allDefs = registry.getColors();<br/>
+<br/>
+        SortedSet set = addDefaulted(definitions, allDefs);<br/>
+        return (ColorDefinition[]) set.toArray(new ColorDefinition[set.size()]);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param definitions<br/>
+     * @param allDefs<br/>
+     * @return<br/>
+     */<br/>
+    private static SortedSet addDefaulted(<br/>
+            IHierarchalThemeElementDefinition[] definitions,<br/>
+            IHierarchalThemeElementDefinition[] allDefs) {<br/>
+        SortedSet set = new TreeSet(IThemeRegistry.ID_COMPARATOR);<br/>
+        set.addAll(Arrays.asList(definitions));<br/>
+        <br/>
+        IHierarchalThemeElementDefinition copy [] = new IHierarchalThemeElementDefinition[allDefs.length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(allDefs, 0, copy, 0, allDefs.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        Arrays.sort(allDefs, new IThemeRegistry.HierarchyComparator(copy));<br/>
+        for (int i = 0; i &lt; allDefs.length; i++) {<br/>
+            IHierarchalThemeElementDefinition def = allDefs[i];<br/>
+            if (def.getDefaultsTo() != null) {<br/>
+                if (set.contains(def.getDefaultsTo())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set.add(def);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+        }<br/>
+        return set;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Installs the given color in the preference store and optionally the color <br/>
+     * registry.<br/>
+     * <br/>
+     * @param definition<br/>
+     *            the color definition<br/>
+     * @param registry<br/>
+     *            the color registry<br/>
+     * @param store<br/>
+     *            the preference store from which to set and obtain color data<br/>
+     * @param setInRegistry<br/>
+     * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  whether the color should be put into the registry as well as<br/>
+     *            having its default preference set<br/>
+     */<br/>
+    private static void installColor(ColorDefinition definition, ITheme theme,<br/>
+            IPreferenceStore store, boolean setInRegistry) {<br/>
+<br/>
+        ColorRegistry registry = theme.getColorRegistry();<br/>
+<br/>
+        String id = definition.getId();<br/>
+        String key = createPreferenceKey(theme, id);<br/>
+        RGB prefColor = store != null ? PreferenceConverter<br/>
+                .getColor(store, key) : null;<br/>
+        RGB defaultColor = null;<br/>
+        if (definition.getValue() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultColor = definition.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defaultColor = registry.getRGB(definition.getDefaultsTo());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        if (setInRegistry) {<br/>
+            if (prefColor == null<br/>
+                    || prefColor == PreferenceConverter.COLOR_DEFAULT_DEFAULT) {<br/>
+                prefColor = defaultColor;<br/>
+            }<br/>
+<br/>
+            if (prefColor != null) {<br/>
+                registry.put(id, prefColor);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if (defaultColor != null &amp;&amp; store != null) {<br/>
+            PreferenceConverter.setDefault(store, key, defaultColor);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param theme<br/>
+     * @param id<br/>
+     * @return<br/>
+     */<br/>
+    public static String createPreferenceKey(ITheme theme, String id) {<br/>
+        String themeId = theme.getId();<br/>
+        if (themeId.equals(IThemeManager.DEFAULT_THEME)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return id;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        return themeId + '.' + id;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param theme<br/>
+     * @param property<br/>
+     * @return<br/>
+     */<br/>
+    public static String[] splitPropertyName(Theme theme, String property) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;IThemeDescriptor[] descriptors = WorkbenchPlugin.getDefault()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getThemeRegistry().getThemes();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; descriptors.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IThemeDescriptor themeDescriptor = descriptors[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String id = themeDescriptor.getId();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (property.startsWith(id + '.')) { // the property starts with<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// a known theme ID -<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// extract and return it and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the remaining property<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new String[] { property.substring(0, id.length()),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;property.substring(id.length() + 1) };<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// default is simply return the default theme ID and the raw property<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new String[] { IThemeManager.DEFAULT_THEME, property };<br/>
+    }<br/>
+<br/>
+    /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Not intended to be instantiated.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+    private ThemeElementHelper() {<br/>
+        // no-op<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

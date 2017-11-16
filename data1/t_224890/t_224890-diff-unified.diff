@@ -1,0 +1,11 @@
+--- t_224890/left_DateField_1.4.java	2013-03-17 15:47:08.000000000 +0100
++++ t_224890/right_DateField_1.5.java	2013-03-17 15:47:08.000000000 +0100
+@@ -109,7 +109,7 @@
+     if (s.length() < DATE_LEN) {
+       StringBuffer sb = new StringBuffer(s);
+       while (sb.length() < DATE_LEN)
+-        sb.insert(0, ' ');
++        sb.insert(0, 0);
+       s = sb.toString();
+     }
+ 

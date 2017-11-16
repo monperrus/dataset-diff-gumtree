@@ -1,0 +1,13 @@
+diff --git a/t_226330/left_ActivityRule_1.4.java b/t_226330/right_ActivityRule_1.5.java
+index d1e5e62..04dec30 100644
+--- a/t_226330/left_ActivityRule_1.4.java
++++ b/t_226330/right_ActivityRule_1.5.java
+@@ -78,7 +78,7 @@ public class ActivityRule extends BaseRule
+     public void end() throws Exception
+     {
+         log().debug("(" + getState() + ") activity end()");
+-        if(getState().equals(DBImport.STATE_DB_INSERTION))
++        if(getState().equals(XMLImport.STATE_DB_INSERTION))
+         {
+             Activity activity = new Activity();
+             String description = (String)digester.pop();

@@ -1,0 +1,15 @@
+diff --git a/t_256292/left_CompilationResult_1.23.java b/t_256292/right_CompilationResult_1.24.java
+index 3c39315..a57747c 100644
+--- a/t_256292/left_CompilationResult_1.23.java
++++ b/t_256292/right_CompilationResult_1.24.java
+@@ -232,6 +232,10 @@ public class CompilationResult {
+ 		return false;
+ 	}
+ 
++	public boolean hasTasks() {
++		return this.taskCount != 0;
++	}
++	
+ 	public boolean hasWarnings() {
+ 
+ 		if (problems != null)

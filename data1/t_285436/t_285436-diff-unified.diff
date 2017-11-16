@@ -1,0 +1,10 @@
+--- t_285436/left_Assert_1.11.java	2013-03-17 15:47:06.000000000 +0100
++++ t_285436/right_Assert_1.12.java	2013-03-17 15:47:06.000000000 +0100
+@@ -263,6 +263,6 @@
+ 	}
+ 
+ 	static private void failNotEquals(String message, Object expected, Object actual) {
+-		throw new ComparisonFailure(message, expected.toString(), actual.toString());
++	    throw new ComparisonFailure(message, expected == null ? "null" : expected.toString(), actual == null ? "null" : actual.toString());
+ 	}
+ }

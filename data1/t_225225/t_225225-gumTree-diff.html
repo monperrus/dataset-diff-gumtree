@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_TestSpans_1.3.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.search.spans;<br/>
+<br/>
+/**<br/>
+ * Copyright 2004 The Apache Software Foundation<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *     http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+import org.apache.lucene.search.IndexSearcher;<br/>
+import org.apache.lucene.search.Query;<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del"><span class="del"><span class="del">org</span>.<span class="del">apache</span></span>.<span class="del">lucene</span></span>.<span class="del">search</span></span>.<span class="del">Hits</span></span>;</span><br/>
+import org.apache.lucene.search.CheckHits;<br/>
+import org.apache.lucene.store.RAMDirectory;<br/>
+import org.apache.lucene.index.IndexWriter;<br/>
+import org.apache.lucene.index.Term;<br/>
+import org.apache.lucene.analysis.WhitespaceAnalyzer;<br/>
+import org.apache.lucene.document.Document;<br/>
+import org.apache.lucene.document.Field;<br/>
+import junit.framework.TestCase;<br/>
+<br/>
+import java.io.IOException;<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del">java</span>.<span class="del">util</span></span>.<span class="del">Set</span></span>;</span><br/>
+<span class="del">import <span class="del"><span class="del"><span class="del">java</span>.<span class="del">util</span></span>.<span class="del">TreeSet</span></span>;</span><br/>
+<br/>
+public class TestSpans extends TestCase {<br/>
+  private IndexSearcher searcher;<br/>
+<br/>
+  public static final String field = "field";<br/>
+<br/>
+  public void setUp() throws Exception {<br/>
+    RAMDirectory directory = new RAMDirectory();<br/>
+    IndexWriter writer= new IndexWriter(directory, new WhitespaceAnalyzer(), true);<br/>
+    <span class="del"><span class="del"><span class="del">StringBuffer</span></span> <span class="del"><span class="del">buffer</span> = <span class="del">new <span class="del"><span class="del">StringBuffer</span></span>()</span></span>;</span><br/>
+    for (int i = 0; i &lt; docFields.length; i++) {<br/>
+      Document doc = new Document();<br/>
+      doc.add(Field.Text(field, docFields[i]));<br/>
+      writer.addDocument(doc);<br/>
+    }<br/>
+    writer.close();<br/>
+    searcher = new IndexSearcher(directory);<br/>
+  }<br/>
+<br/>
+  private String[] docFields = {<br/>
+    "w1 w2 w3 w4 w5",<br/>
+    "w1 w3 w2 w3",<br/>
+    "w1 xx w2 yy w3",<br/>
+    "w1 w3 xx w2 yy w3",<br/>
+    ""<br/>
+  };<br/>
+<br/>
+  public SpanTermQuery makeSpanTermQuery(String text) {<br/>
+    return new SpanTermQuery(new Term(field, text));<br/>
+  }<br/>
+  <br/>
+  private void checkHits(Query query, int[] results) throws IOException {<br/>
+    CheckHits.checkHits(query, field, searcher, results, this);<br/>
+  }<br/>
+  <br/>
+  public void orderedSlopTest3(int slop, int[] expectedDocs) throws IOException {<br/>
+    SpanTermQuery w1 = makeSpanTermQuery("w1");<br/>
+    SpanTermQuery w2 = makeSpanTermQuery("w2");<br/>
+    SpanTermQuery w3 = makeSpanTermQuery("w3");<br/>
+    boolean ordered = true;<br/>
+    SpanNearQuery snq = new SpanNearQuery( new SpanQuery[]{w1,w2,w3}, slop, ordered);<br/>
+    checkHits(snq, expectedDocs);<br/>
+  }<br/>
+  <br/>
+  public void testSpanNearOrdered01() throws Exception {<br/>
+    orderedSlopTest3(0, new int[] {0});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered02() throws Exception {<br/>
+    orderedSlopTest3(1, new int[] {0,1});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered03() throws Exception {<br/>
+    orderedSlopTest3(2, new int[] {0,1,2});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered04() throws Exception {<br/>
+    orderedSlopTest3(3, new int[] {0,1,2,3});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered05() throws Exception {<br/>
+    orderedSlopTest3(4, new int[] {0,1,2,3});<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_TestSpans_1.4.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.search.spans;<br/>
+<br/>
+/**<br/>
+ * Copyright 2004 The Apache Software Foundation<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *     http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+import org.apache.lucene.search.IndexSearcher;<br/>
+import org.apache.lucene.search.Query;<br/>
+import org.apache.lucene.search.CheckHits;<br/>
+import org.apache.lucene.store.RAMDirectory;<br/>
+import org.apache.lucene.index.IndexWriter;<br/>
+import org.apache.lucene.index.Term;<br/>
+import org.apache.lucene.analysis.WhitespaceAnalyzer;<br/>
+import org.apache.lucene.document.Document;<br/>
+import org.apache.lucene.document.Field;<br/>
+import junit.framework.TestCase;<br/>
+<br/>
+import java.io.IOException;<br/>
+<br/>
+public class TestSpans extends TestCase {<br/>
+  private IndexSearcher searcher;<br/>
+<br/>
+  public static final String field = "field";<br/>
+<br/>
+  public void setUp() throws Exception {<br/>
+    RAMDirectory directory = new RAMDirectory();<br/>
+    IndexWriter writer= new IndexWriter(directory, new WhitespaceAnalyzer(), true);<br/>
+    for (int i = 0; i &lt; docFields.length; i++) {<br/>
+      Document doc = new Document();<br/>
+      doc.add(Field.Text(field, docFields[i]));<br/>
+      writer.addDocument(doc);<br/>
+    }<br/>
+    writer.close();<br/>
+    searcher = new IndexSearcher(directory);<br/>
+  }<br/>
+<br/>
+  private String[] docFields = {<br/>
+    "w1 w2 w3 w4 w5",<br/>
+    "w1 w3 w2 w3",<br/>
+    "w1 xx w2 yy w3",<br/>
+    "w1 w3 xx w2 yy w3",<br/>
+    ""<br/>
+  };<br/>
+<br/>
+  public SpanTermQuery makeSpanTermQuery(String text) {<br/>
+    return new SpanTermQuery(new Term(field, text));<br/>
+  }<br/>
+  <br/>
+  private void checkHits(Query query, int[] results) throws IOException {<br/>
+    CheckHits.checkHits(query, field, searcher, results, this);<br/>
+  }<br/>
+  <br/>
+  public void orderedSlopTest3(int slop, int[] expectedDocs) throws IOException {<br/>
+    SpanTermQuery w1 = makeSpanTermQuery("w1");<br/>
+    SpanTermQuery w2 = makeSpanTermQuery("w2");<br/>
+    SpanTermQuery w3 = makeSpanTermQuery("w3");<br/>
+    boolean ordered = true;<br/>
+    SpanNearQuery snq = new SpanNearQuery( new SpanQuery[]{w1,w2,w3}, slop, ordered);<br/>
+    checkHits(snq, expectedDocs);<br/>
+  }<br/>
+  <br/>
+  public void testSpanNearOrdered01() throws Exception {<br/>
+    orderedSlopTest3(0, new int[] {0});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered02() throws Exception {<br/>
+    orderedSlopTest3(1, new int[] {0,1});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered03() throws Exception {<br/>
+    orderedSlopTest3(2, new int[] {0,1,2});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered04() throws Exception {<br/>
+    orderedSlopTest3(3, new int[] {0,1,2,3});<br/>
+  }<br/>
+<br/>
+  public void testSpanNearOrdered05() throws Exception {<br/>
+    orderedSlopTest3(4, new int[] {0,1,2,3});<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

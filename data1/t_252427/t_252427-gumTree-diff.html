@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_JavaWsdlMapping_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * JBoss, the OpenSource J2EE webOS<br/>
+ *<br/>
+ * Distributable under LGPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+package org.jboss.webservice.metadata.jaxrpcmapping;<br/>
+<br/>
+// $Id: JavaWsdlMapping.java,v 1.5 2004-08-13 15:32:28 tdiesler Exp $<br/>
+<br/>
+import javax.xml.namespace.QName;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Iterator;<br/>
+<br/>
+/**<br/>
+ * XML mapping of the java-wsdl-mapping root element in jaxrpc-mapping.xml<br/>
+ * <br/>
+ * @author Thomas.Diesler@jboss.org<br/>
+ * @since 14-May-2004<br/>
+ */<br/>
+public class JavaWsdlMapping<br/>
+{<br/>
+   // One or more &lt;package-mapping&gt; elements<br/>
+   private ArrayList packageMappings = new ArrayList();<br/>
+   // Zero or more &lt;java-xml-type-mapping&gt; elements<br/>
+   private ArrayList javaXmlTypeMappings = new ArrayList();<br/>
+   // Zero or more &lt;exception-mapping&gt; elements<br/>
+   private ArrayList exceptionMappings = new ArrayList();<br/>
+   // Zero or more &lt;service-interface-mapping&gt; elements<br/>
+   private ArrayList serviceInterfaceMappings = new ArrayList();<br/>
+   // Zero or more &lt;service-endpoint-interface-mapping&gt; elements<br/>
+   private ArrayList serviceEndpointInterfaceMappings = new ArrayList();<br/>
+<br/>
+   public PackageMapping[] getPackageMappings()<br/>
+   {<br/>
+      PackageMapping[] arr = new PackageMapping[packageMappings.size()];<br/>
+      packageMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public JavaXmlTypeMapping[] getJavaXmlTypeMappings()<br/>
+   {<br/>
+      JavaXmlTypeMapping[] arr = new JavaXmlTypeMapping[javaXmlTypeMappings.size()];<br/>
+      javaXmlTypeMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public ExceptionMapping[] getExceptionMappings()<br/>
+   {<br/>
+      ExceptionMapping[] arr = new ExceptionMapping[exceptionMappings.size()];<br/>
+      exceptionMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public ServiceInterfaceMapping[] getServiceInterfaceMappings()<br/>
+   {<br/>
+      ServiceInterfaceMapping[] arr = new ServiceInterfaceMapping[serviceInterfaceMappings.size()];<br/>
+      serviceInterfaceMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public ServiceEndpointInterfaceMapping[] getServiceEndpointInterfaceMappings()<br/>
+   {<br/>
+      ServiceEndpointInterfaceMapping[] arr = new ServiceEndpointInterfaceMapping[serviceEndpointInterfaceMappings.size()];<br/>
+      serviceEndpointInterfaceMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   // convenience methods ********************************************************************<br/>
+<br/>
+   /** Get the package string for a given URI<br/>
+    */<br/>
+   public String getPackageTypeForURI(String uri) {<br/>
+      String packageStr = null;<br/>
+      for (int i = 0; packageStr == null &amp;&amp; i &lt; packageMappings.size(); i++)<br/>
+      {<br/>
+         PackageMapping mapping = (PackageMapping)packageMappings.get(i);<br/>
+         if (mapping.getNamespaceURI().equals(uri))<br/>
+            packageStr = mapping.getPackageType();<br/>
+      }<br/>
+      return packageStr;<br/>
+   }<br/>
+<br/>
+<br/>
+   /** Get the type mapping fo a given root-type-qname<br/>
+    */<br/>
+   public JavaXmlTypeMapping getTypeMappingForQName(QName typeQName)<br/>
+   {<br/>
+      JavaXmlTypeMapping typeMapping = null;<br/>
+<br/>
+      if (typeQName != null)<br/>
+      {<br/>
+         Iterator it = javaXmlTypeMappings.iterator();<br/>
+         while (it.hasNext())<br/>
+         {<br/>
+            JavaXmlTypeMapping mapping = (JavaXmlTypeMapping)it.next();<br/>
+            if (typeQName.equals(mapping.getRootTypeQName()))<br/>
+               typeMapping = mapping;<br/>
+         }<br/>
+      }<br/>
+<br/>
+      return typeMapping;<br/>
+   }<br/>
+<br/>
+   /** Get the port type qname for a given service endpoint infterface<br/>
+    */<br/>
+   public QName getPortTypeQNameForServiceEndpointInterface(String seiName)<br/>
+   {<br/>
+      QName portTypeQName = null;<br/>
+<br/>
+      ServiceEndpointInterfaceMapping[] seiMappings = getServiceEndpointInterfaceMappings();<br/>
+      for (int i = 0; i &lt; seiMappings.length; i++)<br/>
+      {<br/>
+         ServiceEndpointInterfaceMapping seiMapping = seiMappings[i];<br/>
+         if (seiMapping.getServiceEndpointInterface().equals(seiName))<br/>
+            portTypeQName = seiMapping.getWsdlPortType();<br/>
+      }<br/>
+<br/>
+      return portTypeQName;<br/>
+   }<br/>
+<br/>
+   /** Get the service endpoint infterfacemapping for a given port type qname<br/>
+    */<br/>
+   public ServiceEndpointInterfaceMapping getServiceEndpointInterfaceMappingByPortType(QName portType)<br/>
+   {<br/>
+      ServiceEndpointInterfaceMapping seiMapping = null;<br/>
+<br/>
+      ServiceEndpointInterfaceMapping[] seiMappings = getServiceEndpointInterfaceMappings();<br/>
+      for (int i = 0; seiMapping == null &amp;&amp; i &lt; seiMappings.length; i++)<br/>
+      {<br/>
+         ServiceEndpointInterfaceMapping aux = seiMappings[i];<br/>
+         if (<span class="upd">seiMapping</span>.getWsdlPortType().equals(portType))<br/>
+            seiMapping = aux;<br/>
+      }<br/>
+<br/>
+      return seiMapping;<br/>
+   }<br/>
+<br/>
+   // factory methods ********************************************************************<br/>
+<br/>
+   public void addPackageMapping(PackageMapping packageMapping)<br/>
+   {<br/>
+      packageMappings.add(packageMapping);<br/>
+   }<br/>
+<br/>
+   public void addJavaXmlTypeMappings(JavaXmlTypeMapping typeMapping)<br/>
+   {<br/>
+      javaXmlTypeMappings.add(typeMapping);<br/>
+   }<br/>
+<br/>
+   public void addExceptionMappings(ExceptionMapping exceptionMapping)<br/>
+   {<br/>
+      exceptionMappings.add(exceptionMapping);<br/>
+   }<br/>
+<br/>
+   public void addServiceInterfaceMappings(ServiceInterfaceMapping serviceInterfaceMapping)<br/>
+   {<br/>
+      serviceInterfaceMappings.add(serviceInterfaceMapping);<br/>
+   }<br/>
+<br/>
+   public void addServiceEndpointInterfaceMappings(ServiceEndpointInterfaceMapping serviceEndpointInterfaceMapping)<br/>
+   {<br/>
+      serviceEndpointInterfaceMappings.add(serviceEndpointInterfaceMapping);<br/>
+   }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_JavaWsdlMapping_1.6.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * JBoss, the OpenSource J2EE webOS<br/>
+ *<br/>
+ * Distributable under LGPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+package org.jboss.webservice.metadata.jaxrpcmapping;<br/>
+<br/>
+// $Id: JavaWsdlMapping.java,v 1.6 2004-08-13 18:43:20 tdiesler Exp $<br/>
+<br/>
+import javax.xml.namespace.QName;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Iterator;<br/>
+<br/>
+/**<br/>
+ * XML mapping of the java-wsdl-mapping root element in jaxrpc-mapping.xml<br/>
+ * <br/>
+ * @author Thomas.Diesler@jboss.org<br/>
+ * @since 14-May-2004<br/>
+ */<br/>
+public class JavaWsdlMapping<br/>
+{<br/>
+   // One or more &lt;package-mapping&gt; elements<br/>
+   private ArrayList packageMappings = new ArrayList();<br/>
+   // Zero or more &lt;java-xml-type-mapping&gt; elements<br/>
+   private ArrayList javaXmlTypeMappings = new ArrayList();<br/>
+   // Zero or more &lt;exception-mapping&gt; elements<br/>
+   private ArrayList exceptionMappings = new ArrayList();<br/>
+   // Zero or more &lt;service-interface-mapping&gt; elements<br/>
+   private ArrayList serviceInterfaceMappings = new ArrayList();<br/>
+   // Zero or more &lt;service-endpoint-interface-mapping&gt; elements<br/>
+   private ArrayList serviceEndpointInterfaceMappings = new ArrayList();<br/>
+<br/>
+   public PackageMapping[] getPackageMappings()<br/>
+   {<br/>
+      PackageMapping[] arr = new PackageMapping[packageMappings.size()];<br/>
+      packageMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public JavaXmlTypeMapping[] getJavaXmlTypeMappings()<br/>
+   {<br/>
+      JavaXmlTypeMapping[] arr = new JavaXmlTypeMapping[javaXmlTypeMappings.size()];<br/>
+      javaXmlTypeMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public ExceptionMapping[] getExceptionMappings()<br/>
+   {<br/>
+      ExceptionMapping[] arr = new ExceptionMapping[exceptionMappings.size()];<br/>
+      exceptionMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public ServiceInterfaceMapping[] getServiceInterfaceMappings()<br/>
+   {<br/>
+      ServiceInterfaceMapping[] arr = new ServiceInterfaceMapping[serviceInterfaceMappings.size()];<br/>
+      serviceInterfaceMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   public ServiceEndpointInterfaceMapping[] getServiceEndpointInterfaceMappings()<br/>
+   {<br/>
+      ServiceEndpointInterfaceMapping[] arr = new ServiceEndpointInterfaceMapping[serviceEndpointInterfaceMappings.size()];<br/>
+      serviceEndpointInterfaceMappings.toArray(arr);<br/>
+      return arr;<br/>
+   }<br/>
+<br/>
+   // convenience methods ********************************************************************<br/>
+<br/>
+   /** Get the package string for a given URI<br/>
+    */<br/>
+   public String getPackageTypeForURI(String uri) {<br/>
+      String packageStr = null;<br/>
+      for (int i = 0; packageStr == null &amp;&amp; i &lt; packageMappings.size(); i++)<br/>
+      {<br/>
+         PackageMapping mapping = (PackageMapping)packageMappings.get(i);<br/>
+         if (mapping.getNamespaceURI().equals(uri))<br/>
+            packageStr = mapping.getPackageType();<br/>
+      }<br/>
+      return packageStr;<br/>
+   }<br/>
+<br/>
+<br/>
+   /** Get the type mapping fo a given root-type-qname<br/>
+    */<br/>
+   public JavaXmlTypeMapping getTypeMappingForQName(QName typeQName)<br/>
+   {<br/>
+      JavaXmlTypeMapping typeMapping = null;<br/>
+<br/>
+      if (typeQName != null)<br/>
+      {<br/>
+         Iterator it = javaXmlTypeMappings.iterator();<br/>
+         while (it.hasNext())<br/>
+         {<br/>
+            JavaXmlTypeMapping mapping = (JavaXmlTypeMapping)it.next();<br/>
+            if (typeQName.equals(mapping.getRootTypeQName()))<br/>
+               typeMapping = mapping;<br/>
+         }<br/>
+      }<br/>
+<br/>
+      return typeMapping;<br/>
+   }<br/>
+<br/>
+   /** Get the port type qname for a given service endpoint infterface<br/>
+    */<br/>
+   public QName getPortTypeQNameForServiceEndpointInterface(String seiName)<br/>
+   {<br/>
+      QName portTypeQName = null;<br/>
+<br/>
+      ServiceEndpointInterfaceMapping[] seiMappings = getServiceEndpointInterfaceMappings();<br/>
+      for (int i = 0; i &lt; seiMappings.length; i++)<br/>
+      {<br/>
+         ServiceEndpointInterfaceMapping seiMapping = seiMappings[i];<br/>
+         if (seiMapping.getServiceEndpointInterface().equals(seiName))<br/>
+            portTypeQName = seiMapping.getWsdlPortType();<br/>
+      }<br/>
+<br/>
+      return portTypeQName;<br/>
+   }<br/>
+<br/>
+   /** Get the service endpoint infterfacemapping for a given port type qname<br/>
+    */<br/>
+   public ServiceEndpointInterfaceMapping getServiceEndpointInterfaceMappingByPortType(QName portType)<br/>
+   {<br/>
+      ServiceEndpointInterfaceMapping seiMapping = null;<br/>
+<br/>
+      ServiceEndpointInterfaceMapping[] seiMappings = getServiceEndpointInterfaceMappings();<br/>
+      for (int i = 0; seiMapping == null &amp;&amp; i &lt; seiMappings.length; i++)<br/>
+      {<br/>
+         ServiceEndpointInterfaceMapping aux = seiMappings[i];<br/>
+         if (<span class="upd">aux</span>.getWsdlPortType().equals(portType))<br/>
+            seiMapping = aux;<br/>
+      }<br/>
+<br/>
+      return seiMapping;<br/>
+   }<br/>
+<br/>
+   // factory methods ********************************************************************<br/>
+<br/>
+   public void addPackageMapping(PackageMapping packageMapping)<br/>
+   {<br/>
+      packageMappings.add(packageMapping);<br/>
+   }<br/>
+<br/>
+   public void addJavaXmlTypeMappings(JavaXmlTypeMapping typeMapping)<br/>
+   {<br/>
+      javaXmlTypeMappings.add(typeMapping);<br/>
+   }<br/>
+<br/>
+   public void addExceptionMappings(ExceptionMapping exceptionMapping)<br/>
+   {<br/>
+      exceptionMappings.add(exceptionMapping);<br/>
+   }<br/>
+<br/>
+   public void addServiceInterfaceMappings(ServiceInterfaceMapping serviceInterfaceMapping)<br/>
+   {<br/>
+      serviceInterfaceMappings.add(serviceInterfaceMapping);<br/>
+   }<br/>
+<br/>
+   public void addServiceEndpointInterfaceMappings(ServiceEndpointInterfaceMapping serviceEndpointInterfaceMapping)<br/>
+   {<br/>
+      serviceEndpointInterfaceMappings.add(serviceEndpointInterfaceMapping);<br/>
+   }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

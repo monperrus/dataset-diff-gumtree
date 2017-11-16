@@ -1,0 +1,12 @@
+diff --git a/t_246219/left_Client_1.3.java b/t_246219/right_Client_1.4.java
+index 6182da8..d56c21f 100644
+--- a/t_246219/left_Client_1.3.java
++++ b/t_246219/right_Client_1.4.java
+@@ -17,6 +17,7 @@ protected
+ Client(SelectableChannel channel, long endTime) throws IOException {
+ 	boolean done = false;
+ 	Selector selector = null;
++	this.endTime = endTime;
+ 	try {
+ 		selector = Selector.open();
+ 		channel.configureBlocking(false);

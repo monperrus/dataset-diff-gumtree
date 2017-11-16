@@ -1,0 +1,10 @@
+--- t_222884/left_MechView_1.21.java	2013-03-17 15:47:12.000000000 +0100
++++ t_222884/right_MechView_1.22.java	2013-03-17 15:47:12.000000000 +0100
+@@ -193,6 +193,7 @@
+                     .append(mounted.getLinked().getDesc())
+                     .append(">");
+             }
++            sWeapons.append(" ").append(wtype.getHeat()).append(" Heat");
+             sWeapons.append("\n");
+         }
+         return sWeapons.toString();

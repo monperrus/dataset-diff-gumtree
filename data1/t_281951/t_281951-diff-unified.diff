@@ -1,0 +1,10 @@
+--- t_281951/left_LookupDispatchAction_1.9.java	2013-03-17 15:47:24.000000000 +0100
++++ t_281951/right_LookupDispatchAction_1.10.java	2013-03-17 15:47:24.000000000 +0100
+@@ -230,7 +230,6 @@
+         String key = (String) lookupMap.get(name);
+ 
+         String methodName = (String) keyMethodMap.get(key);
+-        Object args[] = { mapping, form, request, response };
+ 
+         return dispatchMethod(mapping, form, request, response, methodName);
+     }

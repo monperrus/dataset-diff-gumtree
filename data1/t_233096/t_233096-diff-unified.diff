@@ -1,0 +1,11 @@
+--- t_233096/left_ColumnConfigDialog_1.7.java	2013-03-17 15:47:32.000000000 +0100
++++ t_233096/right_ColumnConfigDialog_1.8.java	2013-03-17 15:47:32.000000000 +0100
+@@ -75,7 +75,7 @@
+     private MailFrameMediator mediator;
+ 
+     public ColumnConfigDialog(MailFrameMediator mediator, XmlElement columns) {
+-        super((JFrame) mediator.getView(), true);
++        super((JFrame) mediator.getView().getFrame(), true);
+         setTitle("Configure Columns");
+ 
+         this.mediator = mediator;

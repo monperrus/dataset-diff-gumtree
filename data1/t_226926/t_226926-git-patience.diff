@@ -1,0 +1,19 @@
+diff --git a/t_226926/left_ScarabUserManager_1.4.java b/t_226926/right_ScarabUserManager_1.5.java
+index c99b8f7..d5552f5 100644
+--- a/t_226926/left_ScarabUserManager_1.4.java
++++ b/t_226926/right_ScarabUserManager_1.5.java
+@@ -77,12 +77,12 @@ public class ScarabUserManager
+     {
+         super();
+         setRegion(getClassName().replace('.', '_'));
+-    }
++    }    
+ 
+     /**
+      * @return null if there is an UnknownEntityException
+      */
+-    public ScarabUser getInstanceImpl()
++    protected ScarabUser getInstanceImpl()
+     {
+         ScarabUser user = null;
+         try

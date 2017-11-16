@@ -1,0 +1,11 @@
+--- t_245444/left_SimpleResolver_1.70.java	2013-03-17 15:47:00.000000000 +0100
++++ t_245444/right_SimpleResolver_1.71.java	2013-03-17 15:47:00.000000000 +0100
+@@ -204,7 +204,7 @@
+ 	DatagramPacket dp;
+ 	short udpLength = 512;
+ 
+-	if (Options.check("verbosemsg"))
++	if (Options.check("verbose"))
+ 		System.err.println("Sending to " + addr.getHostAddress() +
+ 				   ":" + port);
+ 

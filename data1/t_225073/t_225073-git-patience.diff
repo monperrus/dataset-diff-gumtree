@@ -1,0 +1,13 @@
+diff --git a/t_225073/left_IndexWriter_1.21.java b/t_225073/right_IndexWriter_1.22.java
+index 932d105..81ce96f 100644
+--- a/t_225073/left_IndexWriter_1.21.java
++++ b/t_225073/right_IndexWriter_1.22.java
+@@ -356,7 +356,7 @@ public class IndexWriter {
+     segmentInfos.addElement(new SegmentInfo(mergedName, docCount, directory));
+ 
+     synchronized (directory) {			  // in- & inter-process sync
+-      new Lock.With(directory.makeLock("commit.lock")) {
++      new Lock.With(directory.makeLock("commit.lock"), COMMIT_LOCK_TIMEOUT) {
+ 	  public Object doBody() throws IOException {
+ 	    segmentInfos.write(directory);	  // commit changes
+ 	    return null;

@@ -1,0 +1,20 @@
+diff --git a/t_227130/left_Transaction_1.37.java b/t_227130/right_Transaction_1.38.java
+index 22c5a9a..7ef7554 100644
+--- a/t_227130/left_Transaction_1.37.java
++++ b/t_227130/right_Transaction_1.38.java
+@@ -89,6 +89,15 @@ public class Transaction
+      */
+     private Attachment aAttachment = null;                 
+ 
++    /**
++     * Populates a new transaction object.
++     */
++    public void create(NumberKey typeId, ScarabUser user)
++        throws Exception
++    {
++        create(typeId, user, null);
++    }
++
+     /**
+      * Populates a new transaction object.
+      */

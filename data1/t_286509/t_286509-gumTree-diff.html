@@ -1,0 +1,394 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_CarolDefaultValues_1.9.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#) DefaultCarolValues.java&nbsp;&nbsp;&nbsp;&nbsp;1.0 02/07/15<br/>
+ *<br/>
+ * Copyright (C) 2002 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ * <br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ * <br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ * <br/>
+ *<br/>
+ */<br/>
+package org.objectweb.carol.util.configuration;<br/>
+<br/>
+//java import <br/>
+import java.util.Properties;<br/>
+import java.util.StringTokenizer;<br/>
+<br/>
+/*<br/>
+ * Class &lt;code&gt;DefaultCarolValues&lt;/code&gt; get default carol value for the properties file and<br/>
+ * get carol properties with defaults from jndi Standard properties<br/>
+ */<br/>
+public class CarolDefaultValues {<br/>
+<br/>
+    /**<br/>
+     * Carol prefix<br/>
+     */<br/>
+    public static String CAROL_PREFIX="carol";<br/>
+<br/>
+    /**<br/>
+     * JNDI Prefix<br/>
+     */<br/>
+    public static String JNDI_PREFIX="jndi";<br/>
+<br/>
+    /**<br/>
+     * JVM Prefix<br/>
+     */<br/>
+    public static String JVM_PREFIX="jvm";<br/>
+<br/>
+    /**<br/>
+     * name service class prefix<br/>
+     */<br/>
+    public static String NS_PREFIX="NameServiceClass"; <br/>
+<br/>
+    /**<br/>
+     * portable remote object Prefix<br/>
+     */<br/>
+    public static String PRO_PREFIX="PortableRemoteObjectClass";<br/>
+<br/>
+    /**<br/>
+     * jndi factory Prefix<br/>
+     */<br/>
+    public static String JNDI_FACTORY_PREFIX="java.naming.factory.initial";<br/>
+<br/>
+    /**<br/>
+     * jndi url  Prefix<br/>
+     */<br/>
+    public static String JNDI_URL_PREFIX="java.naming.provider.url";<br/>
+<br/>
+    /**<br/>
+     * jndi pkgs  Prefix<br/>
+     */<br/>
+    public static String JNDI_PKGS_PREFIX="java.naming.factory.url.pkgs";<br/>
+<br/>
+    /**<br/>
+     * carol url  Prefix<br/>
+     */<br/>
+    public static String URL_PREFIX="url";<br/>
+<br/>
+    /**<br/>
+     * carol factory Prefix<br/>
+     */<br/>
+    public static String FACTORY_PREFIX="context.factory";<br/>
+<br/>
+    /**<br/>
+     * start name service Prefix<br/>
+     */<br/>
+    public static String START_NS_PREFIX="start.ns";<br/>
+<br/>
+    /**<br/>
+     * start ns  key<br/>
+     */<br/>
+    public static String START_NS_KEY="carol.start.ns"; <br/>
+<br/>
+   /**<br/>
+     * start rmi  key<br/>
+     */<br/>
+    public static String START_RMI_KEY="carol.start.rmi"; <br/>
+    <br/>
+    /**<br/>
+     * start jndi  key<br/>
+     */ <br/>
+    public static String START_JNDI_KEY="carol.start.jndi";<br/>
+    <br/>
+    /**<br/>
+     * default activation key<br/>
+     */<br/>
+    public static String DEFAULT_PROTOCOLS_KEY="carol.protocols.default";   <br/>
+<br/>
+    /**<br/>
+     * acativation key<br/>
+     */<br/>
+    public static String PROTOCOLS_KEY="carol.protocols";   <br/>
+<br/>
+   /**<br/>
+     * start ns  key<br/>
+     */<br/>
+    public static String MULTI_RMI_PREFIX="multi";<br/>
+<br/>
+   /**<br/>
+     * start prod  key<br/>
+     */<br/>
+    public static String MULTI_PROD="org.objectweb.carol.rmi.multi.MultiPRODelegate";<br/>
+<br/>
+<br/>
+   /**<br/>
+     * start jndi  key<br/>
+     */<br/>
+    public static String MULTI_JNDI="org.objectweb.carol.jndi.spi.MultiOrbInitialContextFactory";<br/>
+<br/>
+    /**<br/>
+     * interceptor prefix<br/>
+     */<br/>
+    public static String INTERCEPTOR_PKGS_PREFIX = "interceptor.pkgs";<br/>
+<br/>
+    /**<br/>
+     * interceptor prefix<br/>
+     */<br/>
+    public static String INTERCEPTOR_VALUES_PREFIX = "interceptors";<br/>
+    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * System port property<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static String PORT_NUMBER_PROPERTY = "rmi.server.port";<br/>
+<br/>
+    /**<br/>
+     * Hashtable mapping between default en rmi name<br/>
+     */<br/>
+    public static Properties mapping = new Properties();<br/>
+<br/>
+    static {&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("rmi","jrmp");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("iiop","iiop");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("corbaloc","openorb");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("jrmi","jeremie");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("cmi","cmi");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("lmi","lmi");<br/>
+    }<br/>
+  <br/>
+    /**<br/>
+     * return protocol name from url<br/>
+     * @return protocol name<br/>
+     * @param protocol jndi url<br/>
+     */<br/>
+    public static String getRMIProtocol(String url) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (url != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    StringTokenizer st = new StringTokenizer(url, <span class="upd">":"</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String pref = st.nextToken().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return mapping.getProperty(pref,pref);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_CarolDefaultValues_1.10.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#) DefaultCarolValues.java&nbsp;&nbsp;&nbsp;&nbsp;1.0 02/07/15<br/>
+ *<br/>
+ * Copyright (C) 2002 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ * <br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ * <br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ * <br/>
+ *<br/>
+ */<br/>
+package org.objectweb.carol.util.configuration;<br/>
+<br/>
+//java import <br/>
+import java.util.Properties;<br/>
+import java.util.StringTokenizer;<br/>
+<br/>
+/*<br/>
+ * Class &lt;code&gt;DefaultCarolValues&lt;/code&gt; get default carol value for the properties file and<br/>
+ * get carol properties with defaults from jndi Standard properties<br/>
+ */<br/>
+public class CarolDefaultValues {<br/>
+<br/>
+    /**<br/>
+     * Carol prefix<br/>
+     */<br/>
+    public static String CAROL_PREFIX="carol";<br/>
+<br/>
+    /**<br/>
+     * JNDI Prefix<br/>
+     */<br/>
+    public static String JNDI_PREFIX="jndi";<br/>
+<br/>
+    /**<br/>
+     * JVM Prefix<br/>
+     */<br/>
+    public static String JVM_PREFIX="jvm";<br/>
+<br/>
+    /**<br/>
+     * name service class prefix<br/>
+     */<br/>
+    public static String NS_PREFIX="NameServiceClass"; <br/>
+<br/>
+    /**<br/>
+     * portable remote object Prefix<br/>
+     */<br/>
+    public static String PRO_PREFIX="PortableRemoteObjectClass";<br/>
+<br/>
+    /**<br/>
+     * jndi factory Prefix<br/>
+     */<br/>
+    public static String JNDI_FACTORY_PREFIX="java.naming.factory.initial";<br/>
+<br/>
+    /**<br/>
+     * jndi url  Prefix<br/>
+     */<br/>
+    public static String JNDI_URL_PREFIX="java.naming.provider.url";<br/>
+<br/>
+    /**<br/>
+     * jndi pkgs  Prefix<br/>
+     */<br/>
+    public static String JNDI_PKGS_PREFIX="java.naming.factory.url.pkgs";<br/>
+<br/>
+    /**<br/>
+     * carol url  Prefix<br/>
+     */<br/>
+    public static String URL_PREFIX="url";<br/>
+<br/>
+    /**<br/>
+     * carol factory Prefix<br/>
+     */<br/>
+    public static String FACTORY_PREFIX="context.factory";<br/>
+<br/>
+    /**<br/>
+     * start name service Prefix<br/>
+     */<br/>
+    public static String START_NS_PREFIX="start.ns";<br/>
+<br/>
+    /**<br/>
+     * start ns  key<br/>
+     */<br/>
+    public static String START_NS_KEY="carol.start.ns"; <br/>
+<br/>
+   /**<br/>
+     * start rmi  key<br/>
+     */<br/>
+    public static String START_RMI_KEY="carol.start.rmi"; <br/>
+    <br/>
+    /**<br/>
+     * start jndi  key<br/>
+     */ <br/>
+    public static String START_JNDI_KEY="carol.start.jndi";<br/>
+    <br/>
+    /**<br/>
+     * default activation key<br/>
+     */<br/>
+    public static String DEFAULT_PROTOCOLS_KEY="carol.protocols.default";   <br/>
+<br/>
+    /**<br/>
+     * acativation key<br/>
+     */<br/>
+    public static String PROTOCOLS_KEY="carol.protocols";   <br/>
+<br/>
+   /**<br/>
+     * start ns  key<br/>
+     */<br/>
+    public static String MULTI_RMI_PREFIX="multi";<br/>
+<br/>
+   /**<br/>
+     * start prod  key<br/>
+     */<br/>
+    public static String MULTI_PROD="org.objectweb.carol.rmi.multi.MultiPRODelegate";<br/>
+<br/>
+<br/>
+   /**<br/>
+     * start jndi  key<br/>
+     */<br/>
+    public static String MULTI_JNDI="org.objectweb.carol.jndi.spi.MultiOrbInitialContextFactory";<br/>
+<br/>
+    /**<br/>
+     * interceptor prefix<br/>
+     */<br/>
+    public static String INTERCEPTOR_PKGS_PREFIX = "interceptor.pkgs";<br/>
+<br/>
+    /**<br/>
+     * interceptor prefix<br/>
+     */<br/>
+    public static String INTERCEPTOR_VALUES_PREFIX = "interceptors";<br/>
+    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * System port property<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static String PORT_NUMBER_PROPERTY = "rmi.server.port";<br/>
+<br/>
+    /**<br/>
+     * Hashtable mapping between default en rmi name<br/>
+     */<br/>
+    public static Properties mapping = new Properties();<br/>
+<br/>
+    static {&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("rmi","jrmp");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("iiop","iiop");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("corbaloc","openorb");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("jrmi","jeremie");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("cmi","cmi");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapping.setProperty("lmi","lmi");<br/>
+    }<br/>
+  <br/>
+    /**<br/>
+     * return protocol name from url<br/>
+     * @return protocol name<br/>
+     * @param protocol jndi url<br/>
+     */<br/>
+    public static String getRMIProtocol(String url) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (url != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    StringTokenizer st = new StringTokenizer(url, <span class="upd">"://"</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String pref = st.nextToken().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return mapping.getProperty(pref,pref);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

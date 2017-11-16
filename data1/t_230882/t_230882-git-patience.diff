@@ -1,0 +1,18 @@
+diff --git a/t_230882/left_MirrorListHandler_1.2.java b/t_230882/right_MirrorListHandler_1.3.java
+index 7af3b66..38a038b 100644
+--- a/t_230882/left_MirrorListHandler_1.2.java
++++ b/t_230882/right_MirrorListHandler_1.3.java
+@@ -76,9 +76,11 @@ class MirrorListHandler extends DefaultHandler
+ 	{
+ 		tag = pushElement(tag);
+ 
+-		if(tag.equals("MIRROR"))
++		if (tag.equals("MIRROR"))
++		{
+ 			mirror = new MirrorList.Mirror();
+-		id = attrs.getValue("ID");
++			id = attrs.getValue("ID");
++		}
+ 	} //}}}
+ 
+ 	//{{{ endElement() method

@@ -1,0 +1,13 @@
+diff --git a/t_278476/left_DefaultCMSetter_1.23.java b/t_278476/right_DefaultCMSetter_1.24.java
+index ad629d6..ddf6bd0 100644
+--- a/t_278476/left_DefaultCMSetter_1.23.java
++++ b/t_278476/right_DefaultCMSetter_1.24.java
+@@ -173,7 +173,7 @@ public class DefaultCMSetter extends BaseInterceptor {
+ 
+ 	for(int i=0; i < jars.size(); ++i) {
+ 	    String jarfile = (String) jars.elementAt(i);
+-	    loader.addRepository( new File( base + "/WEB-INF/lib/" +jarfile ));
++	    loader.addRepository( new File(f, jarfile ));
+ 	}
+     }
+ 

@@ -1,0 +1,13 @@
+diff --git a/t_257561/left_ASTConverter_1.114.java b/t_257561/right_ASTConverter_1.115.java
+index 67601fb..be9a3b3 100644
+--- a/t_257561/left_ASTConverter_1.114.java
++++ b/t_257561/right_ASTConverter_1.115.java
+@@ -1118,7 +1118,7 @@ class ASTConverter {
+ 
+ 	public Expression convert(QualifiedAllocationExpression expression) {
+ 		if (expression.anonymousType != null) {
+-			return convert((AnonymousLocalTypeDeclaration) expression.anonymousType);
++			return convert(expression.anonymousType);
+ 		} else {
+ 			ClassInstanceCreation classInstanceCreation = this.ast.newClassInstanceCreation();
+ 			classInstanceCreation.setExpression(convert(expression.enclosingInstance));

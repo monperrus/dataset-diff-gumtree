@@ -1,0 +1,722 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ColumnConfigDialog_1.7.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.mail.gui.config.columns;<br/>
+<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Color;<br/>
+import java.awt.Component;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.GridBagConstraints;<br/>
+import java.awt.GridBagLayout;<br/>
+import java.awt.GridLayout;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.ActionListener;<br/>
+import java.awt.event.KeyEvent;<br/>
+<br/>
+import javax.swing.BorderFactory;<br/>
+import javax.swing.Box;<br/>
+import javax.swing.BoxLayout;<br/>
+import javax.swing.DefaultListSelectionModel;<br/>
+import javax.swing.JButton;<br/>
+import javax.swing.JComponent;<br/>
+import javax.swing.JDialog;<br/>
+import javax.swing.JFrame;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JScrollPane;<br/>
+import javax.swing.KeyStroke;<br/>
+import javax.swing.SwingConstants;<br/>
+import javax.swing.event.ListSelectionEvent;<br/>
+import javax.swing.event.ListSelectionListener;<br/>
+<br/>
+import net.javaprog.ui.wizard.plaf.basic.SingleSideEtchedBorder;<br/>
+<br/>
+import org.columba.core.gui.util.ButtonWithMnemonic;<br/>
+import org.columba.core.help.HelpManager;<br/>
+import org.columba.core.xml.XmlElement;<br/>
+import org.columba.mail.command.FolderCommandReference;<br/>
+import org.columba.mail.folder.MessageFolder;<br/>
+import org.columba.mail.folderoptions.ColumnOptionsPlugin;<br/>
+import org.columba.mail.gui.frame.MailFrameMediator;<br/>
+import org.columba.mail.util.MailResourceLoader;<br/>
+import org.frapuccino.checkablelist.CheckableItemImpl;<br/>
+import org.frapuccino.checkablelist.CheckableItemListTableModel;<br/>
+import org.frapuccino.checkablelist.CheckableList;<br/>
+<br/>
+<br/>
+/**<br/>
+ * Configurabe visible columns of the table.<br/>
+ * &lt;p&gt;<br/>
+ * TODO: adding of columns is not working currently<br/>
+ * <br/>
+ * @author fdietz<br/>
+ */<br/>
+public class ColumnConfigDialog extends JDialog implements ActionListener,<br/>
+    ListSelectionListener {<br/>
+   <br/>
+    private JButton showButton;<br/>
+    private JButton hideButton;<br/>
+    private CheckableList list;<br/>
+    private int index;<br/>
+    private XmlElement columns;<br/>
+    private CheckableItemImpl selection;<br/>
+    private MailFrameMediator mediator;<br/>
+<br/>
+    public ColumnConfigDialog(MailFrameMediator mediator, XmlElement columns) {<br/>
+        super((JFrame) <span class="mv">mediator.getView()</span>, true);<br/>
+        setTitle("Configure Columns");<br/>
+<br/>
+        this.mediator = mediator;<br/>
+        this.columns = columns;<br/>
+<br/>
+        list = new CheckableList();<br/>
+<br/>
+        list.getSelectionModel().addListSelectionListener(this);<br/>
+<br/>
+        initComponents();<br/>
+<br/>
+        updateComponents(true);<br/>
+<br/>
+        getRootPane().registerKeyboardAction(this, "CLOSE",<br/>
+            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),<br/>
+            JComponent.WHEN_IN_FOCUSED_WINDOW);<br/>
+        pack();<br/>
+        setLocationRelativeTo(null);<br/>
+        setVisible(true);<br/>
+    }<br/>
+<br/>
+    protected JPanel createButtonPanel() {<br/>
+        JPanel bottom = new JPanel();<br/>
+        bottom.setLayout(new BorderLayout());<br/>
+<br/>
+        bottom.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));<br/>
+<br/>
+        ButtonWithMnemonic cancelButton = new ButtonWithMnemonic(MailResourceLoader.getString(<br/>
+                    "global", "cancel"));<br/>
+<br/>
+        //$NON-NLS-1$ //$NON-NLS-2$<br/>
+        cancelButton.addActionListener(this);<br/>
+        cancelButton.setActionCommand("CANCEL"); //$NON-NLS-1$<br/>
+<br/>
+        ButtonWithMnemonic okButton = new ButtonWithMnemonic(MailResourceLoader.getString(<br/>
+                    "global", "ok"));<br/>
+<br/>
+        //$NON-NLS-1$ //$NON-NLS-2$<br/>
+        okButton.addActionListener(this);<br/>
+        okButton.setActionCommand("OK"); //$NON-NLS-1$<br/>
+        okButton.setDefaultCapable(true);<br/>
+        getRootPane().setDefaultButton(okButton);<br/>
+<br/>
+        ButtonWithMnemonic helpButton = new ButtonWithMnemonic(MailResourceLoader.getString(<br/>
+                    "global", "help"));<br/>
+<br/>
+        // associate with JavaHelp<br/>
+        HelpManager.getHelpManager().enableHelpOnButton(helpButton,<br/>
+            "configuring_columba");<br/>
+        HelpManager.getHelpManager().enableHelpKey(getRootPane(),<br/>
+            "configuring_columba");<br/>
+<br/>
+        JPanel buttonPanel = new JPanel();<br/>
+        buttonPanel.setLayout(new GridLayout(1, 3, 6, 0));<br/>
+        buttonPanel.add(okButton);<br/>
+        buttonPanel.add(cancelButton);<br/>
+        buttonPanel.add(helpButton);<br/>
+<br/>
+        bottom.add(buttonPanel, BorderLayout.EAST);<br/>
+<br/>
+        return bottom;<br/>
+    }<br/>
+<br/>
+    public void initComponents() {<br/>
+        getContentPane().setLayout(new BorderLayout());<br/>
+<br/>
+        JPanel mainPanel = new JPanel();<br/>
+        mainPanel.setLayout(new BorderLayout(5, 0));<br/>
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));<br/>
+<br/>
+        showButton = new ButtonWithMnemonic("&amp;Show");<br/>
+<br/>
+        showButton.setActionCommand("SHOW");<br/>
+        showButton.addActionListener(this);<br/>
+        showButton.setEnabled(false);<br/>
+<br/>
+        hideButton = new ButtonWithMnemonic("&amp;Hide");<br/>
+<br/>
+        hideButton.setActionCommand("HIDE");<br/>
+        hideButton.setEnabled(false);<br/>
+        hideButton.addActionListener(this);<br/>
+<br/>
+        // top panel<br/>
+        JPanel topPanel = new JPanel();<br/>
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.X_AXIS));<br/>
+<br/>
+        GridBagLayout gridBagLayout = new GridBagLayout();<br/>
+        GridBagConstraints c = new GridBagConstraints();<br/>
+<br/>
+        JPanel topBorderPanel = new JPanel();<br/>
+        topBorderPanel.setLayout(new BorderLayout());<br/>
+        topBorderPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));<br/>
+        topBorderPanel.add(topPanel, BorderLayout.CENTER);<br/>
+<br/>
+        Component glue = Box.createVerticalGlue();<br/>
+        c.anchor = GridBagConstraints.EAST;<br/>
+        c.gridwidth = GridBagConstraints.REMAINDER;<br/>
+<br/>
+        gridBagLayout.setConstraints(glue, c);<br/>
+<br/>
+        gridBagLayout = new GridBagLayout();<br/>
+        c = new GridBagConstraints();<br/>
+<br/>
+        JPanel eastPanel = new JPanel(gridBagLayout);<br/>
+        mainPanel.add(eastPanel, BorderLayout.EAST);<br/>
+<br/>
+        c.fill = GridBagConstraints.HORIZONTAL;<br/>
+        c.weightx = 1.0;<br/>
+        c.gridwidth = GridBagConstraints.REMAINDER;<br/>
+        gridBagLayout.setConstraints(showButton, c);<br/>
+        eastPanel.add(showButton);<br/>
+<br/>
+        Component strut1 = Box.createRigidArea(new Dimension(30, 5));<br/>
+        gridBagLayout.setConstraints(strut1, c);<br/>
+        eastPanel.add(strut1);<br/>
+<br/>
+        gridBagLayout.setConstraints(hideButton, c);<br/>
+        eastPanel.add(hideButton);<br/>
+<br/>
+        Component strut = Box.createRigidArea(new Dimension(30, 5));<br/>
+        gridBagLayout.setConstraints(strut, c);<br/>
+        eastPanel.add(strut);<br/>
+<br/>
+        glue = Box.createVerticalGlue();<br/>
+        c.fill = GridBagConstraints.BOTH;<br/>
+        c.weighty = 1.0;<br/>
+        gridBagLayout.setConstraints(glue, c);<br/>
+        eastPanel.add(glue);<br/>
+<br/>
+        JScrollPane scrollPane = new JScrollPane(list);<br/>
+        scrollPane.setPreferredSize(new Dimension(200, 200));<br/>
+        scrollPane.getViewport().setBackground(Color.white);<br/>
+        mainPanel.add(scrollPane, BorderLayout.CENTER);<br/>
+        getContentPane().add(mainPanel);<br/>
+<br/>
+        JPanel bottomPanel = new JPanel(new BorderLayout());<br/>
+        bottomPanel.setBorder(new SingleSideEtchedBorder(SwingConstants.TOP));<br/>
+<br/>
+        JPanel buttonPanel = createButtonPanel();<br/>
+<br/>
+        bottomPanel.add(buttonPanel, BorderLayout.EAST);<br/>
+        getContentPane().add(bottomPanel, BorderLayout.SOUTH);<br/>
+    }<br/>
+<br/>
+    private XmlElement findColumn(XmlElement parent, String name) {<br/>
+        for (int i = 0; i &lt; parent.count(); i++) {<br/>
+            XmlElement child = parent.getElement(i);<br/>
+<br/>
+            if (child.getAttribute("name").equals(name)) {<br/>
+                return child;<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return null;<br/>
+    }<br/>
+<br/>
+    public void updateComponents(boolean b) {<br/>
+        if (b) {<br/>
+            CheckableItemListTableModel model = new CheckableItemListTableModel();<br/>
+            String[] stringList = ColumnOptionsPlugin.getColumns();<br/>
+<br/>
+            for (int j = 0; j &lt; stringList.length; j++) {<br/>
+                String c = stringList[j];<br/>
+                CheckableItemImpl item = new CheckableItemImpl(c);<br/>
+                XmlElement element = findColumn(columns, c);<br/>
+<br/>
+                if (element != null) {<br/>
+                    item.setSelected(true);<br/>
+                } else {<br/>
+                    item.setSelected(false);<br/>
+                }<br/>
+<br/>
+                model.addElement(item);<br/>
+            }<br/>
+<br/>
+            list.setModel(model);<br/>
+        } else {<br/>
+            CheckableItemListTableModel model = ((CheckableItemListTableModel) list.getModel());<br/>
+<br/>
+            for (int i = 0; i &lt; model.count(); i++) {<br/>
+                // get column of list<br/>
+                CheckableItemImpl column = (CheckableItemImpl) model.getElement(i);<br/>
+<br/>
+                // find colum<br/>
+                XmlElement element = findColumn(columns, column.toString());<br/>
+<br/>
+                if (element != null) {<br/>
+                    // remove disabled column<br/>
+                    if (!column.isSelected()) {<br/>
+                        element.removeFromParent();<br/>
+                    }<br/>
+                } else {<br/>
+                    if (column.isSelected()) {<br/>
+                        XmlElement newElement = new XmlElement("column");<br/>
+                        newElement.addAttribute("name", column.toString());<br/>
+                        newElement.addAttribute("width", "100");<br/>
+                        columns.addElement(newElement);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void valueChanged(ListSelectionEvent e) {<br/>
+        if (e.getValueIsAdjusting()) {<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        DefaultListSelectionModel theList = (DefaultListSelectionModel) e.getSource();<br/>
+<br/>
+        if (!theList.isSelectionEmpty()) {<br/>
+            index = theList.getAnchorSelectionIndex();<br/>
+<br/>
+            selection = (CheckableItemImpl) ((CheckableItemListTableModel) list.getModel()).getElement(index);<br/>
+<br/>
+            updateButtonState();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void updateButtonState() {<br/>
+        if (selection.isSelected()) {<br/>
+            hideButton.setEnabled(true);<br/>
+            showButton.setEnabled(false);<br/>
+        } else {<br/>
+            showButton.setEnabled(true);<br/>
+            hideButton.setEnabled(false);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void actionPerformed(ActionEvent e) {<br/>
+        String action = e.getActionCommand();<br/>
+<br/>
+        if (action.equals("OK")) {<br/>
+            updateComponents(false);<br/>
+<br/>
+            setVisible(false);<br/>
+<br/>
+            ColumnOptionsPlugin plugin = (ColumnOptionsPlugin) mediator.getFolderOptionsController()<br/>
+                                                                       .getPlugin("ColumnOptions");<br/>
+<br/>
+            // make sure this configuration is also visually working immediately<br/>
+            FolderCommandReference[] r = mediator.getTreeSelection();<br/>
+            plugin.loadOptionsFromXml((MessageFolder) r[0].getFolder());<br/>
+        } else if (action.equals("CANCEL")) {<br/>
+            setVisible(false);<br/>
+        } else if (action.equals("SHOW")) {<br/>
+            if (selection != null) {<br/>
+                selection.setSelected(!selection.isSelected());<br/>
+                ((CheckableItemListTableModel) list.getModel()).updateRow(selection);<br/>
+<br/>
+                //list.repaint();<br/>
+                updateButtonState();<br/>
+            }<br/>
+        } else if (action.equals("HIDE")) {<br/>
+            // disable selected item<br/>
+            if (selection != null) {<br/>
+                selection.setSelected(!selection.isSelected());<br/>
+                ((CheckableItemListTableModel) list.getModel()).updateRow(selection);<br/>
+<br/>
+                //list.repaint();<br/>
+                updateButtonState();<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ColumnConfigDialog_1.8.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.mail.gui.config.columns;<br/>
+<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Color;<br/>
+import java.awt.Component;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.GridBagConstraints;<br/>
+import java.awt.GridBagLayout;<br/>
+import java.awt.GridLayout;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.ActionListener;<br/>
+import java.awt.event.KeyEvent;<br/>
+<br/>
+import javax.swing.BorderFactory;<br/>
+import javax.swing.Box;<br/>
+import javax.swing.BoxLayout;<br/>
+import javax.swing.DefaultListSelectionModel;<br/>
+import javax.swing.JButton;<br/>
+import javax.swing.JComponent;<br/>
+import javax.swing.JDialog;<br/>
+import javax.swing.JFrame;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JScrollPane;<br/>
+import javax.swing.KeyStroke;<br/>
+import javax.swing.SwingConstants;<br/>
+import javax.swing.event.ListSelectionEvent;<br/>
+import javax.swing.event.ListSelectionListener;<br/>
+<br/>
+import net.javaprog.ui.wizard.plaf.basic.SingleSideEtchedBorder;<br/>
+<br/>
+import org.columba.core.gui.util.ButtonWithMnemonic;<br/>
+import org.columba.core.help.HelpManager;<br/>
+import org.columba.core.xml.XmlElement;<br/>
+import org.columba.mail.command.FolderCommandReference;<br/>
+import org.columba.mail.folder.MessageFolder;<br/>
+import org.columba.mail.folderoptions.ColumnOptionsPlugin;<br/>
+import org.columba.mail.gui.frame.MailFrameMediator;<br/>
+import org.columba.mail.util.MailResourceLoader;<br/>
+import org.frapuccino.checkablelist.CheckableItemImpl;<br/>
+import org.frapuccino.checkablelist.CheckableItemListTableModel;<br/>
+import org.frapuccino.checkablelist.CheckableList;<br/>
+<br/>
+<br/>
+/**<br/>
+ * Configurabe visible columns of the table.<br/>
+ * &lt;p&gt;<br/>
+ * TODO: adding of columns is not working currently<br/>
+ * <br/>
+ * @author fdietz<br/>
+ */<br/>
+public class ColumnConfigDialog extends JDialog implements ActionListener,<br/>
+    ListSelectionListener {<br/>
+   <br/>
+    private JButton showButton;<br/>
+    private JButton hideButton;<br/>
+    private CheckableList list;<br/>
+    private int index;<br/>
+    private XmlElement columns;<br/>
+    private CheckableItemImpl selection;<br/>
+    private MailFrameMediator mediator;<br/>
+<br/>
+    public ColumnConfigDialog(MailFrameMediator mediator, XmlElement columns) {<br/>
+        super((JFrame) <span class="add"><span class="mv">mediator.getView()</span>.<span class="add">getFrame</span>()</span>, true);<br/>
+        setTitle("Configure Columns");<br/>
+<br/>
+        this.mediator = mediator;<br/>
+        this.columns = columns;<br/>
+<br/>
+        list = new CheckableList();<br/>
+<br/>
+        list.getSelectionModel().addListSelectionListener(this);<br/>
+<br/>
+        initComponents();<br/>
+<br/>
+        updateComponents(true);<br/>
+<br/>
+        getRootPane().registerKeyboardAction(this, "CLOSE",<br/>
+            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),<br/>
+            JComponent.WHEN_IN_FOCUSED_WINDOW);<br/>
+        pack();<br/>
+        setLocationRelativeTo(null);<br/>
+        setVisible(true);<br/>
+    }<br/>
+<br/>
+    protected JPanel createButtonPanel() {<br/>
+        JPanel bottom = new JPanel();<br/>
+        bottom.setLayout(new BorderLayout());<br/>
+<br/>
+        bottom.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));<br/>
+<br/>
+        ButtonWithMnemonic cancelButton = new ButtonWithMnemonic(MailResourceLoader.getString(<br/>
+                    "global", "cancel"));<br/>
+<br/>
+        //$NON-NLS-1$ //$NON-NLS-2$<br/>
+        cancelButton.addActionListener(this);<br/>
+        cancelButton.setActionCommand("CANCEL"); //$NON-NLS-1$<br/>
+<br/>
+        ButtonWithMnemonic okButton = new ButtonWithMnemonic(MailResourceLoader.getString(<br/>
+                    "global", "ok"));<br/>
+<br/>
+        //$NON-NLS-1$ //$NON-NLS-2$<br/>
+        okButton.addActionListener(this);<br/>
+        okButton.setActionCommand("OK"); //$NON-NLS-1$<br/>
+        okButton.setDefaultCapable(true);<br/>
+        getRootPane().setDefaultButton(okButton);<br/>
+<br/>
+        ButtonWithMnemonic helpButton = new ButtonWithMnemonic(MailResourceLoader.getString(<br/>
+                    "global", "help"));<br/>
+<br/>
+        // associate with JavaHelp<br/>
+        HelpManager.getHelpManager().enableHelpOnButton(helpButton,<br/>
+            "configuring_columba");<br/>
+        HelpManager.getHelpManager().enableHelpKey(getRootPane(),<br/>
+            "configuring_columba");<br/>
+<br/>
+        JPanel buttonPanel = new JPanel();<br/>
+        buttonPanel.setLayout(new GridLayout(1, 3, 6, 0));<br/>
+        buttonPanel.add(okButton);<br/>
+        buttonPanel.add(cancelButton);<br/>
+        buttonPanel.add(helpButton);<br/>
+<br/>
+        bottom.add(buttonPanel, BorderLayout.EAST);<br/>
+<br/>
+        return bottom;<br/>
+    }<br/>
+<br/>
+    public void initComponents() {<br/>
+        getContentPane().setLayout(new BorderLayout());<br/>
+<br/>
+        JPanel mainPanel = new JPanel();<br/>
+        mainPanel.setLayout(new BorderLayout(5, 0));<br/>
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));<br/>
+<br/>
+        showButton = new ButtonWithMnemonic("&amp;Show");<br/>
+<br/>
+        showButton.setActionCommand("SHOW");<br/>
+        showButton.addActionListener(this);<br/>
+        showButton.setEnabled(false);<br/>
+<br/>
+        hideButton = new ButtonWithMnemonic("&amp;Hide");<br/>
+<br/>
+        hideButton.setActionCommand("HIDE");<br/>
+        hideButton.setEnabled(false);<br/>
+        hideButton.addActionListener(this);<br/>
+<br/>
+        // top panel<br/>
+        JPanel topPanel = new JPanel();<br/>
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.X_AXIS));<br/>
+<br/>
+        GridBagLayout gridBagLayout = new GridBagLayout();<br/>
+        GridBagConstraints c = new GridBagConstraints();<br/>
+<br/>
+        JPanel topBorderPanel = new JPanel();<br/>
+        topBorderPanel.setLayout(new BorderLayout());<br/>
+        topBorderPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));<br/>
+        topBorderPanel.add(topPanel, BorderLayout.CENTER);<br/>
+<br/>
+        Component glue = Box.createVerticalGlue();<br/>
+        c.anchor = GridBagConstraints.EAST;<br/>
+        c.gridwidth = GridBagConstraints.REMAINDER;<br/>
+<br/>
+        gridBagLayout.setConstraints(glue, c);<br/>
+<br/>
+        gridBagLayout = new GridBagLayout();<br/>
+        c = new GridBagConstraints();<br/>
+<br/>
+        JPanel eastPanel = new JPanel(gridBagLayout);<br/>
+        mainPanel.add(eastPanel, BorderLayout.EAST);<br/>
+<br/>
+        c.fill = GridBagConstraints.HORIZONTAL;<br/>
+        c.weightx = 1.0;<br/>
+        c.gridwidth = GridBagConstraints.REMAINDER;<br/>
+        gridBagLayout.setConstraints(showButton, c);<br/>
+        eastPanel.add(showButton);<br/>
+<br/>
+        Component strut1 = Box.createRigidArea(new Dimension(30, 5));<br/>
+        gridBagLayout.setConstraints(strut1, c);<br/>
+        eastPanel.add(strut1);<br/>
+<br/>
+        gridBagLayout.setConstraints(hideButton, c);<br/>
+        eastPanel.add(hideButton);<br/>
+<br/>
+        Component strut = Box.createRigidArea(new Dimension(30, 5));<br/>
+        gridBagLayout.setConstraints(strut, c);<br/>
+        eastPanel.add(strut);<br/>
+<br/>
+        glue = Box.createVerticalGlue();<br/>
+        c.fill = GridBagConstraints.BOTH;<br/>
+        c.weighty = 1.0;<br/>
+        gridBagLayout.setConstraints(glue, c);<br/>
+        eastPanel.add(glue);<br/>
+<br/>
+        JScrollPane scrollPane = new JScrollPane(list);<br/>
+        scrollPane.setPreferredSize(new Dimension(200, 200));<br/>
+        scrollPane.getViewport().setBackground(Color.white);<br/>
+        mainPanel.add(scrollPane, BorderLayout.CENTER);<br/>
+        getContentPane().add(mainPanel);<br/>
+<br/>
+        JPanel bottomPanel = new JPanel(new BorderLayout());<br/>
+        bottomPanel.setBorder(new SingleSideEtchedBorder(SwingConstants.TOP));<br/>
+<br/>
+        JPanel buttonPanel = createButtonPanel();<br/>
+<br/>
+        bottomPanel.add(buttonPanel, BorderLayout.EAST);<br/>
+        getContentPane().add(bottomPanel, BorderLayout.SOUTH);<br/>
+    }<br/>
+<br/>
+    private XmlElement findColumn(XmlElement parent, String name) {<br/>
+        for (int i = 0; i &lt; parent.count(); i++) {<br/>
+            XmlElement child = parent.getElement(i);<br/>
+<br/>
+            if (child.getAttribute("name").equals(name)) {<br/>
+                return child;<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return null;<br/>
+    }<br/>
+<br/>
+    public void updateComponents(boolean b) {<br/>
+        if (b) {<br/>
+            CheckableItemListTableModel model = new CheckableItemListTableModel();<br/>
+            String[] stringList = ColumnOptionsPlugin.getColumns();<br/>
+<br/>
+            for (int j = 0; j &lt; stringList.length; j++) {<br/>
+                String c = stringList[j];<br/>
+                CheckableItemImpl item = new CheckableItemImpl(c);<br/>
+                XmlElement element = findColumn(columns, c);<br/>
+<br/>
+                if (element != null) {<br/>
+                    item.setSelected(true);<br/>
+                } else {<br/>
+                    item.setSelected(false);<br/>
+                }<br/>
+<br/>
+                model.addElement(item);<br/>
+            }<br/>
+<br/>
+            list.setModel(model);<br/>
+        } else {<br/>
+            CheckableItemListTableModel model = ((CheckableItemListTableModel) list.getModel());<br/>
+<br/>
+            for (int i = 0; i &lt; model.count(); i++) {<br/>
+                // get column of list<br/>
+                CheckableItemImpl column = (CheckableItemImpl) model.getElement(i);<br/>
+<br/>
+                // find colum<br/>
+                XmlElement element = findColumn(columns, column.toString());<br/>
+<br/>
+                if (element != null) {<br/>
+                    // remove disabled column<br/>
+                    if (!column.isSelected()) {<br/>
+                        element.removeFromParent();<br/>
+                    }<br/>
+                } else {<br/>
+                    if (column.isSelected()) {<br/>
+                        XmlElement newElement = new XmlElement("column");<br/>
+                        newElement.addAttribute("name", column.toString());<br/>
+                        newElement.addAttribute("width", "100");<br/>
+                        columns.addElement(newElement);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void valueChanged(ListSelectionEvent e) {<br/>
+        if (e.getValueIsAdjusting()) {<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        DefaultListSelectionModel theList = (DefaultListSelectionModel) e.getSource();<br/>
+<br/>
+        if (!theList.isSelectionEmpty()) {<br/>
+            index = theList.getAnchorSelectionIndex();<br/>
+<br/>
+            selection = (CheckableItemImpl) ((CheckableItemListTableModel) list.getModel()).getElement(index);<br/>
+<br/>
+            updateButtonState();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void updateButtonState() {<br/>
+        if (selection.isSelected()) {<br/>
+            hideButton.setEnabled(true);<br/>
+            showButton.setEnabled(false);<br/>
+        } else {<br/>
+            showButton.setEnabled(true);<br/>
+            hideButton.setEnabled(false);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public void actionPerformed(ActionEvent e) {<br/>
+        String action = e.getActionCommand();<br/>
+<br/>
+        if (action.equals("OK")) {<br/>
+            updateComponents(false);<br/>
+<br/>
+            setVisible(false);<br/>
+<br/>
+            ColumnOptionsPlugin plugin = (ColumnOptionsPlugin) mediator.getFolderOptionsController()<br/>
+                                                                       .getPlugin("ColumnOptions");<br/>
+<br/>
+            // make sure this configuration is also visually working immediately<br/>
+            FolderCommandReference[] r = mediator.getTreeSelection();<br/>
+            plugin.loadOptionsFromXml((MessageFolder) r[0].getFolder());<br/>
+        } else if (action.equals("CANCEL")) {<br/>
+            setVisible(false);<br/>
+        } else if (action.equals("SHOW")) {<br/>
+            if (selection != null) {<br/>
+                selection.setSelected(!selection.isSelected());<br/>
+                ((CheckableItemListTableModel) list.getModel()).updateRow(selection);<br/>
+<br/>
+                //list.repaint();<br/>
+                updateButtonState();<br/>
+            }<br/>
+        } else if (action.equals("HIDE")) {<br/>
+            // disable selected item<br/>
+            if (selection != null) {<br/>
+                selection.setSelected(!selection.isSelected());<br/>
+                ((CheckableItemListTableModel) list.getModel()).updateRow(selection);<br/>
+<br/>
+                //list.repaint();<br/>
+                updateButtonState();<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

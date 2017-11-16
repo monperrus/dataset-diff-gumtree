@@ -1,0 +1,812 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_SMTPAppender_1.36.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ * <br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ * <br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ * <br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.net;<br/>
+<br/>
+import org.apache.log4j.AppenderSkeleton;<br/>
+import org.apache.log4j.Layout;<br/>
+import org.apache.log4j.Level;<br/>
+import org.apache.log4j.helpers.CyclicBuffer;<br/>
+import org.apache.log4j.helpers.OptionConverter;<br/>
+import org.apache.log4j.spi.ErrorCode;<br/>
+import org.apache.log4j.spi.LoggingEvent;<br/>
+import org.apache.log4j.spi.TriggeringEventEvaluator;<br/>
+<br/>
+import java.util.Date;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.mail.Message;<br/>
+import javax.mail.MessagingException;<br/>
+import javax.mail.Multipart;<br/>
+import javax.mail.Session;<br/>
+import javax.mail.Transport;<br/>
+import javax.mail.internet.AddressException;<br/>
+import javax.mail.internet.InternetAddress;<br/>
+import javax.mail.internet.MimeBodyPart;<br/>
+import javax.mail.internet.MimeMessage;<br/>
+import javax.mail.internet.MimeMultipart;<br/>
+<br/>
+<br/>
+/**<br/>
+   Send an e-mail when a specific logging event occurs, typically on<br/>
+   errors or fatal errors.<br/>
+<br/>
+   &lt;p&gt;The number of logging events delivered in this e-mail depend on<br/>
+   the value of &lt;b&gt;BufferSize&lt;/b&gt; option. The<br/>
+   &lt;code&gt;SMTPAppender&lt;/code&gt; keeps only the last<br/>
+   &lt;code&gt;BufferSize&lt;/code&gt; logging events in its cyclic buffer. This<br/>
+   keeps memory requirements at a reasonable level while still<br/>
+   delivering useful application context.<br/>
+<br/>
+   @author Ceki G&amp;uuml;lc&amp;uuml;<br/>
+   @since 1.0 */<br/>
+public class SMTPAppender extends AppenderSkeleton {<br/>
+  private String to;<br/>
+  private String from;<br/>
+  private String subject;<br/>
+  private String smtpHost;<br/>
+  private int bufferSize = 512;<br/>
+  private boolean locationInfo = false;<br/>
+  protected CyclicBuffer cb = new CyclicBuffer(bufferSize);<br/>
+  protected Message msg;<br/>
+  protected TriggeringEventEvaluator evaluator;<br/>
+<br/>
+  /**<br/>
+     The default constructor will instantiate the appender with a<br/>
+     {@link TriggeringEventEvaluator} that will trigger on events with<br/>
+     level ERROR or higher.*/<br/>
+  public SMTPAppender() {<br/>
+    this(new DefaultEvaluator());<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Use &lt;code&gt;evaluator&lt;/code&gt; passed as parameter as the {@link<br/>
+     TriggeringEventEvaluator} for this SMTPAppender.  */<br/>
+  public SMTPAppender(TriggeringEventEvaluator evaluator) {<br/>
+    this.evaluator = evaluator;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Activate the specified options, such as the smtp host, the<br/>
+     recipient, from, etc. */<br/>
+  public void activateOptions() {<br/>
+    Properties props = new Properties(System.getProperties());<br/>
+<br/>
+    if (smtpHost != null) {<br/>
+      props.put("mail.smtp.host", smtpHost);<br/>
+    }<br/>
+<br/>
+    Session session = Session.getInstance(props, null);<br/>
+<br/>
+    //session.setDebug(true);<br/>
+    msg = new MimeMessage(session);<br/>
+<br/>
+    try {<br/>
+      if (from != null) {<br/>
+        msg.setFrom(getAddress(from));<br/>
+      } else {<br/>
+        msg.setFrom();<br/>
+      }<br/>
+<br/>
+      msg.setRecipients(Message.RecipientType.TO, parseAddress(to));<br/>
+<br/>
+      if (subject != null) {<br/>
+        msg.setSubject(subject);<br/>
+      }<br/>
+    } catch (MessagingException e) {<br/>
+      getLogger().error("Could not activate SMTPAppender options.", e);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Perform SMTPAppender specific appending actions, mainly adding<br/>
+     the event to a cyclic buffer and checking if the event triggers<br/>
+     an e-mail to be sent. */<br/>
+  public void append(LoggingEvent event) {<br/>
+    if (!checkEntryConditions()) {<br/>
+      return;<br/>
+    }<br/>
+<br/>
+    event.getThreadName();<br/>
+    event.getNDC();<br/>
+<br/>
+    if (locationInfo) {<br/>
+      event.getLocationInformation();<br/>
+    }<br/>
+<br/>
+    cb.add(event);<br/>
+<br/>
+    if (evaluator.isTriggeringEvent(event)) {<br/>
+      sendBuffer();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+      This method determines if there is a sense in attempting to append.<br/>
+<br/>
+      &lt;p&gt;It checks whether there is a set output target and also if<br/>
+      there is a set layout. If these checks fail, then the boolean<br/>
+      value &lt;code&gt;false&lt;/code&gt; is returned. */<br/>
+  protected boolean checkEntryConditions() {<br/>
+    if (this.msg == null) {<br/>
+      errorHandler.error("Message object not configured.");<br/>
+<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    if (this.evaluator == null) {<br/>
+      errorHandler.error(<br/>
+        "No TriggeringEventEvaluator is set for appender [" + name + "].");<br/>
+<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    if (this.layout == null) {<br/>
+      errorHandler.error("No layout set for appender named [" + name + "].");<br/>
+<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+  public synchronized void close() {<br/>
+    this.closed = true;<br/>
+  }<br/>
+<br/>
+  InternetAddress getAddress(String addressStr) {<br/>
+    try {<br/>
+      return new InternetAddress(addressStr);<br/>
+    } catch (AddressException e) {<br/>
+      errorHandler.error(<br/>
+        "Could not parse address [" + addressStr + "].", e,<br/>
+        ErrorCode.ADDRESS_PARSE_FAILURE);<br/>
+<br/>
+      return null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  InternetAddress[] parseAddress(String addressStr) {<br/>
+    try {<br/>
+      return InternetAddress.parse(addressStr, true);<br/>
+    } catch (AddressException e) {<br/>
+      errorHandler.error(<br/>
+        "Could not parse address [" + addressStr + "].", e,<br/>
+        ErrorCode.ADDRESS_PARSE_FAILURE);<br/>
+<br/>
+      return null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;To&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getTo() {<br/>
+    return to;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;code&gt;SMTPAppender&lt;/code&gt; requires a {@link<br/>
+     org.apache.log4j.Layout layout}.  */<br/>
+  public boolean requiresLayout() {<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Send the contents of the cyclic buffer as an e-mail message.<br/>
+   */<br/>
+  protected void sendBuffer() {<br/>
+    // Note: this code already owns the monitor for this<br/>
+    // appender. This frees us from needing to synchronize on 'cb'.<br/>
+    try {<br/>
+      MimeBodyPart part = new MimeBodyPart();<br/>
+<br/>
+      StringBuffer sbuf = new StringBuffer();<br/>
+      String t = layout.getHeader();<br/>
+<br/>
+      if (t != null) {<br/>
+        sbuf.append(t);<br/>
+      }<br/>
+<br/>
+      int len = cb.length();<br/>
+<br/>
+      for (int i = 0; i &lt; len; i++) {<br/>
+        //sbuf.append(MimeUtility.encodeText(layout.format(cb.get())));<br/>
+        LoggingEvent event = cb.get();<br/>
+        sbuf.append(layout.format(event));<br/>
+<br/>
+        if (layout.ignoresThrowable()) {<br/>
+          String[] s = event.getThrowableStrRep();<br/>
+<br/>
+          if (s != null) {<br/>
+            for (int j = 0; j &lt; s.length; j++) {<br/>
+              sbuf.append(s[j]);<br/>
+              sbuf.append(Layout.LINE_SEP);<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+<br/>
+      t = layout.getFooter();<br/>
+<br/>
+      if (t != null) {<br/>
+        sbuf.append(t);<br/>
+      }<br/>
+<br/>
+      part.setContent(sbuf.toString(), layout.getContentType());<br/>
+<br/>
+      Multipart mp = new MimeMultipart();<br/>
+      mp.addBodyPart(part);<br/>
+      msg.setContent(mp);<br/>
+<br/>
+      msg.setSentDate(new Date());<br/>
+      Transport.send(msg);<br/>
+    } catch (Exception e) {<br/>
+      errorHandler.error("Error occured while sending e-mail notification.", e);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;EvaluatorClass&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getEvaluatorClass() {<br/>
+    return (evaluator == null) ? null : evaluator.getClass().getName();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;From&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getFrom() {<br/>
+    return from;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;Subject&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getSubject() {<br/>
+    return subject;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;From&lt;/b&gt; option takes a string value which should be a<br/>
+     e-mail address of the sender.<br/>
+   */<br/>
+  public void setFrom(String from) {<br/>
+    this.from = from;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;Subject&lt;/b&gt; option takes a string value which should be a<br/>
+     the subject of the e-mail message.<br/>
+   */<br/>
+  public void setSubject(String subject) {<br/>
+    this.subject = subject;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;BufferSize&lt;/b&gt; option takes a positive integer<br/>
+     representing the maximum number of logging events to collect in a<br/>
+     cyclic buffer. When the &lt;code&gt;BufferSize&lt;/code&gt; is reached,<br/>
+     oldest events are deleted as new events are added to the<br/>
+     buffer. By default the size of the cyclic buffer is 512 events.<br/>
+   */<br/>
+  public void setBufferSize(int bufferSize) {<br/>
+    this.bufferSize = bufferSize;<br/>
+    cb.resize(bufferSize);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;SMTPHost&lt;/b&gt; option takes a string value which should be a<br/>
+     the host name of the SMTP server that will send the e-mail message.<br/>
+   */<br/>
+  public void setSMTPHost(String smtpHost) {<br/>
+    this.smtpHost = smtpHost;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;SMTPHost&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getSMTPHost() {<br/>
+    return smtpHost;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;To&lt;/b&gt; option takes a string value which should be a<br/>
+     comma separated list of e-mail address of the recipients.<br/>
+   */<br/>
+  public void setTo(String to) {<br/>
+    this.to = to;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;BufferSize&lt;/b&gt; option.<br/>
+   */<br/>
+  public int getBufferSize() {<br/>
+    return bufferSize;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;EvaluatorClass&lt;/b&gt; option takes a string value<br/>
+     representing the name of the class implementing the {@link<br/>
+     TriggeringEventEvaluator} interface. A corresponding object will<br/>
+     be instantiated and assigned as the triggering event evaluator<br/>
+     for the SMTPAppender.<br/>
+   */<br/>
+  public void setEvaluatorClass(String value) {<br/>
+    evaluator =<br/>
+      (TriggeringEventEvaluator) OptionConverter.instantiateByClassName(<br/>
+        value, TriggeringEventEvaluator.class, evaluator);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;LocationInfo&lt;/b&gt; option takes a boolean value. By<br/>
+     default, it is set to false which means there will be no effort<br/>
+     to extract the location information related to the event. As a<br/>
+     result, the layout that formats the events as they are sent out<br/>
+     in an e-mail is likely to place the wrong location information<br/>
+     (if present in the format).<br/>
+<br/>
+     &lt;p&gt;Location information extraction is comparatively very slow and<br/>
+     should be avoided unless performance is not a concern.<br/>
+   */<br/>
+  public void setLocationInfo(boolean locationInfo) {<br/>
+    this.locationInfo = locationInfo;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;LocationInfo&lt;/b&gt; option.<br/>
+   */<br/>
+  public boolean getLocationInfo() {<br/>
+    return locationInfo;<br/>
+  }<br/>
+}<br/>
+<br/>
+<br/>
+class DefaultEvaluator implements TriggeringEventEvaluator {<br/>
+  /**<br/>
+     Is this &lt;code&gt;event&lt;/code&gt; the e-mail triggering event?<br/>
+<br/>
+     &lt;p&gt;This method returns &lt;code&gt;true&lt;/code&gt;, if the event level<br/>
+     has ERROR level or higher. Otherwise it returns<br/>
+     &lt;code&gt;false&lt;/code&gt;. */<br/>
+  public boolean isTriggeringEvent(LoggingEvent event) {<br/>
+    return event.getLevel().isGreaterOrEqual(Level.ERROR);<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_SMTPAppender_1.37.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ * <br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ * <br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ * <br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.net;<br/>
+<br/>
+import org.apache.log4j.AppenderSkeleton;<br/>
+import org.apache.log4j.Layout;<br/>
+import org.apache.log4j.Level;<br/>
+import org.apache.log4j.helpers.CyclicBuffer;<br/>
+import org.apache.log4j.helpers.OptionConverter;<br/>
+import org.apache.log4j.spi.ErrorCode;<br/>
+import org.apache.log4j.spi.LoggingEvent;<br/>
+import org.apache.log4j.spi.TriggeringEventEvaluator;<br/>
+<br/>
+import java.util.Date;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.mail.Message;<br/>
+import javax.mail.MessagingException;<br/>
+import javax.mail.Multipart;<br/>
+import javax.mail.Session;<br/>
+import javax.mail.Transport;<br/>
+import javax.mail.internet.AddressException;<br/>
+import javax.mail.internet.InternetAddress;<br/>
+import javax.mail.internet.MimeBodyPart;<br/>
+import javax.mail.internet.MimeMessage;<br/>
+import javax.mail.internet.MimeMultipart;<br/>
+<br/>
+<br/>
+/**<br/>
+   Send an e-mail when a specific logging event occurs, typically on<br/>
+   errors or fatal errors.<br/>
+<br/>
+   &lt;p&gt;The number of logging events delivered in this e-mail depend on<br/>
+   the value of &lt;b&gt;BufferSize&lt;/b&gt; option. The<br/>
+   &lt;code&gt;SMTPAppender&lt;/code&gt; keeps only the last<br/>
+   &lt;code&gt;BufferSize&lt;/code&gt; logging events in its cyclic buffer. This<br/>
+   keeps memory requirements at a reasonable level while still<br/>
+   delivering useful application context.<br/>
+<br/>
+   @author Ceki G&amp;uuml;lc&amp;uuml;<br/>
+   @since 1.0 */<br/>
+public class SMTPAppender extends AppenderSkeleton {<br/>
+  private String to;<br/>
+  private String from;<br/>
+  private String subject;<br/>
+  private String smtpHost;<br/>
+  private int bufferSize = 512;<br/>
+  private boolean locationInfo = false;<br/>
+  protected CyclicBuffer cb = new CyclicBuffer(bufferSize);<br/>
+  protected Message msg;<br/>
+  protected TriggeringEventEvaluator evaluator;<br/>
+<br/>
+  /**<br/>
+     The default constructor will instantiate the appender with a<br/>
+     {@link TriggeringEventEvaluator} that will trigger on events with<br/>
+     level ERROR or higher.*/<br/>
+  public SMTPAppender() {<br/>
+    this(new DefaultEvaluator());<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Use &lt;code&gt;evaluator&lt;/code&gt; passed as parameter as the {@link<br/>
+     TriggeringEventEvaluator} for this SMTPAppender.  */<br/>
+  public SMTPAppender(TriggeringEventEvaluator evaluator) {<br/>
+    this.evaluator = evaluator;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Activate the specified options, such as the smtp host, the<br/>
+     recipient, from, etc. */<br/>
+  public void activateOptions() {<br/>
+    Properties props = new Properties(System.getProperties());<br/>
+<br/>
+    if (smtpHost != null) {<br/>
+      props.put("mail.smtp.host", smtpHost);<br/>
+    }<br/>
+<br/>
+    Session session = Session.getInstance(props, null);<br/>
+<br/>
+    //session.setDebug(true);<br/>
+    msg = new MimeMessage(session);<br/>
+<br/>
+    try {<br/>
+      if (from != null) {<br/>
+        msg.setFrom(getAddress(from));<br/>
+      } else {<br/>
+        msg.setFrom();<br/>
+      }<br/>
+<br/>
+      msg.setRecipients(Message.RecipientType.TO, parseAddress(to));<br/>
+<br/>
+      if (subject != null) {<br/>
+        msg.setSubject(subject);<br/>
+      }<br/>
+    } catch (MessagingException e) {<br/>
+      getLogger().error("Could not activate SMTPAppender options.", e);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Perform SMTPAppender specific appending actions, mainly adding<br/>
+     the event to a cyclic buffer and checking if the event triggers<br/>
+     an e-mail to be sent. */<br/>
+  public void append(LoggingEvent event) {<br/>
+    if (!checkEntryConditions()) {<br/>
+      return;<br/>
+    }<br/>
+<br/>
+    event.getThreadName();<br/>
+    event.getNDC();<br/>
+<br/>
+    if (locationInfo) {<br/>
+      event.getLocationInformation();<br/>
+    }<br/>
+<br/>
+    cb.add(event);<br/>
+<br/>
+    if (evaluator.isTriggeringEvent(event)) {<br/>
+      sendBuffer();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+      This method determines if there is a sense in attempting to append.<br/>
+<br/>
+      &lt;p&gt;It checks whether there is a set output target and also if<br/>
+      there is a set layout. If these checks fail, then the boolean<br/>
+      value &lt;code&gt;false&lt;/code&gt; is returned. */<br/>
+  protected boolean checkEntryConditions() {<br/>
+    if (this.msg == null) {<br/>
+      errorHandler.error("Message object not configured.");<br/>
+<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    if (this.evaluator == null) {<br/>
+      errorHandler.error(<br/>
+        "No TriggeringEventEvaluator is set for appender [" + name + "].");<br/>
+<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    if (this.layout == null) {<br/>
+      errorHandler.error("No layout set for appender named [" + name + "].");<br/>
+<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+  public synchronized void close() {<br/>
+    this.closed = true;<br/>
+  }<br/>
+<br/>
+  InternetAddress getAddress(String addressStr) {<br/>
+    try {<br/>
+      return new InternetAddress(addressStr);<br/>
+    } catch (AddressException e) {<br/>
+      errorHandler.error(<br/>
+        "Could not parse address [" + addressStr + "].", e,<br/>
+        ErrorCode.ADDRESS_PARSE_FAILURE);<br/>
+<br/>
+      return null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  InternetAddress[] parseAddress(String addressStr) {<br/>
+    try {<br/>
+      return InternetAddress.parse(addressStr, true);<br/>
+    } catch (AddressException e) {<br/>
+      errorHandler.error(<br/>
+        "Could not parse address [" + addressStr + "].", e,<br/>
+        ErrorCode.ADDRESS_PARSE_FAILURE);<br/>
+<br/>
+      return null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;To&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getTo() {<br/>
+    return to;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;code&gt;SMTPAppender&lt;/code&gt; requires a {@link<br/>
+     org.apache.log4j.Layout layout}.  */<br/>
+  public boolean requiresLayout() {<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Send the contents of the cyclic buffer as an e-mail message.<br/>
+   */<br/>
+  protected void sendBuffer() {<br/>
+    // Note: this code already owns the monitor for this<br/>
+    // appender. This frees us from needing to synchronize on 'cb'.<br/>
+    try {<br/>
+      MimeBodyPart part = new MimeBodyPart();<br/>
+<br/>
+      StringBuffer sbuf = new StringBuffer();<br/>
+      String t = layout.getHeader();<br/>
+<br/>
+      if (t != null) {<br/>
+        sbuf.append(t);<br/>
+      }<br/>
+<br/>
+      int len = cb.length();<br/>
+<br/>
+      for (int i = 0; i &lt; len; i++) {<br/>
+        //sbuf.append(MimeUtility.encodeText(layout.format(cb.get())));<br/>
+        LoggingEvent event = cb.get();<br/>
+        sbuf.append(layout.format(event));<br/>
+<br/>
+        if (layout.ignoresThrowable()) {<br/>
+          String[] s = event.getThrowableStrRep();<br/>
+<br/>
+          if (s != null) {<br/>
+            for (int j = 0; j &lt; s.length; j++) {<br/>
+              sbuf.append(s[j]);<br/>
+              sbuf.append(Layout.LINE_SEP);<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+<br/>
+      t = layout.getFooter();<br/>
+<br/>
+      if (t != null) {<br/>
+        sbuf.append(t);<br/>
+      }<br/>
+<br/>
+      part.setContent(sbuf.toString(), layout.getContentType());<br/>
+<br/>
+      Multipart mp = new MimeMultipart();<br/>
+      mp.addBodyPart(part);<br/>
+      msg.setContent(mp);<br/>
+<br/>
+      msg.setSentDate(new Date());<br/>
+      Transport.send(msg);<br/>
+    } catch (Exception e) {<br/>
+      errorHandler.error("Error occured while sending e-mail notification.", e, <span class="add"><span class="add">ErrorCode</span>.<span class="add">GENERIC_FAILURE</span></span>);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;EvaluatorClass&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getEvaluatorClass() {<br/>
+    return (evaluator == null) ? null : evaluator.getClass().getName();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;From&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getFrom() {<br/>
+    return from;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;Subject&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getSubject() {<br/>
+    return subject;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;From&lt;/b&gt; option takes a string value which should be a<br/>
+     e-mail address of the sender.<br/>
+   */<br/>
+  public void setFrom(String from) {<br/>
+    this.from = from;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;Subject&lt;/b&gt; option takes a string value which should be a<br/>
+     the subject of the e-mail message.<br/>
+   */<br/>
+  public void setSubject(String subject) {<br/>
+    this.subject = subject;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;BufferSize&lt;/b&gt; option takes a positive integer<br/>
+     representing the maximum number of logging events to collect in a<br/>
+     cyclic buffer. When the &lt;code&gt;BufferSize&lt;/code&gt; is reached,<br/>
+     oldest events are deleted as new events are added to the<br/>
+     buffer. By default the size of the cyclic buffer is 512 events.<br/>
+   */<br/>
+  public void setBufferSize(int bufferSize) {<br/>
+    this.bufferSize = bufferSize;<br/>
+    cb.resize(bufferSize);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;SMTPHost&lt;/b&gt; option takes a string value which should be a<br/>
+     the host name of the SMTP server that will send the e-mail message.<br/>
+   */<br/>
+  public void setSMTPHost(String smtpHost) {<br/>
+    this.smtpHost = smtpHost;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;SMTPHost&lt;/b&gt; option.<br/>
+   */<br/>
+  public String getSMTPHost() {<br/>
+    return smtpHost;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;To&lt;/b&gt; option takes a string value which should be a<br/>
+     comma separated list of e-mail address of the recipients.<br/>
+   */<br/>
+  public void setTo(String to) {<br/>
+    this.to = to;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;BufferSize&lt;/b&gt; option.<br/>
+   */<br/>
+  public int getBufferSize() {<br/>
+    return bufferSize;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;EvaluatorClass&lt;/b&gt; option takes a string value<br/>
+     representing the name of the class implementing the {@link<br/>
+     TriggeringEventEvaluator} interface. A corresponding object will<br/>
+     be instantiated and assigned as the triggering event evaluator<br/>
+     for the SMTPAppender.<br/>
+   */<br/>
+  public void setEvaluatorClass(String value) {<br/>
+    evaluator =<br/>
+      (TriggeringEventEvaluator) OptionConverter.instantiateByClassName(<br/>
+        value, TriggeringEventEvaluator.class, evaluator);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     The &lt;b&gt;LocationInfo&lt;/b&gt; option takes a boolean value. By<br/>
+     default, it is set to false which means there will be no effort<br/>
+     to extract the location information related to the event. As a<br/>
+     result, the layout that formats the events as they are sent out<br/>
+     in an e-mail is likely to place the wrong location information<br/>
+     (if present in the format).<br/>
+<br/>
+     &lt;p&gt;Location information extraction is comparatively very slow and<br/>
+     should be avoided unless performance is not a concern.<br/>
+   */<br/>
+  public void setLocationInfo(boolean locationInfo) {<br/>
+    this.locationInfo = locationInfo;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     Returns value of the &lt;b&gt;LocationInfo&lt;/b&gt; option.<br/>
+   */<br/>
+  public boolean getLocationInfo() {<br/>
+    return locationInfo;<br/>
+  }<br/>
+}<br/>
+<br/>
+<br/>
+class DefaultEvaluator implements TriggeringEventEvaluator {<br/>
+  /**<br/>
+     Is this &lt;code&gt;event&lt;/code&gt; the e-mail triggering event?<br/>
+<br/>
+     &lt;p&gt;This method returns &lt;code&gt;true&lt;/code&gt;, if the event level<br/>
+     has ERROR level or higher. Otherwise it returns<br/>
+     &lt;code&gt;false&lt;/code&gt;. */<br/>
+  public boolean isTriggeringEvent(LoggingEvent event) {<br/>
+    return event.getLevel().isGreaterOrEqual(Level.ERROR);<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

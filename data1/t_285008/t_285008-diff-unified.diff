@@ -1,0 +1,10 @@
+--- t_285008/left_StandardDrawing_1.1.java	2013-03-17 15:47:04.000000000 +0100
++++ t_285008/right_StandardDrawing_1.2.java	2013-03-17 15:47:04.000000000 +0100
+@@ -45,6 +45,7 @@
+     public StandardDrawing() {
+         super();
+         fListeners = new Vector(2);
++        init(new Rectangle(-500, -500, 2000, 2000));
+     }
+ 
+ 

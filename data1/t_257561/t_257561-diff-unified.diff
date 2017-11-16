@@ -1,0 +1,11 @@
+--- t_257561/left_ASTConverter_1.114.java	2013-03-17 15:47:14.000000000 +0100
++++ t_257561/right_ASTConverter_1.115.java	2013-03-17 15:47:18.000000000 +0100
+@@ -1118,7 +1118,7 @@
+ 
+ 	public Expression convert(QualifiedAllocationExpression expression) {
+ 		if (expression.anonymousType != null) {
+-			return convert((AnonymousLocalTypeDeclaration) expression.anonymousType);
++			return convert(expression.anonymousType);
+ 		} else {
+ 			ClassInstanceCreation classInstanceCreation = this.ast.newClassInstanceCreation();
+ 			classInstanceCreation.setExpression(convert(expression.enclosingInstance));

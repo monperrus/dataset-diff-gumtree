@@ -1,0 +1,12 @@
+diff --git a/t_285398/left_TestCaseClassLoaderTest_1.1.java b/t_285398/right_TestCaseClassLoaderTest_1.2.java
+index ef623f4..987679e 100644
+--- a/t_285398/left_TestCaseClassLoaderTest_1.1.java
++++ b/t_285398/right_TestCaseClassLoaderTest_1.2.java
+@@ -30,6 +30,7 @@ public class TestCaseClassLoaderTest extends TestCase {
+ 
+ 	public void testJarClassLoading() throws Exception {
+ 		URL url= getClass().getResource("test.jar");
++		assertNotNull("Cannot find test.jar", url);
+ 		String path= url.getFile();
+ 		TestCaseClassLoader loader= new TestCaseClassLoader(path);
+ 		Class loadedClass= loader.loadClass("junit.tests.LoadedFromJar", true);

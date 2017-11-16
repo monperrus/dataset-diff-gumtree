@@ -1,0 +1,11 @@
+--- t_246198/left_TXTRecord_1.52.java	2013-03-17 15:47:00.000000000 +0100
++++ t_246198/right_TXTRecord_1.53.java	2013-03-17 15:47:00.000000000 +0100
+@@ -54,7 +54,7 @@
+  */
+ public
+ TXTRecord(Name name, int dclass, long ttl, String string) {
+-	this(name, dclass, ttl, Collections.nCopies(1, string));
++	this(name, dclass, ttl, Collections.singletonList(string));
+ }
+ 
+ void

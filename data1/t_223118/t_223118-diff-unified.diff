@@ -1,0 +1,10 @@
+--- t_223118/left_TestBot_1.48.java	2013-03-17 15:47:12.000000000 +0100
++++ t_223118/right_TestBot_1.49.java	2013-03-17 15:47:12.000000000 +0100
+@@ -223,6 +223,7 @@
+                 }
+                 
+                 CEntity enemy = centities.get(en);
++                enemy.refresh();
+                 int[] modifiers = option.getModifiers(enemy.getEntity());
+                 if (modifiers[MoveOption.DEFENCE_MOD] == ToHitData.IMPOSSIBLE
+                     && modifiers[MoveOption.ATTACK_MOD] == ToHitData.IMPOSSIBLE) {

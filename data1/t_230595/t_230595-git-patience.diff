@@ -1,0 +1,12 @@
+diff --git a/t_230595/left_PropertyManager_1.2.java b/t_230595/right_PropertyManager_1.3.java
+index b8be508..57a1680 100644
+--- a/t_230595/left_PropertyManager_1.2.java
++++ b/t_230595/right_PropertyManager_1.3.java
+@@ -35,6 +35,7 @@ class PropertyManager
+ 		Iterator iter = plugins.iterator();
+ 		while(iter.hasNext())
+ 			total.putAll((Properties)iter.next());
++		total.putAll(site);
+ 		total.putAll(user);
+ 		return total;
+ 	} //}}}

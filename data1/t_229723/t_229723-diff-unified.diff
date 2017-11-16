@@ -1,0 +1,16 @@
+--- t_229723/left_CompleteWord_1.8.java	2013-03-17 15:47:02.000000000 +0100
++++ t_229723/right_CompleteWord_1.9.java	2013-03-17 15:47:02.000000000 +0100
+@@ -274,6 +274,13 @@
+ 		textArea.setSelectedText(words.getSelectedValue().toString()
+ 			.substring(word.length()));
+ 		dispose();
++		SwingUtilities.invokeLater(new Runnable()
++		{
++			public void run()
++			{
++				textArea.requestFocus();
++			}
++		});
+ 	} //}}}
+ 
+ 	//}}}

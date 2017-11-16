@@ -1,0 +1,17 @@
+--- t_214116/left_Modeller_1.134.java	2013-03-14 01:04:34.000000000 +0100
++++ t_214116/right_Modeller_1.135.java	2013-03-14 01:04:34.000000000 +0100
+@@ -1,4 +1,4 @@
+-// $Id: Modeller.java,v 1.134 2006-04-13 03:38:30 tfmorris Exp $
++// $Id: Modeller.java,v 1.135 2006-05-29 18:43:14 tfmorris Exp $
+ // Copyright (c) 2003-2005 The Regents of the University of California. All
+ // Rights Reserved. Permission to use, copy, modify, and distribute this
+ // software and its documentation without fee, and without a written
+@@ -1269,7 +1269,7 @@
+         // included in the profile that is being used. - tfm 20060224
+         throw new IllegalArgumentException("Could not find "
+ 					   + "a suitable stereotype for "
+-					   + me + " " + name + " "
++					   + me + " stereotype: <<" + name + ">> base: "
+ 					   + baseClass);
+     }
+ 

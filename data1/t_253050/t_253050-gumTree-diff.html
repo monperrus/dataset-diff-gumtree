@@ -1,0 +1,265 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_CodeSnippetReturnStatement_1.3.java</h1>
+<div class="code">
+<div class="id">
+package org.eclipse.jdt.internal.eval;<br/>
+<br/>
+/*<br/>
+ * (c) Copyright IBM Corp. 2000, 2001.<br/>
+ * All Rights Reserved.<br/>
+ */<br/>
+import org.eclipse.jdt.internal.compiler.ast.Expression;<br/>
+import org.eclipse.jdt.internal.compiler.ast.ReturnStatement;<br/>
+import org.eclipse.jdt.internal.compiler.codegen.*;<br/>
+import org.eclipse.jdt.internal.compiler.flow.*;<br/>
+import org.eclipse.jdt.internal.compiler.lookup.*;<br/>
+import org.eclipse.jdt.internal.compiler.impl.NullConstant;<br/>
+<br/>
+/**<br/>
+ * A return statement inside a code snippet. During the code gen,<br/>
+ * it uses a macro to set the result of the code snippet instead<br/>
+ * of returning it.<br/>
+ */<br/>
+public class CodeSnippetReturnStatement extends ReturnStatement implements InvocationSite, EvaluationConstants {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;MethodBinding setResultMethod;<br/>
+public CodeSnippetReturnStatement(Expression expr, int s, int e, EvaluationContext evaluationContext) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(expr, s, e);<br/>
+}<br/>
+/**<br/>
+ * Dump the suitable return bytecode for a return statement<br/>
+ *<br/>
+ */<br/>
+public void generateReturnBytecode(BlockScope currentScope, CodeStream codeStream) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// output the return bytecode<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;codeStream.return_();<br/>
+}<br/>
+public void generateStoreSaveValueIfNecessary(BlockScope currentScope, CodeStream codeStream){<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// push receiver<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;codeStream.aload_0();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// push the 2 parameters of "setResult(Object, Class)"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.expression == null || this.expressionType == VoidBinding) { // expressionType == VoidBinding if code snippet is the expression "System.out.println()"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// push null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.aconst_null();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// void.class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.generateClassLiteralAccessForType(VoidBinding, null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// swap with expression<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int valueTypeID = this.expressionType.id;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (valueTypeID == T_long || valueTypeID == T_double) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.dup_x2();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.swap();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// generate wrapper if needed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.expressionType.isBaseType()) { <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.generateObjectWrapperForType(this.expressionType);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// generate the expression type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.generateClassLiteralAccessForType(this.expressionType, null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// generate the invoke virtual to "setResult(Object,Class)"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;codeStream.invokevirtual(this.setResultMethod);<br/>
+}<br/>
+public boolean isSuperAccess() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+}<br/>
+public boolean isTypeAccess() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+}<br/>
+public boolean needValue(){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+public void prepareSaveValueLocation(BlockScope currentScope){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// do nothing: no storage is necessary for snippets<br/>
+}<br/>
+public void resolve(BlockScope scope) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.expression != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((this.expressionType = this.expression.resolveType(scope)) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TypeBinding javaLangClass = scope.getJavaLangClass();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!javaLangClass.isValidBinding()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scope.problemReporter().codeSnippetMissingClass("java.lang.Class"/*nonNLS*/, this.sourceStart, this.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TypeBinding javaLangObject = scope.getJavaLangObject();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!javaLangObject.isValidBinding()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scope.problemReporter().codeSnippetMissingClass("java.lang.Object"/*nonNLS*/, this.sourceStart, this.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TypeBinding[] argumentTypes = new TypeBinding[] {javaLangObject, javaLangClass};<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.setResultMethod = scope.getImplicitMethod(SETRESULT_SELECTOR, argumentTypes, this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!this.setResultMethod.isValidBinding()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scope.problemReporter().codeSnippetMissingMethod(ROOT_FULL_CLASS_NAME, new String(SETRESULT_SELECTOR), new String(SETRESULT_ARGUMENTS), this.sourceStart, this.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// in constant case, the implicit conversion cannot be left uninitialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.expression.constant != NotAConstant) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// fake 'no implicit conversion' (the return type is always void)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.expression.implicitConversion = this.expression.constant.typeID() &lt;&lt; 4;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+public void setDepth(int depth) {<br/>
+}<br/>
+public void setFieldIndex(int depth) {<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_CodeSnippetReturnStatement_1.4.java</h1>
+<div class="code">
+<div class="id">
+package org.eclipse.jdt.internal.eval;<br/>
+<br/>
+/*<br/>
+ * (c) Copyright IBM Corp. 2000, 2001.<br/>
+ * All Rights Reserved.<br/>
+ */<br/>
+import org.eclipse.jdt.internal.compiler.ast.Expression;<br/>
+import org.eclipse.jdt.internal.compiler.ast.ReturnStatement;<br/>
+import org.eclipse.jdt.internal.compiler.codegen.*;<br/>
+import org.eclipse.jdt.internal.compiler.flow.*;<br/>
+import org.eclipse.jdt.internal.compiler.lookup.*;<br/>
+import org.eclipse.jdt.internal.compiler.impl.NullConstant;<br/>
+<br/>
+/**<br/>
+ * A return statement inside a code snippet. During the code gen,<br/>
+ * it uses a macro to set the result of the code snippet instead<br/>
+ * of returning it.<br/>
+ */<br/>
+public class CodeSnippetReturnStatement extends ReturnStatement implements InvocationSite, EvaluationConstants {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;MethodBinding setResultMethod;<br/>
+public CodeSnippetReturnStatement(Expression expr, int s, int e, EvaluationContext evaluationContext) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(expr, s, e);<br/>
+}<br/>
+<br/>
+<span class="add"><span class="add">public</span> <span class="add"><span class="add">FlowInfo</span></span> <span class="add">analyseCode</span>(<span class="add"><span class="add"><span class="add">BlockScope</span></span> <span class="add">currentScope</span></span>, <span class="add"><span class="add"><span class="add">FlowContext</span></span> <span class="add">flowContext</span></span>, <span class="add"><span class="add"><span class="add">FlowInfo</span></span> <span class="add">flowInfo</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">flowInfo</span> = <span class="add">super.<span class="add">analyseCode</span>(<span class="add">currentScope</span>, <span class="add">flowContext</span>, <span class="add">flowInfo</span>)</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// clear the optimization bit which could have been positionned in super call<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add"><span class="add">expression</span>.<span class="add">bits</span></span> &amp;= <span class="add">~<span class="add">ValueForReturnMASK</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="add">flowInfo</span>;</span><br/>
+}</span></span><br/>
+/**<br/>
+ * Dump the suitable return bytecode for a return statement<br/>
+ *<br/>
+ */<br/>
+public void generateReturnBytecode(BlockScope currentScope, CodeStream codeStream) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// output the return bytecode<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;codeStream.return_();<br/>
+}<br/>
+public void generateStoreSaveValueIfNecessary(BlockScope currentScope, CodeStream codeStream){<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// push receiver<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;codeStream.aload_0();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// push the 2 parameters of "setResult(Object, Class)"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.expression == null || this.expressionType == VoidBinding) { // expressionType == VoidBinding if code snippet is the expression "System.out.println()"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// push null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.aconst_null();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// void.class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.generateClassLiteralAccessForType(VoidBinding, null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// swap with expression<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int valueTypeID = this.expressionType.id;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (valueTypeID == T_long || valueTypeID == T_double) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.dup_x2();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.swap();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// generate wrapper if needed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.expressionType.isBaseType()) { <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.generateObjectWrapperForType(this.expressionType);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// generate the expression type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codeStream.generateClassLiteralAccessForType(this.expressionType, null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// generate the invoke virtual to "setResult(Object,Class)"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;codeStream.invokevirtual(this.setResultMethod);<br/>
+}<br/>
+public boolean isSuperAccess() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+}<br/>
+public boolean isTypeAccess() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+}<br/>
+public boolean needValue(){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+public void prepareSaveValueLocation(BlockScope currentScope){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// do nothing: no storage is necessary for snippets<br/>
+}<br/>
+public void resolve(BlockScope scope) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.expression != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((this.expressionType = this.expression.resolveType(scope)) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TypeBinding javaLangClass = scope.getJavaLangClass();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!javaLangClass.isValidBinding()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scope.problemReporter().codeSnippetMissingClass("java.lang.Class"/*nonNLS*/, this.sourceStart, this.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TypeBinding javaLangObject = scope.getJavaLangObject();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!javaLangObject.isValidBinding()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scope.problemReporter().codeSnippetMissingClass("java.lang.Object"/*nonNLS*/, this.sourceStart, this.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TypeBinding[] argumentTypes = new TypeBinding[] {javaLangObject, javaLangClass};<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.setResultMethod = scope.getImplicitMethod(SETRESULT_SELECTOR, argumentTypes, this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!this.setResultMethod.isValidBinding()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scope.problemReporter().codeSnippetMissingMethod(ROOT_FULL_CLASS_NAME, new String(SETRESULT_SELECTOR), new String(SETRESULT_ARGUMENTS), this.sourceStart, this.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// in constant case, the implicit conversion cannot be left uninitialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.expression.constant != NotAConstant) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// fake 'no implicit conversion' (the return type is always void)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.expression.implicitConversion = this.expression.constant.typeID() &lt;&lt; 4;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+public void setDepth(int depth) {<br/>
+}<br/>
+public void setFieldIndex(int depth) {<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

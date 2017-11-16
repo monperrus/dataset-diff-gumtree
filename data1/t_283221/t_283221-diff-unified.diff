@@ -1,0 +1,11 @@
+--- t_283221/left_Hierarchy_1.32.java	2013-03-17 15:47:06.000000000 +0100
++++ t_283221/right_Hierarchy_1.33.java	2013-03-17 15:47:06.000000000 +0100
+@@ -122,7 +122,7 @@
+   public 
+   void emitNoAppenderWarning(Category cat) {
+     // No appenders in hierarchy, warn user only once.
+-    if(this.emittedNoAppenderWarning) {
++    if(!this.emittedNoAppenderWarning) {
+       LogLog.error("No appenders could be found for logger (" +
+ 		   cat.getName() + ").");
+       LogLog.error("Please initialize the log4j system properly.");

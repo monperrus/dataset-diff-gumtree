@@ -1,0 +1,10 @@
+--- t_246219/left_Client_1.3.java	2013-03-17 15:47:00.000000000 +0100
++++ t_246219/right_Client_1.4.java	2013-03-17 15:47:00.000000000 +0100
+@@ -17,6 +17,7 @@
+ Client(SelectableChannel channel, long endTime) throws IOException {
+ 	boolean done = false;
+ 	Selector selector = null;
++	this.endTime = endTime;
+ 	try {
+ 		selector = Selector.open();
+ 		channel.configureBlocking(false);

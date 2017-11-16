@@ -1,0 +1,440 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_FieldInfos_1.9.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.index;<br/>
+<br/>
+/**<br/>
+ * Copyright 2004 The Apache Software Foundation<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *     http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+import java.util.*;<br/>
+import java.io.IOException;<br/>
+<br/>
+import org.apache.lucene.document.Document;<br/>
+import org.apache.lucene.document.Field;<br/>
+<br/>
+import org.apache.lucene.store.Directory;<br/>
+import org.apache.lucene.store.OutputStream;<br/>
+import org.apache.lucene.store.InputStream;<br/>
+<br/>
+/** Access to the Field Info file that describes document fields and whether or<br/>
+ *  not they are indexed. Each segment has a separate Field Info file. Objects<br/>
+ *  of this class are thread-safe for multiple readers, but only one thread can<br/>
+ *  be adding documents at a time, with no other reader or writer threads<br/>
+ *  accessing this object.<br/>
+ */<br/>
+final class FieldInfos {<br/>
+  private ArrayList byNumber = new ArrayList();<br/>
+  private HashMap byName = new HashMap();<br/>
+<br/>
+  FieldInfos() {<br/>
+    add("", false);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Construct a FieldInfos object using the directory and the name of the file<br/>
+   * InputStream<br/>
+   * @param d The directory to open the InputStream from<br/>
+   * @param name The name of the file to open the InputStream from in the Directory<br/>
+   * @throws IOException<br/>
+   */<br/>
+  FieldInfos(Directory d, String name) throws IOException {<br/>
+    InputStream input = d.openFile(name);<br/>
+    try {<br/>
+      read(input);<br/>
+    } finally {<br/>
+      input.close();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Adds field info for a Document. */<br/>
+  public void add(Document doc) {<br/>
+    Enumeration fields = doc.fields();<br/>
+    while (fields.hasMoreElements()) {<br/>
+      Field field = (Field) fields.nextElement();<br/>
+      add(field.name(), field.isIndexed(), field.isTermVectorStored());<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * @param names The names of the fields<br/>
+   * @param storeTermVectors Whether the fields store term vectors or not<br/>
+   */<br/>
+  public void addIndexed(Collection names, boolean storeTermVectors) {<br/>
+    Iterator i = names.iterator();<br/>
+    while (i.hasNext()) {<br/>
+      add((String)i.next(), true, storeTermVectors);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Assumes the field is not storing term vectors <br/>
+   * @param names The names of the fields<br/>
+   * @param isIndexed Whether the fields are indexed or not<br/>
+   * <br/>
+   * @see #add(String, boolean)<br/>
+   */<br/>
+  public void add(Collection names, boolean isIndexed) {<br/>
+    Iterator i = names.iterator();<br/>
+    while (i.hasNext()) {<br/>
+      add((String)i.next(), isIndexed);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Calls three parameter add with false for the storeTermVector parameter <br/>
+   * @param name The name of the Field<br/>
+   * @param isIndexed true if the field is indexed<br/>
+   * @see #add(String, boolean, boolean)<br/>
+   */<br/>
+  public void add(String name, boolean isIndexed) {<br/>
+    add(name, isIndexed, false);<br/>
+  }<br/>
+<br/>
+<br/>
+  /** If the field is not yet known, adds it. If it is known, checks to make<br/>
+   *  sure that the isIndexed flag is the same as was given previously for this<br/>
+   *  field. If not - marks it as being indexed.  Same goes for storeTermVector<br/>
+   * <br/>
+   * @param name The name of the field<br/>
+   * @param isIndexed true if the field is indexed<br/>
+   * @param storeTermVector true if the term vector should be stored<br/>
+   */<br/>
+  public void add(String name, boolean isIndexed, boolean storeTermVector) {<br/>
+    FieldInfo fi = fieldInfo(name);<br/>
+    if (fi == null) {<br/>
+      addInternal(name, isIndexed, storeTermVector);<br/>
+    } else {<br/>
+      if (fi.isIndexed != isIndexed) {<br/>
+        fi.isIndexed = true;                      // once indexed, always index<br/>
+      }<br/>
+      if (fi.storeTermVector != storeTermVector) {<br/>
+        fi.storeTermVector = true;                // once vector, always vector<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private void addInternal(String name, boolean isIndexed,<br/>
+                           boolean storeTermVector) {<br/>
+    FieldInfo fi =<br/>
+      new FieldInfo(name, isIndexed, byNumber.size(), storeTermVector);<br/>
+    byNumber.add(fi);<br/>
+    byName.put(name, fi);<br/>
+  }<br/>
+<br/>
+  public int fieldNumber(String fieldName) {<br/>
+    FieldInfo fi = fieldInfo(fieldName);<br/>
+    if (fi != null)<br/>
+      return fi.number;<br/>
+    else<br/>
+      return -1;<br/>
+  }<br/>
+<br/>
+  public FieldInfo fieldInfo(String fieldName) {<br/>
+    return (FieldInfo) byName.get(fieldName);<br/>
+  }<br/>
+<br/>
+  public String fieldName(int fieldNumber) {<br/>
+    return fieldInfo(fieldNumber).name;<br/>
+  }<br/>
+<br/>
+  public FieldInfo fieldInfo(int fieldNumber) {<br/>
+    return (FieldInfo) byNumber.get(fieldNumber);<br/>
+  }<br/>
+<br/>
+  public int size() {<br/>
+    return byNumber.size();<br/>
+  }<br/>
+<br/>
+  public boolean hasVectors() <span class="mv">{<br/>
+    <span class="mv">boolean hasVectors = false;</span><br/>
+    <span class="mv">for (int i = 0; i &lt; size(); i++) <span class="mv">{<br/>
+      <span class="mv">if (fieldInfo(i).storeTermVector)<br/>
+        <span class="mv">hasVectors = true;</span></span><br/>
+    }</span></span><br/>
+    <span class="mv">return hasVectors;</span><br/>
+  }</span><br/>
+<br/>
+  public void write(Directory d, String name) throws IOException {<br/>
+    OutputStream output = d.createFile(name);<br/>
+    try {<br/>
+      write(output);<br/>
+    } finally {<br/>
+      output.close();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  public void write(OutputStream output) throws IOException {<br/>
+    output.writeVInt(size());<br/>
+    for (int i = 0; i &lt; size(); i++) {<br/>
+      FieldInfo fi = fieldInfo(i);<br/>
+      byte bits = 0x0;<br/>
+      if (fi.isIndexed) bits |= 0x1;<br/>
+      if (fi.storeTermVector) bits |= 0x2;<br/>
+      output.writeString(fi.name);<br/>
+      //Was REMOVE<br/>
+      //output.writeByte((byte)(fi.isIndexed ? 1 : 0));<br/>
+      output.writeByte(bits);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private void read(InputStream input) throws IOException {<br/>
+    int size = input.readVInt();//read in the size<br/>
+    for (int i = 0; i &lt; size; i++) {<br/>
+      String name = input.readString().intern();<br/>
+      byte bits = input.readByte();<br/>
+      boolean isIndexed = (bits &amp; 0x1) != 0;<br/>
+      boolean storeTermVector = (bits &amp; 0x2) != 0;<br/>
+      addInternal(name, isIndexed, storeTermVector);<br/>
+    }    <br/>
+  }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_FieldInfos_1.10.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.index;<br/>
+<br/>
+/**<br/>
+ * Copyright 2004 The Apache Software Foundation<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *     http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+import java.util.*;<br/>
+import java.io.IOException;<br/>
+<br/>
+import org.apache.lucene.document.Document;<br/>
+import org.apache.lucene.document.Field;<br/>
+<br/>
+import org.apache.lucene.store.Directory;<br/>
+import org.apache.lucene.store.OutputStream;<br/>
+import org.apache.lucene.store.InputStream;<br/>
+<br/>
+/** Access to the Field Info file that describes document fields and whether or<br/>
+ *  not they are indexed. Each segment has a separate Field Info file. Objects<br/>
+ *  of this class are thread-safe for multiple readers, but only one thread can<br/>
+ *  be adding documents at a time, with no other reader or writer threads<br/>
+ *  accessing this object.<br/>
+ */<br/>
+final class FieldInfos {<br/>
+  private ArrayList byNumber = new ArrayList();<br/>
+  private HashMap byName = new HashMap();<br/>
+<br/>
+  FieldInfos() {<br/>
+    add("", false);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Construct a FieldInfos object using the directory and the name of the file<br/>
+   * InputStream<br/>
+   * @param d The directory to open the InputStream from<br/>
+   * @param name The name of the file to open the InputStream from in the Directory<br/>
+   * @throws IOException<br/>
+   */<br/>
+  FieldInfos(Directory d, String name) throws IOException {<br/>
+    InputStream input = d.openFile(name);<br/>
+    try {<br/>
+      read(input);<br/>
+    } finally {<br/>
+      input.close();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Adds field info for a Document. */<br/>
+  public void add(Document doc) {<br/>
+    Enumeration fields = doc.fields();<br/>
+    while (fields.hasMoreElements()) {<br/>
+      Field field = (Field) fields.nextElement();<br/>
+      add(field.name(), field.isIndexed(), field.isTermVectorStored());<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * @param names The names of the fields<br/>
+   * @param storeTermVectors Whether the fields store term vectors or not<br/>
+   */<br/>
+  public void addIndexed(Collection names, boolean storeTermVectors) {<br/>
+    Iterator i = names.iterator();<br/>
+    while (i.hasNext()) {<br/>
+      add((String)i.next(), true, storeTermVectors);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Assumes the field is not storing term vectors <br/>
+   * @param names The names of the fields<br/>
+   * @param isIndexed Whether the fields are indexed or not<br/>
+   * <br/>
+   * @see #add(String, boolean)<br/>
+   */<br/>
+  public void add(Collection names, boolean isIndexed) {<br/>
+    Iterator i = names.iterator();<br/>
+    while (i.hasNext()) {<br/>
+      add((String)i.next(), isIndexed);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Calls three parameter add with false for the storeTermVector parameter <br/>
+   * @param name The name of the Field<br/>
+   * @param isIndexed true if the field is indexed<br/>
+   * @see #add(String, boolean, boolean)<br/>
+   */<br/>
+  public void add(String name, boolean isIndexed) {<br/>
+    add(name, isIndexed, false);<br/>
+  }<br/>
+<br/>
+<br/>
+  /** If the field is not yet known, adds it. If it is known, checks to make<br/>
+   *  sure that the isIndexed flag is the same as was given previously for this<br/>
+   *  field. If not - marks it as being indexed.  Same goes for storeTermVector<br/>
+   * <br/>
+   * @param name The name of the field<br/>
+   * @param isIndexed true if the field is indexed<br/>
+   * @param storeTermVector true if the term vector should be stored<br/>
+   */<br/>
+  public void add(String name, boolean isIndexed, boolean storeTermVector) {<br/>
+    FieldInfo fi = fieldInfo(name);<br/>
+    if (fi == null) {<br/>
+      addInternal(name, isIndexed, storeTermVector);<br/>
+    } else {<br/>
+      if (fi.isIndexed != isIndexed) {<br/>
+        fi.isIndexed = true;                      // once indexed, always index<br/>
+      }<br/>
+      if (fi.storeTermVector != storeTermVector) {<br/>
+        fi.storeTermVector = true;                // once vector, always vector<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private void addInternal(String name, boolean isIndexed,<br/>
+                           boolean storeTermVector) {<br/>
+    FieldInfo fi =<br/>
+      new FieldInfo(name, isIndexed, byNumber.size(), storeTermVector);<br/>
+    byNumber.add(fi);<br/>
+    byName.put(name, fi);<br/>
+  }<br/>
+<br/>
+  public int fieldNumber(String fieldName) {<br/>
+    FieldInfo fi = fieldInfo(fieldName);<br/>
+    if (fi != null)<br/>
+      return fi.number;<br/>
+    else<br/>
+      return -1;<br/>
+  }<br/>
+<br/>
+  public FieldInfo fieldInfo(String fieldName) {<br/>
+    return (FieldInfo) byName.get(fieldName);<br/>
+  }<br/>
+<br/>
+  public String fieldName(int fieldNumber) {<br/>
+    return fieldInfo(fieldNumber).name;<br/>
+  }<br/>
+<br/>
+  public FieldInfo fieldInfo(int fieldNumber) {<br/>
+    return (FieldInfo) byNumber.get(fieldNumber);<br/>
+  }<br/>
+<br/>
+  public int size() {<br/>
+    return byNumber.size();<br/>
+  }<br/>
+<br/>
+  public boolean hasVectors() <span class="add">{<br/>
+    <span class="mv">boolean hasVectors = false;</span><br/>
+    <span class="mv">for (int i = 0; i &lt; size(); i++) <span class="mv">{<br/>
+      <span class="mv">if (fieldInfo(i).storeTermVector) <span class="mv">{<br/>
+        <span class="mv">hasVectors = true;</span><br/>
+        <span class="add">break;</span><br/>
+      }</span></span><br/>
+    }</span></span><br/>
+    <span class="mv">return hasVectors;</span><br/>
+  }</span><br/>
+<br/>
+  public void write(Directory d, String name) throws IOException {<br/>
+    OutputStream output = d.createFile(name);<br/>
+    try {<br/>
+      write(output);<br/>
+    } finally {<br/>
+      output.close();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  public void write(OutputStream output) throws IOException {<br/>
+    output.writeVInt(size());<br/>
+    for (int i = 0; i &lt; size(); i++) {<br/>
+      FieldInfo fi = fieldInfo(i);<br/>
+      byte bits = 0x0;<br/>
+      if (fi.isIndexed) bits |= 0x1;<br/>
+      if (fi.storeTermVector) bits |= 0x2;<br/>
+      output.writeString(fi.name);<br/>
+      //Was REMOVE<br/>
+      //output.writeByte((byte)(fi.isIndexed ? 1 : 0));<br/>
+      output.writeByte(bits);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private void read(InputStream input) throws IOException {<br/>
+    int size = input.readVInt();//read in the size<br/>
+    for (int i = 0; i &lt; size; i++) {<br/>
+      String name = input.readString().intern();<br/>
+      byte bits = input.readByte();<br/>
+      boolean isIndexed = (bits &amp; 0x1) != 0;<br/>
+      boolean storeTermVector = (bits &amp; 0x2) != 0;<br/>
+      addInternal(name, isIndexed, storeTermVector);<br/>
+    }    <br/>
+  }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

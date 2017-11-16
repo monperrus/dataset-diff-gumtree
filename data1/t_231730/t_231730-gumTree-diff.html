@@ -1,0 +1,444 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Main_1.41.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.core.main;<br/>
+<br/>
+import java.awt.Event;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.KeyEvent;<br/>
+import java.io.PrintWriter;<br/>
+import java.net.Socket;<br/>
+<br/>
+import javax.swing.AbstractAction;<br/>
+import javax.swing.Action;<br/>
+import javax.swing.KeyStroke;<br/>
+import javax.swing.text.JTextComponent;<br/>
+import javax.swing.text.Keymap;<br/>
+<br/>
+import org.columba.addressbook.main.AddressbookMain;<br/>
+import org.columba.core.action.ActionPluginHandler;<br/>
+import org.columba.core.command.DefaultProcessor;<br/>
+import org.columba.core.config.Config;<br/>
+import org.columba.core.gui.ClipboardManager;<br/>
+import org.columba.core.gui.frame.FrameModel;<br/>
+import org.columba.core.gui.menu.MenuPluginHandler;<br/>
+import org.columba.core.gui.themes.ThemeSwitcher;<br/>
+import org.columba.core.gui.util.ImageLoader;<br/>
+import org.columba.core.gui.util.StartUpFrame;<br/>
+import org.columba.core.logging.ColumbaLogger;<br/>
+import org.columba.core.plugin.FramePluginHandler;<br/>
+import org.columba.core.plugin.InterpreterHandler;<br/>
+import org.columba.core.plugin.PluginManager;<br/>
+import org.columba.core.shutdown.SaveConfigPlugin;<br/>
+import org.columba.core.shutdown.ShutdownManager;<br/>
+import org.columba.mail.config.MailConfig;<br/>
+import org.columba.mail.gui.config.accountwizard.AccountWizard;<br/>
+import org.columba.mail.main.MailMain;<br/>
+<br/>
+public class Main {<br/>
+  private static ColumbaLoader columbaLoader;<br/>
+<br/>
+  public static void loadInVMInstance(String[] arguments) {<br/>
+    try {<br/>
+      Socket clientSocket = new Socket("127.0.0.1", ColumbaLoader.COLUMBA_PORT);<br/>
+<br/>
+      PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());<br/>
+<br/>
+      StringBuffer buf = new StringBuffer();<br/>
+      buf.append("columba:");<br/>
+      for (int i = 0; i &lt; arguments.length; i++) {<br/>
+        buf.append(arguments[i]);<br/>
+        buf.append("%");<br/>
+      }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  if ( MainInterface.DEBUG )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;ColumbaLogger.log.debug("trying to pass arguments to a running Columba session:\n"+buf.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  <br/>
+      writer.write(buf.toString());<br/>
+      writer.flush();<br/>
+      writer.close();<br/>
+<br/>
+      clientSocket.close();<br/>
+<br/>
+      System.exit(5);<br/>
+<br/>
+    } catch (Exception ex) { // we get a java.net.ConnectException: Connection refused<br/>
+      //  -&gt; this means that no server is running<br/>
+      //      -&gt; lets start one<br/>
+      columbaLoader = new ColumbaLoader();<br/>
+    }<br/>
+<br/>
+  }<br/>
+<br/>
+  public static void main(String[] args) {<br/>
+    ColumbaCmdLineParser cmdLineParser = new ColumbaCmdLineParser();<br/>
+    cmdLineParser.initCmdLine(args);<br/>
+<br/>
+    MainInterface.DEBUG = cmdLineParser.isDebugOption();<br/>
+    // the configPath settings are made in the commandlineParser @see ColumbaCmdLineParser  <br/>
+<br/>
+    loadInVMInstance(args);<br/>
+<br/>
+    final StartUpFrame frame = new StartUpFrame();<br/>
+    frame.setVisible(true);<br/>
+<br/>
+    // enable logging <br/>
+    new ColumbaLogger();<br/>
+<br/>
+    new Config();<br/>
+<br/>
+    AddressbookMain addressbook = new AddressbookMain();<br/>
+    addressbook.initConfiguration();<br/>
+<br/>
+    MailMain mail = new MailMain();<br/>
+    mail.initConfiguration();<br/>
+<br/>
+    Config.init();<br/>
+<br/>
+    ThemeSwitcher.setTheme();<br/>
+<br/>
+    doGuiInits();<br/>
+<br/>
+    MainInterface.clipboardManager = new ClipboardManager();<br/>
+<br/>
+    //new ImageLoader();<br/>
+<br/>
+    MainInterface.processor = new DefaultProcessor();<br/>
+    MainInterface.processor.start();<br/>
+<br/>
+    MainInterface.pluginManager = new PluginManager();<br/>
+    MainInterface.pluginManager.registerHandler(new InterpreterHandler());<br/>
+<br/>
+    MainInterface.pluginManager.registerHandler(new ActionPluginHandler());<br/>
+<br/>
+    MainInterface.pluginManager.registerHandler(new MenuPluginHandler("org.columba.core.menu"));<br/>
+<br/>
+    MainInterface.pluginManager.registerHandler(new FramePluginHandler());<br/>
+<br/>
+    MainInterface.shutdownManager = new ShutdownManager();<br/>
+<br/>
+    MainInterface.shutdownManager.register(new SaveConfigPlugin());<br/>
+<br/>
+    addressbook.initPlugins();<br/>
+    mail.initPlugins();<br/>
+<br/>
+    MainInterface.pluginManager.initPlugins();<br/>
+<br/>
+    frame.advance();<br/>
+<br/>
+    //MainInterface.frameModelManager = new FrameModelManager();<br/>
+<br/>
+    addressbook.initGui();<br/>
+<br/>
+    frame.advance();<br/>
+<br/>
+    mail.initGui();<br/>
+<br/>
+    new FrameModel();<br/>
+<br/>
+    if (MailConfig.getAccountList().count() == 0) {<br/>
+      try {<br/>
+<br/>
+        new AccountWizard(false);<br/>
+<br/>
+      } catch (Exception ex) {<br/>
+        ex.printStackTrace();<br/>
+      }<br/>
+<br/>
+    }<br/>
+    <br/>
+    new CmdLineArgumentHandler(args);<br/>
+<br/>
+    <span class="mv">frame.setVisible(false);</span><br/>
+<br/>
+  } // main<br/>
+<br/>
+  private static void doGuiInits() {<br/>
+    Keymap keymap;<br/>
+    Action action;<br/>
+    KeyStroke keystroke;<br/>
+<br/>
+    /// CHANGES TO GLOBAL JTextComponent<br/>
+    keymap = JTextComponent.getKeymap(JTextComponent.DEFAULT_KEYMAP);<br/>
+<br/>
+    // add "CTRL-INS" to "clipboard copy" functionality<br/>
+    action = new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        ((JTextComponent) e.getSource()).copy();<br/>
+      }<br/>
+    };<br/>
+    keystroke = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, Event.CTRL_MASK);<br/>
+    keymap.addActionForKeyStroke(keystroke, action);<br/>
+<br/>
+    // add "SHIFT-DEL" to "clipboard cut" functionality<br/>
+    action = new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        ((JTextComponent) e.getSource()).cut();<br/>
+      }<br/>
+    };<br/>
+    keystroke = KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, Event.SHIFT_MASK);<br/>
+    keymap.addActionForKeyStroke(keystroke, action);<br/>
+<br/>
+    // add "SHIFT-INS" to "clipboard paste" functionality<br/>
+    action = new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        ((JTextComponent) e.getSource()).paste();<br/>
+      }<br/>
+    };<br/>
+    keystroke = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, Event.SHIFT_MASK);<br/>
+    keymap.addActionForKeyStroke(keystroke, action);<br/>
+<br/>
+  } // doGuiInits<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Main_1.42.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.core.main;<br/>
+<br/>
+import java.awt.Event;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.KeyEvent;<br/>
+import java.io.PrintWriter;<br/>
+import java.net.Socket;<br/>
+<br/>
+import javax.swing.AbstractAction;<br/>
+import javax.swing.Action;<br/>
+import javax.swing.KeyStroke;<br/>
+import javax.swing.text.JTextComponent;<br/>
+import javax.swing.text.Keymap;<br/>
+<br/>
+import org.columba.addressbook.main.AddressbookMain;<br/>
+import org.columba.core.action.ActionPluginHandler;<br/>
+import org.columba.core.command.DefaultProcessor;<br/>
+import org.columba.core.config.Config;<br/>
+import org.columba.core.gui.ClipboardManager;<br/>
+import org.columba.core.gui.frame.FrameModel;<br/>
+import org.columba.core.gui.menu.MenuPluginHandler;<br/>
+import org.columba.core.gui.themes.ThemeSwitcher;<br/>
+import org.columba.core.gui.util.ImageLoader;<br/>
+import org.columba.core.gui.util.StartUpFrame;<br/>
+import org.columba.core.logging.ColumbaLogger;<br/>
+import org.columba.core.plugin.FramePluginHandler;<br/>
+import org.columba.core.plugin.InterpreterHandler;<br/>
+import org.columba.core.plugin.PluginManager;<br/>
+import org.columba.core.shutdown.SaveConfigPlugin;<br/>
+import org.columba.core.shutdown.ShutdownManager;<br/>
+import org.columba.mail.config.MailConfig;<br/>
+import org.columba.mail.gui.config.accountwizard.AccountWizard;<br/>
+import org.columba.mail.main.MailMain;<br/>
+<br/>
+public class Main {<br/>
+  private static ColumbaLoader columbaLoader;<br/>
+<br/>
+  public static void loadInVMInstance(String[] arguments) {<br/>
+    try {<br/>
+      Socket clientSocket = new Socket("127.0.0.1", ColumbaLoader.COLUMBA_PORT);<br/>
+<br/>
+      PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());<br/>
+<br/>
+      StringBuffer buf = new StringBuffer();<br/>
+      buf.append("columba:");<br/>
+      for (int i = 0; i &lt; arguments.length; i++) {<br/>
+        buf.append(arguments[i]);<br/>
+        buf.append("%");<br/>
+      }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  if ( MainInterface.DEBUG )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;ColumbaLogger.log.debug("trying to pass arguments to a running Columba session:\n"+buf.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  <br/>
+      writer.write(buf.toString());<br/>
+      writer.flush();<br/>
+      writer.close();<br/>
+<br/>
+      clientSocket.close();<br/>
+<br/>
+      System.exit(5);<br/>
+<br/>
+    } catch (Exception ex) { // we get a java.net.ConnectException: Connection refused<br/>
+      //  -&gt; this means that no server is running<br/>
+      //      -&gt; lets start one<br/>
+      columbaLoader = new ColumbaLoader();<br/>
+    }<br/>
+<br/>
+  }<br/>
+<br/>
+  public static void main(String[] args) {<br/>
+    ColumbaCmdLineParser cmdLineParser = new ColumbaCmdLineParser();<br/>
+    cmdLineParser.initCmdLine(args);<br/>
+<br/>
+    MainInterface.DEBUG = cmdLineParser.isDebugOption();<br/>
+    // the configPath settings are made in the commandlineParser @see ColumbaCmdLineParser  <br/>
+<br/>
+    loadInVMInstance(args);<br/>
+<br/>
+    final StartUpFrame frame = new StartUpFrame();<br/>
+    frame.setVisible(true);<br/>
+<br/>
+    // enable logging <br/>
+    new ColumbaLogger();<br/>
+<br/>
+    new Config();<br/>
+<br/>
+    AddressbookMain addressbook = new AddressbookMain();<br/>
+    addressbook.initConfiguration();<br/>
+<br/>
+    MailMain mail = new MailMain();<br/>
+    mail.initConfiguration();<br/>
+<br/>
+    Config.init();<br/>
+<br/>
+    ThemeSwitcher.setTheme();<br/>
+<br/>
+    doGuiInits();<br/>
+<br/>
+    MainInterface.clipboardManager = new ClipboardManager();<br/>
+<br/>
+    MainInterface.processor = new DefaultProcessor();<br/>
+    MainInterface.processor.start();<br/>
+<br/>
+    MainInterface.pluginManager = new PluginManager();<br/>
+    MainInterface.pluginManager.registerHandler(new InterpreterHandler());<br/>
+<br/>
+    MainInterface.pluginManager.registerHandler(new ActionPluginHandler());<br/>
+<br/>
+    MainInterface.pluginManager.registerHandler(new MenuPluginHandler("org.columba.core.menu"));<br/>
+<br/>
+    MainInterface.pluginManager.registerHandler(new FramePluginHandler());<br/>
+<br/>
+    MainInterface.shutdownManager = new ShutdownManager();<br/>
+<br/>
+    MainInterface.shutdownManager.register(new SaveConfigPlugin());<br/>
+<br/>
+    addressbook.initPlugins();<br/>
+    mail.initPlugins();<br/>
+<br/>
+    MainInterface.pluginManager.initPlugins();<br/>
+<br/>
+    frame.advance();<br/>
+<br/>
+    //MainInterface.frameModelManager = new FrameModelManager();<br/>
+<br/>
+    addressbook.initGui();<br/>
+<br/>
+    frame.advance();<br/>
+<br/>
+    mail.initGui();<br/>
+<br/>
+    new FrameModel();<br/>
+<br/>
+    <span class="mv">frame.setVisible(false);</span><br/>
+<br/>
+    if (MailConfig.getAccountList().count() == 0) {<br/>
+      try {<br/>
+<br/>
+        new AccountWizard(false);<br/>
+<br/>
+      } catch (Exception ex) {<br/>
+        ex.printStackTrace();<br/>
+      }<br/>
+<br/>
+    }<br/>
+    <br/>
+    new CmdLineArgumentHandler(args);<br/>
+<br/>
+  } // main<br/>
+<br/>
+  private static void doGuiInits() {<br/>
+    Keymap keymap;<br/>
+    Action action;<br/>
+    KeyStroke keystroke;<br/>
+<br/>
+    /// CHANGES TO GLOBAL JTextComponent<br/>
+    keymap = JTextComponent.getKeymap(JTextComponent.DEFAULT_KEYMAP);<br/>
+<br/>
+    // add "CTRL-INS" to "clipboard copy" functionality<br/>
+    action = new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        ((JTextComponent) e.getSource()).copy();<br/>
+      }<br/>
+    };<br/>
+    keystroke = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, Event.CTRL_MASK);<br/>
+    keymap.addActionForKeyStroke(keystroke, action);<br/>
+<br/>
+    // add "SHIFT-DEL" to "clipboard cut" functionality<br/>
+    action = new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        ((JTextComponent) e.getSource()).cut();<br/>
+      }<br/>
+    };<br/>
+    keystroke = KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, Event.SHIFT_MASK);<br/>
+    keymap.addActionForKeyStroke(keystroke, action);<br/>
+<br/>
+    // add "SHIFT-INS" to "clipboard paste" functionality<br/>
+    action = new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        ((JTextComponent) e.getSource()).paste();<br/>
+      }<br/>
+    };<br/>
+    keystroke = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, Event.SHIFT_MASK);<br/>
+    keymap.addActionForKeyStroke(keystroke, action);<br/>
+<br/>
+  } // doGuiInits<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

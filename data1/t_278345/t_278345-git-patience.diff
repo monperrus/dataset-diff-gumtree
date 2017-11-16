@@ -1,0 +1,24 @@
+diff --git a/t_278345/left_PageContextImpl_1.5.java b/t_278345/right_PageContextImpl_1.6.java
+index 6125944..55e2a21 100644
+--- a/t_278345/left_PageContextImpl_1.5.java
++++ b/t_278345/right_PageContextImpl_1.6.java
+@@ -1,7 +1,7 @@
+ /*
+- * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/tomcat-cvs/src/share/org/apache/jasper/runtime/PageContextImpl.java,v 1.5 1999-12-08 23:48:06 bergsten Exp $
+- * $Revision: 1.5 $
+- * $Date: 1999-12-08 23:48:06 $
++ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/tomcat-cvs/src/share/org/apache/jasper/runtime/PageContextImpl.java,v 1.6 2000-02-04 01:22:12 mandar Exp $
++ * $Revision: 1.6 $
++ * $Date: 2000-02-04 01:22:12 $
+  *
+  * ====================================================================
+  *
+@@ -239,7 +239,7 @@ public class PageContextImpl extends PageContext {
+ 		if (session == null)
+ 		    throw new IllegalArgumentException("can't access SESSION_SCOPE without an HttpSession");
+ 		else
+-                    session.setAttribute(name, null);
++                    session.removeAttribute(name);
+                 // was:
+                 //		    session.removeValue(name);
+                 // REVISIT Verify this is correct - akv

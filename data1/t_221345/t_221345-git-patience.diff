@@ -1,0 +1,13 @@
+diff --git a/t_221345/left_Server_1.187.java b/t_221345/right_Server_1.188.java
+index 207f121..4df0576 100644
+--- a/t_221345/left_Server_1.187.java
++++ b/t_221345/right_Server_1.188.java
+@@ -1743,7 +1743,7 @@ implements Runnable {
+ 					// destroyed target's player?
+ 					if ( targetOwnerId == ( (GameTurn)turns.elementAt(loop) ).getPlayerNum() ) {
+ 					    // Yup. Remove the turn and stop looping.
+-					    turns.removeElement( loop );
++					    turns.removeElementAt( loop );
+ 					    break;
+ 					}
+ 				    } // Check the next turn

@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_EJBSecurityManagerDefaultImpl_1.1.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * jBoss, the OpenSource EJB server<br/>
+ *<br/>
+ * Distributable under GPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+ <br/>
+package org.jboss.security;<br/>
+<br/>
+import java.io.File;<br/>
+import java.net.URL;<br/>
+import java.rmi.server.UnicastRemoteObject;<br/>
+import java.rmi.RemoteException;<br/>
+import java.rmi.ServerException;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Iterator;<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import java.security.Principal;<br/>
+<br/>
+import javax.naming.InitialContext;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import javax.management.MBeanServer;<br/>
+import javax.management.ObjectName;<br/>
+<br/>
+import javax.transaction.TransactionManager;<br/>
+<br/>
+import org.jboss.logging.Log;<br/>
+import org.jboss.util.ServiceMBeanSupport;<br/>
+<br/>
+import org.jboss.system.EJBSecurityManager;<br/>
+<br/>
+/**<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;  The EJBSecurityManager is responsible for validating credentials<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;  associated with principals. Right now it is a "demo" that just<br/>
+ *    ensures name == credential<br/>
+ *      <br/>
+ *   @see EJBSecurityManager<br/>
+ *   @author Daniel O'Connor docodan@nycap.rr.com<br/>
+ */<br/>
+public class EJBSecurityManagerDefaultImpl implements EJBSecurityManager<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isValid( Principal principal, Object credential )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return <span class="mv">principal.getName().equals( credential.toString() )</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_EJBSecurityManagerDefaultImpl_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * jBoss, the OpenSource EJB server<br/>
+ *<br/>
+ * Distributable under GPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+ <br/>
+package org.jboss.security;<br/>
+<br/>
+import java.io.File;<br/>
+import java.net.URL;<br/>
+import java.rmi.server.UnicastRemoteObject;<br/>
+import java.rmi.RemoteException;<br/>
+import java.rmi.ServerException;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Iterator;<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import java.security.Principal;<br/>
+<br/>
+import javax.naming.InitialContext;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import javax.management.MBeanServer;<br/>
+import javax.management.ObjectName;<br/>
+<br/>
+import javax.transaction.TransactionManager;<br/>
+<br/>
+import org.jboss.logging.Log;<br/>
+import org.jboss.util.ServiceMBeanSupport;<br/>
+<br/>
+import org.jboss.system.EJBSecurityManager;<br/>
+<br/>
+/**<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;  The EJBSecurityManager is responsible for validating credentials<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;  associated with principals. Right now it is a "demo" that just<br/>
+ *    ensures name == credential<br/>
+ *      <br/>
+ *   @see EJBSecurityManager<br/>
+ *   @author Daniel O'Connor docodan@nycap.rr.com<br/>
+ */<br/>
+public class EJBSecurityManagerDefaultImpl implements EJBSecurityManager<br/>
+{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isValid( Principal principal, Object credential )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return <span class="add"><span class="add"><span class="add">credential</span> != <span class="add">null</span></span> &amp;&amp; <span class="mv">principal.getName().equals( credential.toString() )</span></span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

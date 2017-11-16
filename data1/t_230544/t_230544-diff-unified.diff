@@ -1,0 +1,11 @@
+--- t_230544/left_MacOSPlugin_1.12.java	2013-03-17 15:47:02.000000000 +0100
++++ t_230544/right_MacOSPlugin_1.13.java	2013-03-17 15:47:02.000000000 +0100
+@@ -99,7 +99,7 @@
+ 			return false;
+ 		}
+ 		if (MiscUtilities.compareStrings(
+-			System.getProperty("mrj.version"),mrjversion) < 0)
++			System.getProperty("mrj.version"),mrjversion,false) < 0)
+ 		{
+ 			SwingUtilities.invokeLater( new Runnable() { public void run() {
+ 				GUIUtilities.error(null,"MacOSPlugin.dialog.mrjversion",new Object[] {mrjversion});

@@ -1,0 +1,13 @@
+diff --git a/t_223542/left_BoardView1_1.214.java b/t_223542/right_BoardView1_1.215.java
+index 735287f..cb9c54c 100644
+--- a/t_223542/left_BoardView1_1.214.java
++++ b/t_223542/right_BoardView1_1.215.java
+@@ -3496,7 +3496,7 @@ public class BoardView1
+                 costStringBuf.append("+]"); //$NON-NLS-1$
+             }
+             
+-            if (step.getMovementType() == IEntityMovementType.MOVE_VTOL_RUN ||
++            if (step.getMovementType() == IEntityMovementType.MOVE_VTOL_WALK ||
+                 step.getMovementType() == IEntityMovementType.MOVE_VTOL_RUN) {
+                 costStringBuf.append("{").append(step.getElevation()).append("}");
+             }

@@ -1,0 +1,1308 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_MultiProtocolTests_1.12.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2005 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: MultiProtocolTests.java,v 1.12 2005-03-11 14:07:36 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jtests.conform.basic.clients;<br/>
+<br/>
+import java.util.Hashtable;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.naming.Binding;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.InitialContext;<br/>
+import javax.naming.NameClassPair;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+import javax.rmi.PortableRemoteObject;<br/>
+import javax.rmi.CORBA.Stub;<br/>
+<br/>
+import junit.framework.Test;<br/>
+import junit.framework.TestCase;<br/>
+import junit.framework.TestSuite;<br/>
+<br/>
+import org.omg.CORBA.ORB;<br/>
+<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicMultiObjectItf;<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicObjectItf;<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicRemoteObject;<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicSerializableObject;<br/>
+import org.objectweb.carol.util.configuration.CarolCurrentConfiguration;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt;MultiProtocolTests&lt;/code&gt; is a Junit BasicTest Test : Test The<br/>
+ * InitialContext and the PortableRemoteObject situation with remote object<br/>
+ * @author Guillaume Riviere<br/>
+ * @author Florent Benoit<br/>
+ */<br/>
+public class MultiProtocolTests extends TestCase {<br/>
+<br/>
+    /**<br/>
+     * Name of the basic remote object (in all name services)<br/>
+     */<br/>
+    private String basicName = null;<br/>
+<br/>
+    /**<br/>
+     * Name of the basic multi remote object (in all name services)<br/>
+     */<br/>
+    private String basicMultiName = null;<br/>
+<br/>
+    /**<br/>
+     * Initial Contexts<br/>
+     */<br/>
+    private InitialContext ic = null;<br/>
+<br/>
+    /**<br/>
+     * TheBasicObject<br/>
+     */<br/>
+    private BasicObjectItf ba = null;<br/>
+<br/>
+    /**<br/>
+     * TheBasicMultiObject<br/>
+     */<br/>
+    private BasicMultiObjectItf bma = null;<br/>
+<br/>
+    /**<br/>
+     * Constructor<br/>
+     * @param name the name of the test<br/>
+     */<br/>
+    public MultiProtocolTests(String name) {<br/>
+        super(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Setup Method<br/>
+     * @throws Exception if setup fails (could be narrow)<br/>
+     */<br/>
+    public void setUp() throws Exception {<br/>
+        super.setUp();<br/>
+<br/>
+        org.objectweb.carol.util.configuration.CarolConfiguration.init();<br/>
+<br/>
+        ic = new InitialContext();<br/>
+<br/>
+        // set the object name<br/>
+        basicName = "basicname";<br/>
+        basicMultiName = "basicmultiname";<br/>
+<br/>
+        // lookup to the remote objects<br/>
+        ba = (BasicObjectItf) PortableRemoteObject.narrow(ic.lookup(basicName), BasicObjectItf.class);<br/>
+        bma = (BasicMultiObjectItf) PortableRemoteObject.narrow(ic.lookup(basicMultiName), BasicMultiObjectItf.class);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * tearDown method<br/>
+     * @throws Exception if super method fails<br/>
+     */<br/>
+    public void tearDown() throws Exception {<br/>
+        basicName = null;<br/>
+        basicMultiName = null;<br/>
+        ba = null;<br/>
+        bma = null;<br/>
+        ic.close();<br/>
+        super.tearDown();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object The default orb is used<br/>
+     * for this access<br/>
+     */<br/>
+    public void testString() {<br/>
+        try {<br/>
+            String expected = ba.getString();<br/>
+            assertEquals(expected, "string");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't get string" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object which also access to<br/>
+     * remote object, This tests use 2 call via default protocol The default orb<br/>
+     * is used for this access<br/>
+     */<br/>
+    public void testMultiString() {<br/>
+        try {<br/>
+            String expected = bma.getMultiString();<br/>
+            assertEquals(expected, "multi string call: " + "string");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't get multi string" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a refearence<br/>
+     */<br/>
+    public void testReferenceString() {<br/>
+        try {<br/>
+            String expected = bma.getBasicRefString();<br/>
+            assertEquals(expected, "string2");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't get ref string" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object The default orb is used<br/>
+     * for this access<br/>
+     */<br/>
+    public void testStub() {<br/>
+        try {<br/>
+            BasicObjectItf ob = (BasicObjectItf) PortableRemoteObject<br/>
+                    .narrow(bma.getBasicObject(), BasicObjectItf.class);<br/>
+            String expected = ob.getString();<br/>
+            assertEquals(expected, "string");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't narrow Remote Object :" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Try to bind/lookup a serializable object<br/>
+     */<br/>
+    public void testSerializable() {<br/>
+        BasicSerializableObject bso = new BasicSerializableObject("test1");<br/>
+        BasicSerializableObject bsoResult = null;<br/>
+        try {<br/>
+            ic.bind("testSerializable", bso);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object : " + e);<br/>
+        }<br/>
+        Object lookupObj = null;<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testSerializable");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            bsoResult = (BasicSerializableObject) PortableRemoteObject.narrow(lookupObj, BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't narrow object : " + e);<br/>
+        }<br/>
+<br/>
+        assertTrue(bso.equals(bsoResult));<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * test context methods<br/>
+     */<br/>
+    public void testContextCommonContextMethods() {<br/>
+        try {<br/>
+            ic.bind("testContextCommonContextMethods", bma);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object : " + e);<br/>
+        }<br/>
+        Object lookupObj = null;<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now rebind object<br/>
+        try {<br/>
+            ic.rebind("testContextCommonContextMethods", bma);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't rebind object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now unbind object<br/>
+        try {<br/>
+            ic.unbind("testContextCommonContextMethods");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't unbind object : " + e);<br/>
+        }<br/>
+<br/>
+        // verify the unbind<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods");<br/>
+            fail("lookup of the object should fail as the object has been unbind");<br/>
+        } catch (Exception e) {<br/>
+            assertTrue("exception is : " + e.getMessage(), NamingException.class.isAssignableFrom(e.getClass()));<br/>
+        }<br/>
+<br/>
+        // bind a new object to test the rename<br/>
+        BasicSerializableObject bso = new BasicSerializableObject("testContextCommonContextMethods2");<br/>
+        try {<br/>
+            ic.bind("testContextCommonContextMethods2", bso);<br/>
+            ic.rename("testContextCommonContextMethods2", "testContextCommonContextMethods2renamed");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object : " + e);<br/>
+        }<br/>
+        // verify the rename<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods2");<br/>
+            fail("lookup of the object should fail as the object has been renamed");<br/>
+        } catch (Exception e) {<br/>
+            assertTrue("exception is : " + e.getMessage(), NamingException.class.isAssignableFrom(e.getClass()));<br/>
+        }<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods2renamed");<br/>
+            BasicSerializableObject bsoResult = (BasicSerializableObject) PortableRemoteObject.narrow(lookupObj,<br/>
+                    BasicSerializableObject.class);<br/>
+            assertTrue(bso.equals(bsoResult));<br/>
+        } catch (Exception e) {<br/>
+            fail("lookup of the object should not fail as a previous object has been renamed");<br/>
+        }<br/>
+<br/>
+        // List context (and verify object is present)<br/>
+        try {<br/>
+            ic.bind("testContextCommonContextMethods4", bso);<br/>
+            NamingEnumeration ne = ic.list("");<br/>
+            boolean found = false;<br/>
+            while (ne.hasMore() &amp;&amp; !found) {<br/>
+                NameClassPair ncp = (NameClassPair) ne.next();<br/>
+                String n = ncp.getName();<br/>
+                if (n.equals("testContextCommonContextMethods4")) {<br/>
+                    found = true;<br/>
+                }<br/>
+            }<br/>
+            if (!found) {<br/>
+                fail("object bind was not find in ic.list(\"\")");<br/>
+            }<br/>
+<br/>
+            // Use listBindings method now<br/>
+            ne = ic.listBindings("");<br/>
+            found = false;<br/>
+            while (ne.hasMore() &amp;&amp; !found) {<br/>
+                Binding binding = (Binding) ne.next();<br/>
+                String n = binding.getName();<br/>
+                if (n.equals("testContextCommonContextMethods4")) {<br/>
+                    found = true;<br/>
+                }<br/>
+            }<br/>
+            if (!found) {<br/>
+                fail("object bind was not find in ic.listBindings(\"\")");<br/>
+            }<br/>
+<br/>
+            // unbind object<br/>
+            ic.unbind("testContextCommonContextMethods4");<br/>
+        } catch (Exception e) {<br/>
+            fail("list() method fails");<br/>
+        }<br/>
+<br/>
+        // test unbind a name not bind<br/>
+        try {<br/>
+            ic.unbind("testContextCommonContextMethods4");<br/>
+        } catch (Exception e) {<br/>
+            assertTrue(e instanceof NameNotFoundException);<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object The default orb is used<br/>
+     * for this access<br/>
+     */<br/>
+    public void testPortableRemoteObject() {<br/>
+        BasicRemoteObject bro = new BasicRemoteObject("testPortableRemoteObject");<br/>
+<br/>
+        // exportObject() method<br/>
+        try {<br/>
+            PortableRemoteObject.exportObject(bro);<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot export object '" + bro + "' : " + e.getMessage());<br/>
+        }<br/>
+<br/>
+        // toStub() method<br/>
+        try {<br/>
+            Object remoteVal = PortableRemoteObject.toStub(bro);<br/>
+<br/>
+            // in case of IIOP, connect stub as it use POA model and stub should<br/>
+            // be connected<br/>
+            if (remoteVal instanceof Stub) {<br/>
+                ((Stub) remoteVal).connect(ORB.init(new String[0], null));<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot use toStub() method on object '" + bro + "' : " + e.getMessage());<br/>
+        }<br/>
+<br/>
+        // unexportObject() method<br/>
+        try {<br/>
+            PortableRemoteObject.unexportObject(bro);<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot unexportObject object '" + bro + "' : " + e.getMessage());<br/>
+        }<br/>
+<br/>
+        // test narrow() method<br/>
+        try {<br/>
+            Object o = ic.lookup("basicmultiname");<br/>
+            PortableRemoteObject.narrow(o, BasicMultiObjectItf.class);<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot narrow object '" + bro + "'.");<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check that the bind/lookup works on flat registry like JRMP registry Bind<br/>
+     * objects/obj1 and objects2/obj2 and check that lookup returns different<br/>
+     * objects On flat registry lookup return same object as it returns only<br/>
+     * value before / Carol should handle this case to make it working even if<br/>
+     * this is a flat registry<br/>
+     */<br/>
+    public void testCompositeNameId() {<br/>
+<br/>
+        final String id1 = "objects/testCompositeNameId1";<br/>
+        final String id2 = "objects/testCompositeNameId2";<br/>
+<br/>
+        BasicSerializableObject bso1 = new BasicSerializableObject(id1);<br/>
+        BasicSerializableObject bso2 = new BasicSerializableObject(id2);<br/>
+<br/>
+        // bind them<br/>
+        try {<br/>
+            ic.bind(id1, bso1);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            ic.bind(id2, bso2);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        // lookup objects<br/>
+        BasicSerializableObject bsoResult1 = null;<br/>
+        BasicSerializableObject bsoResult2 = null;<br/>
+<br/>
+        try {<br/>
+            bsoResult1 = (BasicSerializableObject) PortableRemoteObject.narrow(ic.lookup(id1),<br/>
+                    BasicSerializableObject.class);<br/>
+            bsoResult2 = (BasicSerializableObject) PortableRemoteObject.narrow(ic.lookup(id2),<br/>
+                    BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now compare objects and they should be different !<br/>
+        assertFalse("Should be different : obj1 = " + bsoResult1 + ", obj2 = " + bsoResult2 + ".", bsoResult1<br/>
+                .equals(bsoResult2));<br/>
+<br/>
+        // Another check. List context and see if there is our two names<br/>
+        try {<br/>
+            NamingEnumeration ne = ic.list("");<br/>
+            boolean found = false;<br/>
+            boolean found1 = false;<br/>
+            boolean found2 = false;<br/>
+            String listNames = "";<br/>
+            while (ne.hasMore() &amp;&amp; !found) {<br/>
+                NameClassPair ncp = (NameClassPair) ne.next();<br/>
+                String n = ncp.getName();<br/>
+                listNames += n + " : ";<br/>
+                if (n.equals(id1)) {<br/>
+                    found1 = true;<br/>
+                    continue;<br/>
+                }<br/>
+                if (n.equals(id2)) {<br/>
+                    found2 = true;<br/>
+                    continue;<br/>
+                }<br/>
+<br/>
+                found = found1 &amp;&amp; found2;<br/>
+            }<br/>
+            if (!found1) {<br/>
+                fail("object named " + id1 + " was not find in the list. Names found were : " + listNames);<br/>
+            }<br/>
+            if (!found2) {<br/>
+                fail("object named " + id2 + " was not find in the list. Names found were : " + listNames);<br/>
+            }<br/>
+<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't list registry : " + e);<br/>
+        }<br/>
+<br/>
+        // unbind<br/>
+        try {<br/>
+            ic.unbind(id1);<br/>
+            ic.unbind(id2);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't unbind object : " + e);<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test basic commands on java:comp/env (ENC) or java:comp environment<br/>
+     */<br/>
+    public void testJavaCompEnvironment() {<br/>
+<br/>
+        String tstId = "testJavaEnvironment";<br/>
+        // bind<br/>
+        try {<br/>
+            ic.bind("java:comp/env/testJavaEnvironment", tstId);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind java:comp/env/testJavaEnvironment " + e);<br/>
+        }<br/>
+<br/>
+        Context javaComp = null;<br/>
+        try {<br/>
+            javaComp = (Context) ic.lookup("java:comp/");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot lookup java:comp : " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            javaComp.lookup("env");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot lookup javaComp.lookup(\"env\") : " + e);<br/>
+        }<br/>
+<br/>
+        Context javaCompEnv = null;<br/>
+        try {<br/>
+            javaCompEnv = (Context) ic.lookup("java:comp/env");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot lookup java:comp/env : " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            javaCompEnv.createSubcontext("ejb");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot use lookup javaCompEnv.createSubcontext(\"ejb\") " + e);<br/>
+        }<br/>
+<br/>
+        // lookup String<br/>
+        String resId = null;<br/>
+        try {<br/>
+            resId = (String) ic.lookup("java:comp/env/testJavaEnvironment");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object java:comp/env/testJavaEnvironment : " + e);<br/>
+        }<br/>
+<br/>
+        assertEquals(tstId, resId);<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test InitialContext with specific Factory / URL<br/>
+     */<br/>
+    public void testSingleInitialContext() {<br/>
+        Hashtable testEnv = new Hashtable();<br/>
+        String protocolCurrent = CarolCurrentConfiguration.getCurrent().getCurrentRMIName();<br/>
+        Properties prop = CarolCurrentConfiguration.getCurrent().getRMIProperties(protocolCurrent);<br/>
+        String providerURL = prop.getProperty(Context.PROVIDER_URL);<br/>
+        testEnv.put(Context.PROVIDER_URL, providerURL);<br/>
+<br/>
+        Context tmpContext = null;<br/>
+        try {<br/>
+            tmpContext = new InitialContext(testEnv);<br/>
+        } catch (NamingException e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot build a new initial context with provider url = " + providerURL);<br/>
+        }<br/>
+<br/>
+        String id = "testSingleInitialContext";<br/>
+        BasicSerializableObject bso1 = new BasicSerializableObject(id);<br/>
+        // bind it<br/>
+        try {<br/>
+            tmpContext.bind(id, bso1);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        // lookup<br/>
+        BasicSerializableObject bsoResult1 = null;<br/>
+        try {<br/>
+            bsoResult1 = (BasicSerializableObject) PortableRemoteObject.narrow(tmpContext.lookup(id),<br/>
+                    BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now compare objects and they should be the same<br/>
+        assertTrue("Should be the same", bso1.equals(bsoResult1));<br/>
+<br/>
+        // test with adding the JNDI factory now<br/>
+        Hashtable testEnv2  = new Hashtable();<br/>
+        String initFactory = prop.getProperty(Context.INITIAL_CONTEXT_FACTORY);<br/>
+        testEnv2.put(Context.PROVIDER_URL, providerURL);<br/>
+        testEnv2.put(Context.INITIAL_CONTEXT_FACTORY, initFactory);<br/>
+<br/>
+        Context tmpContext2 = null;<br/>
+        try {<br/>
+            tmpContext2 = new InitialContext(testEnv2);<br/>
+        } catch (NamingException e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot build a new initial context with provider url = " + providerURL + " and factory = "<br/>
+                    + initFactory);<br/>
+        }<br/>
+<br/>
+        String id2 = "testSingleInitialContext2";<br/>
+        BasicSerializableObject bso2 = new BasicSerializableObject(id);<br/>
+        // bind it<br/>
+        try {<br/>
+            tmpContext2.bind(id2, bso2);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        // lookup<br/>
+        BasicSerializableObject bsoResult2 = null;<br/>
+        try {<br/>
+            bsoResult2 = (BasicSerializableObject) PortableRemoteObject.narrow(tmpContext2.lookup(id2),<br/>
+                    BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now compare objects and they should be the same<br/>
+        assertTrue("Should be the same", bso2.equals(bsoResult2));<br/>
+<br/>
+        // test that it fails with invalid properties<br/>
+        Hashtable env3 = new Hashtable();<br/>
+        env3.put(Context.PROVIDER_URL, "dummy://123.123.123.123:9876");<br/>
+        try {<br/>
+             new InitialContext(env3);<br/>
+             fail("The context should fail with invalid properties");<br/>
+        } catch (NamingException e) {<br/>
+            // awaited result<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Suite method<br/>
+     * @return the test suite to launch<br/>
+     */<br/>
+    public static Test suite() {<br/>
+        return new TestSuite(MultiProtocolTests.class);<br/>
+        // In case of launching only one test<br/>
+        /*TestSuite testSuite = new TestSuite();<br/>
+        testSuite.addTest(new MultiProtocolTests("testSingleInitialContext"));<br/>
+        return testSuite;*/<br/>
+<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_MultiProtocolTests_1.13.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2005 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: MultiProtocolTests.java,v 1.13 2005-03-11 14:53:05 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jtests.conform.basic.clients;<br/>
+<br/>
+import java.util.Hashtable;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.naming.Binding;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.InitialContext;<br/>
+import javax.naming.NameClassPair;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+import javax.rmi.PortableRemoteObject;<br/>
+import javax.rmi.CORBA.Stub;<br/>
+<br/>
+import junit.framework.Test;<br/>
+import junit.framework.TestCase;<br/>
+import junit.framework.TestSuite;<br/>
+<br/>
+import org.omg.CORBA.ORB;<br/>
+<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicMultiObjectItf;<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicObjectItf;<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicRemoteObject;<br/>
+import org.objectweb.carol.jtests.conform.basic.server.BasicSerializableObject;<br/>
+import org.objectweb.carol.util.configuration.CarolCurrentConfiguration;<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">objectweb</span></span>.<span class="add">carol</span></span>.<span class="add">util</span></span>.<span class="add">configuration</span></span>.<span class="add">CarolDefaultValues</span></span>;</span><br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt;MultiProtocolTests&lt;/code&gt; is a Junit BasicTest Test : Test The<br/>
+ * InitialContext and the PortableRemoteObject situation with remote object<br/>
+ * @author Guillaume Riviere<br/>
+ * @author Florent Benoit<br/>
+ */<br/>
+public class MultiProtocolTests extends TestCase {<br/>
+<br/>
+    /**<br/>
+     * Name of the basic remote object (in all name services)<br/>
+     */<br/>
+    private String basicName = null;<br/>
+<br/>
+    /**<br/>
+     * Name of the basic multi remote object (in all name services)<br/>
+     */<br/>
+    private String basicMultiName = null;<br/>
+<br/>
+    /**<br/>
+     * Initial Contexts<br/>
+     */<br/>
+    private InitialContext ic = null;<br/>
+<br/>
+    /**<br/>
+     * TheBasicObject<br/>
+     */<br/>
+    private BasicObjectItf ba = null;<br/>
+<br/>
+    /**<br/>
+     * TheBasicMultiObject<br/>
+     */<br/>
+    private BasicMultiObjectItf bma = null;<br/>
+<br/>
+    /**<br/>
+     * Constructor<br/>
+     * @param name the name of the test<br/>
+     */<br/>
+    public MultiProtocolTests(String name) {<br/>
+        super(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Setup Method<br/>
+     * @throws Exception if setup fails (could be narrow)<br/>
+     */<br/>
+    public void setUp() throws Exception {<br/>
+        super.setUp();<br/>
+<br/>
+        org.objectweb.carol.util.configuration.CarolConfiguration.init();<br/>
+<br/>
+        ic = new InitialContext();<br/>
+<br/>
+        // set the object name<br/>
+        basicName = "basicname";<br/>
+        basicMultiName = "basicmultiname";<br/>
+<br/>
+        // lookup to the remote objects<br/>
+        ba = (BasicObjectItf) PortableRemoteObject.narrow(ic.lookup(basicName), BasicObjectItf.class);<br/>
+        bma = (BasicMultiObjectItf) PortableRemoteObject.narrow(ic.lookup(basicMultiName), BasicMultiObjectItf.class);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * tearDown method<br/>
+     * @throws Exception if super method fails<br/>
+     */<br/>
+    public void tearDown() throws Exception {<br/>
+        basicName = null;<br/>
+        basicMultiName = null;<br/>
+        ba = null;<br/>
+        bma = null;<br/>
+        ic.close();<br/>
+        super.tearDown();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object The default orb is used<br/>
+     * for this access<br/>
+     */<br/>
+    public void testString() {<br/>
+        try {<br/>
+            String expected = ba.getString();<br/>
+            assertEquals(expected, "string");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't get string" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object which also access to<br/>
+     * remote object, This tests use 2 call via default protocol The default orb<br/>
+     * is used for this access<br/>
+     */<br/>
+    public void testMultiString() {<br/>
+        try {<br/>
+            String expected = bma.getMultiString();<br/>
+            assertEquals(expected, "multi string call: " + "string");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't get multi string" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a refearence<br/>
+     */<br/>
+    public void testReferenceString() {<br/>
+        try {<br/>
+            String expected = bma.getBasicRefString();<br/>
+            assertEquals(expected, "string2");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't get ref string" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object The default orb is used<br/>
+     * for this access<br/>
+     */<br/>
+    public void testStub() {<br/>
+        try {<br/>
+            BasicObjectItf ob = (BasicObjectItf) PortableRemoteObject<br/>
+                    .narrow(bma.getBasicObject(), BasicObjectItf.class);<br/>
+            String expected = ob.getString();<br/>
+            assertEquals(expected, "string");<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Can't narrow Remote Object :" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Try to bind/lookup a serializable object<br/>
+     */<br/>
+    public void testSerializable() {<br/>
+        BasicSerializableObject bso = new BasicSerializableObject("test1");<br/>
+        BasicSerializableObject bsoResult = null;<br/>
+        try {<br/>
+            ic.bind("testSerializable", bso);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object : " + e);<br/>
+        }<br/>
+        Object lookupObj = null;<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testSerializable");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            bsoResult = (BasicSerializableObject) PortableRemoteObject.narrow(lookupObj, BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't narrow object : " + e);<br/>
+        }<br/>
+<br/>
+        assertTrue(bso.equals(bsoResult));<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * test context methods<br/>
+     */<br/>
+    public void testContextCommonContextMethods() {<br/>
+        try {<br/>
+            ic.bind("testContextCommonContextMethods", bma);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object : " + e);<br/>
+        }<br/>
+        Object lookupObj = null;<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now rebind object<br/>
+        try {<br/>
+            ic.rebind("testContextCommonContextMethods", bma);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't rebind object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now unbind object<br/>
+        try {<br/>
+            ic.unbind("testContextCommonContextMethods");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't unbind object : " + e);<br/>
+        }<br/>
+<br/>
+        // verify the unbind<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods");<br/>
+            fail("lookup of the object should fail as the object has been unbind");<br/>
+        } catch (Exception e) {<br/>
+            assertTrue("exception is : " + e.getMessage(), NamingException.class.isAssignableFrom(e.getClass()));<br/>
+        }<br/>
+<br/>
+        // bind a new object to test the rename<br/>
+        BasicSerializableObject bso = new BasicSerializableObject("testContextCommonContextMethods2");<br/>
+        try {<br/>
+            ic.bind("testContextCommonContextMethods2", bso);<br/>
+            ic.rename("testContextCommonContextMethods2", "testContextCommonContextMethods2renamed");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object : " + e);<br/>
+        }<br/>
+        // verify the rename<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods2");<br/>
+            fail("lookup of the object should fail as the object has been renamed");<br/>
+        } catch (Exception e) {<br/>
+            assertTrue("exception is : " + e.getMessage(), NamingException.class.isAssignableFrom(e.getClass()));<br/>
+        }<br/>
+        try {<br/>
+            lookupObj = ic.lookup("testContextCommonContextMethods2renamed");<br/>
+            BasicSerializableObject bsoResult = (BasicSerializableObject) PortableRemoteObject.narrow(lookupObj,<br/>
+                    BasicSerializableObject.class);<br/>
+            assertTrue(bso.equals(bsoResult));<br/>
+        } catch (Exception e) {<br/>
+            fail("lookup of the object should not fail as a previous object has been renamed");<br/>
+        }<br/>
+<br/>
+        // List context (and verify object is present)<br/>
+        try {<br/>
+            ic.bind("testContextCommonContextMethods4", bso);<br/>
+            NamingEnumeration ne = ic.list("");<br/>
+            boolean found = false;<br/>
+            while (ne.hasMore() &amp;&amp; !found) {<br/>
+                NameClassPair ncp = (NameClassPair) ne.next();<br/>
+                String n = ncp.getName();<br/>
+                if (n.equals("testContextCommonContextMethods4")) {<br/>
+                    found = true;<br/>
+                }<br/>
+            }<br/>
+            if (!found) {<br/>
+                fail("object bind was not find in ic.list(\"\")");<br/>
+            }<br/>
+<br/>
+            // Use listBindings method now<br/>
+            ne = ic.listBindings("");<br/>
+            found = false;<br/>
+            while (ne.hasMore() &amp;&amp; !found) {<br/>
+                Binding binding = (Binding) ne.next();<br/>
+                String n = binding.getName();<br/>
+                if (n.equals("testContextCommonContextMethods4")) {<br/>
+                    found = true;<br/>
+                }<br/>
+            }<br/>
+            if (!found) {<br/>
+                fail("object bind was not find in ic.listBindings(\"\")");<br/>
+            }<br/>
+<br/>
+            // unbind object<br/>
+            ic.unbind("testContextCommonContextMethods4");<br/>
+        } catch (Exception e) {<br/>
+            fail("list() method fails");<br/>
+        }<br/>
+<br/>
+        // test unbind a name not bind<br/>
+        try {<br/>
+            ic.unbind("testContextCommonContextMethods4");<br/>
+        } catch (Exception e) {<br/>
+            assertTrue(e instanceof NameNotFoundException);<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test Method , Test an access on a remote object The default orb is used<br/>
+     * for this access<br/>
+     */<br/>
+    public void testPortableRemoteObject() {<br/>
+        BasicRemoteObject bro = new BasicRemoteObject("testPortableRemoteObject");<br/>
+<br/>
+        // exportObject() method<br/>
+        try {<br/>
+            PortableRemoteObject.exportObject(bro);<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot export object '" + bro + "' : " + e.getMessage());<br/>
+        }<br/>
+<br/>
+        // toStub() method<br/>
+        try {<br/>
+            Object remoteVal = PortableRemoteObject.toStub(bro);<br/>
+<br/>
+            // in case of IIOP, connect stub as it use POA model and stub should<br/>
+            // be connected<br/>
+            if (remoteVal instanceof Stub) {<br/>
+                ((Stub) remoteVal).connect(ORB.init(new String[0], null));<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot use toStub() method on object '" + bro + "' : " + e.getMessage());<br/>
+        }<br/>
+<br/>
+        // unexportObject() method<br/>
+        try {<br/>
+            PortableRemoteObject.unexportObject(bro);<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot unexportObject object '" + bro + "' : " + e.getMessage());<br/>
+        }<br/>
+<br/>
+        // test narrow() method<br/>
+        try {<br/>
+            Object o = ic.lookup("basicmultiname");<br/>
+            PortableRemoteObject.narrow(o, BasicMultiObjectItf.class);<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot narrow object '" + bro + "'.");<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check that the bind/lookup works on flat registry like JRMP registry Bind<br/>
+     * objects/obj1 and objects2/obj2 and check that lookup returns different<br/>
+     * objects On flat registry lookup return same object as it returns only<br/>
+     * value before / Carol should handle this case to make it working even if<br/>
+     * this is a flat registry<br/>
+     */<br/>
+    public void testCompositeNameId() {<br/>
+<br/>
+        final String id1 = "objects/testCompositeNameId1";<br/>
+        final String id2 = "objects/testCompositeNameId2";<br/>
+<br/>
+        BasicSerializableObject bso1 = new BasicSerializableObject(id1);<br/>
+        BasicSerializableObject bso2 = new BasicSerializableObject(id2);<br/>
+<br/>
+        // bind them<br/>
+        try {<br/>
+            ic.bind(id1, bso1);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            ic.bind(id2, bso2);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        // lookup objects<br/>
+        BasicSerializableObject bsoResult1 = null;<br/>
+        BasicSerializableObject bsoResult2 = null;<br/>
+<br/>
+        try {<br/>
+            bsoResult1 = (BasicSerializableObject) PortableRemoteObject.narrow(ic.lookup(id1),<br/>
+                    BasicSerializableObject.class);<br/>
+            bsoResult2 = (BasicSerializableObject) PortableRemoteObject.narrow(ic.lookup(id2),<br/>
+                    BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now compare objects and they should be different !<br/>
+        assertFalse("Should be different : obj1 = " + bsoResult1 + ", obj2 = " + bsoResult2 + ".", bsoResult1<br/>
+                .equals(bsoResult2));<br/>
+<br/>
+        // Another check. List context and see if there is our two names<br/>
+        try {<br/>
+            NamingEnumeration ne = ic.list("");<br/>
+            boolean found = false;<br/>
+            boolean found1 = false;<br/>
+            boolean found2 = false;<br/>
+            String listNames = "";<br/>
+            while (ne.hasMore() &amp;&amp; !found) {<br/>
+                NameClassPair ncp = (NameClassPair) ne.next();<br/>
+                String n = ncp.getName();<br/>
+                listNames += n + " : ";<br/>
+                if (n.equals(id1)) {<br/>
+                    found1 = true;<br/>
+                    continue;<br/>
+                }<br/>
+                if (n.equals(id2)) {<br/>
+                    found2 = true;<br/>
+                    continue;<br/>
+                }<br/>
+<br/>
+                found = found1 &amp;&amp; found2;<br/>
+            }<br/>
+            if (!found1) {<br/>
+                fail("object named " + id1 + " was not find in the list. Names found were : " + listNames);<br/>
+            }<br/>
+            if (!found2) {<br/>
+                fail("object named " + id2 + " was not find in the list. Names found were : " + listNames);<br/>
+            }<br/>
+<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't list registry : " + e);<br/>
+        }<br/>
+<br/>
+        // unbind<br/>
+        try {<br/>
+            ic.unbind(id1);<br/>
+            ic.unbind(id2);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't unbind object : " + e);<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test basic commands on java:comp/env (ENC) or java:comp environment<br/>
+     */<br/>
+    public void testJavaCompEnvironment() {<br/>
+<br/>
+        String tstId = "testJavaEnvironment";<br/>
+        // bind<br/>
+        try {<br/>
+            ic.bind("java:comp/env/testJavaEnvironment", tstId);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind java:comp/env/testJavaEnvironment " + e);<br/>
+        }<br/>
+<br/>
+        Context javaComp = null;<br/>
+        try {<br/>
+            javaComp = (Context) ic.lookup("java:comp/");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot lookup java:comp : " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            javaComp.lookup("env");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot lookup javaComp.lookup(\"env\") : " + e);<br/>
+        }<br/>
+<br/>
+        Context javaCompEnv = null;<br/>
+        try {<br/>
+            javaCompEnv = (Context) ic.lookup("java:comp/env");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot lookup java:comp/env : " + e);<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            javaCompEnv.createSubcontext("ejb");<br/>
+        } catch (NamingException e) {<br/>
+            fail("Cannot use lookup javaCompEnv.createSubcontext(\"ejb\") " + e);<br/>
+        }<br/>
+<br/>
+        // lookup String<br/>
+        String resId = null;<br/>
+        try {<br/>
+            resId = (String) ic.lookup("java:comp/env/testJavaEnvironment");<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object java:comp/env/testJavaEnvironment : " + e);<br/>
+        }<br/>
+<br/>
+        assertEquals(tstId, resId);<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test InitialContext with specific Factory / URL<br/>
+     */<br/>
+    public void testSingleInitialContext() {<br/>
+        Hashtable testEnv = new Hashtable();<br/>
+        String protocolCurrent = CarolCurrentConfiguration.getCurrent().getCurrentRMIName();<br/>
+        Properties prop = CarolCurrentConfiguration.getCurrent().getRMIProperties(protocolCurrent);<br/>
+        String providerURL = prop.getProperty(Context.PROVIDER_URL);<br/>
+        testEnv.put(Context.PROVIDER_URL, providerURL);<br/>
+<br/>
+        Context tmpContext = null;<br/>
+        try {<br/>
+            tmpContext = new InitialContext(testEnv);<br/>
+        } catch (NamingException e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot build a new initial context with provider url = " + providerURL);<br/>
+        }<br/>
+<br/>
+        String id = "testSingleInitialContext";<br/>
+        BasicSerializableObject bso1 = new BasicSerializableObject(id);<br/>
+        // bind it<br/>
+        try {<br/>
+            tmpContext.bind(id, bso1);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        // lookup<br/>
+        BasicSerializableObject bsoResult1 = null;<br/>
+        try {<br/>
+            bsoResult1 = (BasicSerializableObject) PortableRemoteObject.narrow(tmpContext.lookup(id),<br/>
+                    BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now compare objects and they should be the same<br/>
+        assertTrue("Should be the same", bso1.equals(bsoResult1));<br/>
+<br/>
+        // test with adding the JNDI factory now<br/>
+        Hashtable testEnv2 = new Hashtable();<br/>
+        String initFactory = prop.getProperty(Context.INITIAL_CONTEXT_FACTORY);<br/>
+        testEnv2.put(Context.PROVIDER_URL, providerURL);<br/>
+        testEnv2.put(Context.INITIAL_CONTEXT_FACTORY, initFactory);<br/>
+<br/>
+        Context tmpContext2 = null;<br/>
+        try {<br/>
+            tmpContext2 = new InitialContext(testEnv2);<br/>
+        } catch (NamingException e) {<br/>
+            e.printStackTrace();<br/>
+            fail("Cannot build a new initial context with provider url = " + providerURL + " and factory = "<br/>
+                    + initFactory);<br/>
+        }<br/>
+<br/>
+        String id2 = "testSingleInitialContext2";<br/>
+        BasicSerializableObject bso2 = new BasicSerializableObject(id);<br/>
+        // bind it<br/>
+        try {<br/>
+            tmpContext2.bind(id2, bso2);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't bind object 1: " + e);<br/>
+        }<br/>
+<br/>
+        // lookup<br/>
+        BasicSerializableObject bsoResult2 = null;<br/>
+        try {<br/>
+            bsoResult2 = (BasicSerializableObject) PortableRemoteObject.narrow(tmpContext2.lookup(id2),<br/>
+                    BasicSerializableObject.class);<br/>
+        } catch (Exception e) {<br/>
+            fail("Can't lookup object : " + e);<br/>
+        }<br/>
+<br/>
+        // Now compare objects and they should be the same<br/>
+        assertTrue("Should be the same", bso2.equals(bsoResult2));<br/>
+<br/>
+        // test that it fails with invalid properties<br/>
+        Hashtable env3 = new Hashtable();<br/>
+        env3.put(Context.PROVIDER_URL, "dummy://123.123.123.123:9876");<br/>
+        try {<br/>
+            new InitialContext(env3);<br/>
+            fail("The context should fail with invalid properties");<br/>
+        } catch (NamingException e) {<br/>
+            // awaited result<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    <span class="add"><span class="add">/**<br/>
+     * Test of environment Method<br/>
+     * bug #300979<br/>
+     */</span><br/>
+    <span class="add">public</span> <span class="add">void</span> <span class="add">testIctxEnvironment</span>() <span class="add">{<br/>
+        <span class="add"><span class="add"><span class="add">Hashtable</span></span> <span class="add"><span class="add">testEnv</span> = <span class="add">null</span></span>;</span><br/>
+<br/>
+        <span class="add">try <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">testEnv</span> = <span class="add"><span class="add">ic</span>.<span class="add">getEnvironment</span>()</span></span>;</span><br/>
+        }</span> <span class="add">catch (<span class="add"><span class="add"><span class="add">NamingException</span></span> <span class="add">e</span></span>) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">e</span>.<span class="add">printStackTrace</span>()</span>;</span><br/>
+            <span class="add"><span class="add"><span class="add">fail</span>(<span class="add">"Cannot get environment"</span>)</span>;</span><br/>
+        }</span></span></span><br/>
+<br/>
+        <span class="add"><span class="add"><span class="add">Context</span></span> <span class="add"><span class="add">newIctx</span> = <span class="add">null</span></span>;</span><br/>
+        <span class="add">try <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">newIctx</span> = <span class="add">new <span class="add"><span class="add">InitialContext</span></span>(<span class="add">testEnv</span>)</span></span>;</span><br/>
+        }</span> <span class="add">catch (<span class="add"><span class="add"><span class="add">NamingException</span></span> <span class="add">e</span></span>) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">e</span>.<span class="add">printStackTrace</span>()</span>;</span><br/>
+            <span class="add"><span class="add"><span class="add">fail</span>(<span class="add">"Cannot get ICTX environment"</span>)</span>;</span><br/>
+        }</span></span></span><br/>
+<br/>
+        // test factory is the multi factory<br/>
+        <span class="add">try <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">assertTrue</span>(<span class="add"><span class="add"><span class="add"><span class="add">newIctx</span>.<span class="add">getEnvironment</span>()</span>.<span class="add">get</span>(<span class="add"><span class="add">Context</span>.<span class="add">INITIAL_CONTEXT_FACTORY</span></span>)</span>.<span class="add">equals</span>(<br/>
+                    <span class="add"><span class="add">CarolDefaultValues</span>.<span class="add">MULTI_JNDI</span></span>)</span>)</span>;</span><br/>
+        }</span> <span class="add">catch (<span class="add"><span class="add"><span class="add">NamingException</span></span> <span class="add">ne</span></span>) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">ne</span>.<span class="add">printStackTrace</span>()</span>;</span><br/>
+            <span class="add"><span class="add"><span class="add">fail</span>(<span class="add"><span class="add">"Should be able to get the environment : "</span> + <span class="add"><span class="add">ne</span>.<span class="add">getMessage</span>()</span></span>)</span>;</span><br/>
+        }</span></span></span><br/>
+<br/>
+        <span class="add"><span class="add"><span class="add">String</span></span> <span class="add"><span class="add">id</span> = <span class="add">"testIctxEnvironment"</span></span>;</span><br/>
+        <span class="add"><span class="add"><span class="add">BasicSerializableObject</span></span> <span class="add"><span class="add">bso1</span> = <span class="add">new <span class="add"><span class="add">BasicSerializableObject</span></span>(<span class="add">id</span>)</span></span>;</span><br/>
+        // bind it<br/>
+        <span class="add">try <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">newIctx</span>.<span class="add">bind</span>(<span class="add">id</span>, <span class="add">bso1</span>)</span>;</span><br/>
+        }</span> <span class="add">catch (<span class="add"><span class="add"><span class="add">Exception</span></span> <span class="add">e</span></span>) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">fail</span>(<span class="add"><span class="add">"Can't bind object 1: "</span> + <span class="add">e</span></span>)</span>;</span><br/>
+        }</span></span></span><br/>
+<br/>
+        // lookup<br/>
+        <span class="add"><span class="add"><span class="add">BasicSerializableObject</span></span> <span class="add"><span class="add">bsoResult1</span> = <span class="add">null</span></span>;</span><br/>
+        <span class="add">try <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">bsoResult1</span> = <span class="add">(<span class="add"><span class="add">BasicSerializableObject</span></span>) <span class="add"><span class="add">PortableRemoteObject</span>.<span class="add">narrow</span>(<span class="add"><span class="add">newIctx</span>.<span class="add">lookup</span>(<span class="add">id</span>)</span>,<br/>
+                    <span class="add"><span class="add"><span class="add">BasicSerializableObject</span></span>.class</span>)</span></span></span>;</span><br/>
+        }</span> <span class="add">catch (<span class="add"><span class="add"><span class="add">Exception</span></span> <span class="add">e</span></span>) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">fail</span>(<span class="add"><span class="add">"Can't lookup object : "</span> + <span class="add">e</span></span>)</span>;</span><br/>
+        }</span></span></span><br/>
+<br/>
+        // Now compare objects and they should be the same<br/>
+        <span class="add"><span class="add"><span class="add">assertTrue</span>(<span class="add">"Should be the same"</span>, <span class="add"><span class="add">bso1</span>.<span class="add">equals</span>(<span class="add">bsoResult1</span>)</span>)</span>;</span><br/>
+<br/>
+    }</span></span><br/>
+<br/>
+    /**<br/>
+     * Suite method<br/>
+     * @return the test suite to launch<br/>
+     */<br/>
+    public static Test suite() {<br/>
+        return new TestSuite(MultiProtocolTests.class);<br/>
+        // In case of launching only one test<br/>
+        /*TestSuite testSuite = new TestSuite();<br/>
+        testSuite.addTest(new MultiProtocolTests("testIctxEnvironment"));<br/>
+        return testSuite;*/<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

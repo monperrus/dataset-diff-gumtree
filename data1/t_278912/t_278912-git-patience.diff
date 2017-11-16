@@ -1,0 +1,13 @@
+diff --git a/t_278912/left_WebXmlReader_1.30.java b/t_278912/right_WebXmlReader_1.31.java
+index c530540..4caedb4 100644
+--- a/t_278912/left_WebXmlReader_1.30.java
++++ b/t_278912/right_WebXmlReader_1.31.java
+@@ -178,7 +178,7 @@ public class WebXmlReader extends BaseInterceptor {
+ 	    xh.addRule("web-app/session-config/session-timeout", xh.methodParam(0));
+ 
+ 	    // Servlet
+-	    xh.addRule("web-app/servlet", xh.objectCreate("org.apache.tomcat.core.ServletWrapper") ); // servlet-wrapper
++	    xh.addRule("web-app/servlet", xh.objectCreate("org.apache.tomcat.facade.ServletWrapper") ); // servlet-wrapper
+ 	    xh.addRule("web-app/servlet", xh.setParent( "setContext") ); // remove it from stack when done
+ 	    xh.addRule("web-app/servlet", xh.addChild("addServlet", "org.apache.tomcat.core.Handler") );
+ 	    // remove it from stack when done

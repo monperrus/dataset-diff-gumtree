@@ -1,0 +1,10 @@
+--- t_233236/left_Mutex_1.8.java	2013-03-17 15:47:32.000000000 +0100
++++ t_233236/right_Mutex_1.9.java	2013-03-17 15:47:32.000000000 +0100
+@@ -45,6 +45,6 @@
+ 
+     public synchronized void release() {
+         mutex = false;
+-        notifyAll();
++        notify();
+     }
+ }

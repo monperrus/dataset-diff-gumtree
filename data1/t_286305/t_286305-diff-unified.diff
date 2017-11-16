@@ -1,0 +1,11 @@
+--- t_286305/left_BlockJUnit4ClassRunner_1.7.java	2013-03-17 15:47:06.000000000 +0100
++++ t_286305/right_BlockJUnit4ClassRunner_1.8.java	2013-03-17 15:47:06.000000000 +0100
+@@ -54,7 +54,7 @@
+ 	 *             if the test class is malformed.
+ 	 */
+ 	public BlockJUnit4ClassRunner(Class<?> klass) throws InitializationError {
+-		super(new TestClass(klass));
++		super(klass);
+ 		fTestMethods= computeTestMethods();
+ 		validate();
+ 	}

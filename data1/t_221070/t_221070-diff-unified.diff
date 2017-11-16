@@ -1,0 +1,10 @@
+--- t_221070/left_Server_1.68.java	2013-03-17 15:47:10.000000000 +0100
++++ t_221070/right_Server_1.69.java	2013-03-17 15:47:10.000000000 +0100
+@@ -2431,7 +2431,6 @@
+                 e.crew.setUnconcious(false);
+             } else {
+                 roundReport.append("fails.");
+-                break;
+             }
+         }
+         if (anyRolls) {

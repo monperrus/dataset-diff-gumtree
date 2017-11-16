@@ -1,0 +1,13 @@
+diff --git a/t_245444/left_SimpleResolver_1.70.java b/t_245444/right_SimpleResolver_1.71.java
+index ab71c08..825c179 100644
+--- a/t_245444/left_SimpleResolver_1.70.java
++++ b/t_245444/right_SimpleResolver_1.71.java
+@@ -204,7 +204,7 @@ send(Message query) throws IOException {
+ 	DatagramPacket dp;
+ 	short udpLength = 512;
+ 
+-	if (Options.check("verbosemsg"))
++	if (Options.check("verbose"))
+ 		System.err.println("Sending to " + addr.getHostAddress() +
+ 				   ":" + port);
+ 

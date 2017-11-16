@@ -1,0 +1,13 @@
+diff --git a/t_247601/left_BaseLocalContainerInvoker_1.2.java b/t_247601/right_BaseLocalContainerInvoker_1.3.java
+index c656182..1be83e4 100644
+--- a/t_247601/left_BaseLocalContainerInvoker_1.2.java
++++ b/t_247601/right_BaseLocalContainerInvoker_1.3.java
+@@ -60,7 +60,7 @@ import org.jboss.metadata.SessionMetaData;
+  *
+  *      @author Daniel OConnor (docodan@mvcsoft.com)
+  */
+-public abstract class BaseLocalContainerInvoker implements LocalContainerInvoker
++public class BaseLocalContainerInvoker implements LocalContainerInvoker
+ {
+    // Attributes ----------------------------------------------------
+    protected Container container;

@@ -1,0 +1,22 @@
+--- t_285270/left_StandardDrawingView_1.26.java	2013-03-17 15:47:04.000000000 +0100
++++ t_285270/right_StandardDrawingView_1.27.java	2013-03-17 15:47:04.000000000 +0100
+@@ -1157,4 +1157,19 @@
+ 		}
+ 	}
+ 
++	/**
++	 * Gets the minimum dimension of the drawing.<br />
++	 * Fixed version (JHotDraw version has a bug).
++	 * @see StandardDrawingView#getMinimumSize()
++	 * @see java.awt.Component#getMinimumSize()
++	 */
++	public Dimension getMinimumSize() {
++		Rectangle r = new Rectangle();
++		FigureEnumeration k = drawing().figures();
++		while (k.hasNextFigure()) {
++			r.add(k.nextFigure().displayBox());
++		}
++		return new Dimension(r.width, r.height);
++	}
++
+ }

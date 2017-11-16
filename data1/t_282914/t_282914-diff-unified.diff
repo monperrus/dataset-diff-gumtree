@@ -1,0 +1,22 @@
+--- t_282914/left_ComponentDefinitionsFactoryWrapper_1.13.java	2013-03-17 15:47:26.000000000 +0100
++++ t_282914/right_ComponentDefinitionsFactoryWrapper_1.14.java	2013-03-17 15:47:26.000000000 +0100
+@@ -1,7 +1,7 @@
+ /*
+- * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/src/share/org/apache/struts/tiles/definition/ComponentDefinitionsFactoryWrapper.java,v 1.13 2004-08-07 04:17:52 martinc Exp $
+- * $Revision: 1.13 $
+- * $Date: 2004-08-07 04:17:52 $
++ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/src/share/org/apache/struts/tiles/definition/ComponentDefinitionsFactoryWrapper.java,v 1.14 2004-08-31 20:41:29 jmitchell Exp $
++ * $Revision: 1.14 $
++ * $Date: 2004-08-31 20:41:29 $
+  *
+  * Copyright 1999-2004 The Apache Software Foundation.
+  * 
+@@ -207,7 +207,7 @@
+ 
+         map.put(
+             DefinitionsFactoryConfig.PARSER_VALIDATE_PARAMETER_NAME,
+-            Boolean.valueOf(config.getParserValidate()).toString());
++            (config.getParserValidate() ? Boolean.TRUE.toString() : Boolean.FALSE.toString()));
+ 
+         if (!"org.apache.struts.tiles.xmlDefinition.I18nFactorySet"
+             .equals(config.getFactoryClassname())) {

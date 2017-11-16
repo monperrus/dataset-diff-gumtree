@@ -1,0 +1,916 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_BaseLocalContainerInvoker_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * JBoss, the OpenSource EJB server<br/>
+ *<br/>
+ * Distributable under LGPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+package org.jboss.ejb.plugins.local;<br/>
+<br/>
+import java.awt.Component;<br/>
+import java.beans.beancontext.BeanContextChildComponentProxy;<br/>
+import java.io.File;<br/>
+import java.io.IOException;<br/>
+import java.lang.reflect.Method;<br/>
+import java.lang.reflect.Constructor;<br/>
+import java.security.Principal;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.Map;<br/>
+import java.util.HashMap;<br/>
+import java.util.Properties;<br/>
+import java.lang.reflect.InvocationHandler;<br/>
+import java.lang.reflect.Proxy;<br/>
+<br/>
+import javax.ejb.EJBMetaData;<br/>
+import javax.ejb.EJBLocalHome;<br/>
+import javax.ejb.EJBLocalObject;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.InitialContext;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.transaction.Transaction;<br/>
+import javax.transaction.TransactionManager;<br/>
+<br/>
+import org.jboss.ejb.MethodInvocation;<br/>
+import org.jboss.ejb.plugins.jrmp.interfaces.RemoteMethodInvocation;<br/>
+<br/>
+import org.jboss.ejb.Container;<br/>
+import org.jboss.ejb.ContainerInvokerContainer;<br/>
+import org.jboss.ejb.Interceptor;<br/>
+import org.jboss.ejb.LocalContainerInvoker;<br/>
+import org.jboss.ejb.plugins.jrmp.interfaces.EJBMetaDataImpl;<br/>
+import org.jboss.ejb.CacheKey;<br/>
+<br/>
+import org.jboss.tm.TransactionPropagationContextFactory;<br/>
+<br/>
+import org.jboss.security.SecurityAssociation;<br/>
+<br/>
+import org.jboss.logging.Logger;<br/>
+<br/>
+import org.jboss.ejb.DeploymentException;<br/>
+import org.jboss.metadata.MetaData;<br/>
+import org.jboss.metadata.EntityMetaData;<br/>
+import org.jboss.metadata.SessionMetaData;<br/>
+<br/>
+<br/>
+/**<br/>
+ *      &lt;description&gt;<br/>
+ *<br/>
+ *      @author Daniel OConnor (docodan@mvcsoft.com)<br/>
+ */<br/>
+public <span class="del">abstract</span> class BaseLocalContainerInvoker implements LocalContainerInvoker<br/>
+{<br/>
+   // Attributes ----------------------------------------------------<br/>
+   protected Container container;<br/>
+   protected String jndiName;<br/>
+   protected TransactionManager transactionManager;<br/>
+   // The home can be one.<br/>
+   protected EJBLocalHome home;<br/>
+   // The Stateless Object can be one.<br/>
+   protected EJBLocalObject statelessObject;<br/>
+<br/>
+   protected Map beanMethodInvokerMap;<br/>
+   protected Map homeMethodInvokerMap;<br/>
+   <br/>
+   // Static --------------------------------------------------------<br/>
+<br/>
+   private static TransactionPropagationContextFactory tpcFactory;<br/>
+<br/>
+   // Constructors --------------------------------------------------<br/>
+<br/>
+   // Public --------------------------------------------------------<br/>
+<br/>
+   <br/>
+   public String getJndiName()<br/>
+   {<br/>
+      return jndiName;<br/>
+   }<br/>
+<br/>
+   // ContainerService implementation -------------------------------<br/>
+   public void setContainer(Container con)<br/>
+   {<br/>
+      this.container = con;<br/>
+   }<br/>
+<br/>
+   public void init()<br/>
+   throws Exception<br/>
+   {<br/>
+      Context ctx = new InitialContext();<br/>
+<br/>
+      jndiName = container.getBeanMetaData().getJndiName();<br/>
+<br/>
+      // Set the transaction manager and transaction propagation<br/>
+      // context factory of the GenericProxy class<br/>
+      transactionManager = ((TransactionManager)ctx.lookup("java:/TransactionManager"));<br/>
+<br/>
+      // Create method mappings for container invoker<br/>
+      Method[] methods = ((ContainerInvokerContainer)container).getLocalClass().getMethods();<br/>
+      beanMethodInvokerMap = new HashMap();<br/>
+      for (int i = 0; i &lt; methods.length; i++)<br/>
+         beanMethodInvokerMap.put(new Long(RemoteMethodInvocation.calculateHash(methods[i])), methods[i]);<br/>
+      <br/>
+      methods = ((ContainerInvokerContainer)container).getLocalHomeClass().getMethods();<br/>
+      homeMethodInvokerMap = new HashMap();<br/>
+      for (int i = 0; i &lt; methods.length; i++)<br/>
+         homeMethodInvokerMap.put(new Long(RemoteMethodInvocation.calculateHash(methods[i])), methods[i]);<br/>
+   }<br/>
+<br/>
+   public void start()<br/>
+   throws Exception<br/>
+   {<br/>
+      // put in the static hashmap<br/>
+   }<br/>
+<br/>
+   public void stop()<br/>
+   {<br/>
+      // remove from the static hashmap<br/>
+   }<br/>
+<br/>
+   public void destroy()<br/>
+   {<br/>
+   }<br/>
+     <br/>
+   <br/>
+   // ContainerInvoker implementation -------------------------------<br/>
+   public EJBLocalHome getEJBLocalHome()<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalHome) Proxy.newProxyInstance( <br/>
+         cic.getLocalHomeClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalHomeClass()}, new HomeProxy() );<br/>
+   }<br/>
+<br/>
+   public EJBLocalObject getStatelessSessionEJBLocalObject()<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalObject) Proxy.newProxyInstance( <br/>
+         cic.getLocalClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalClass()}, new StatelessSessionProxy() );<br/>
+   }<br/>
+<br/>
+   public EJBLocalObject getStatefulSessionEJBLocalObject(Object id)<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalObject) Proxy.newProxyInstance( <br/>
+         cic.getLocalClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalClass()}, new StatefulSessionProxy(id) );<br/>
+   }<br/>
+<br/>
+   public EJBLocalObject getEntityEJBLocalObject(Object id)<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalObject) Proxy.newProxyInstance( <br/>
+         cic.getLocalClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalClass()}, new EntityProxy(id ) );<br/>
+   }<br/>
+<br/>
+   public Collection getEntityLocalCollection(Collection ids)<br/>
+   {<br/>
+      ArrayList list = new ArrayList( ids.size() );<br/>
+      Iterator iter = ids.iterator();<br/>
+      while (iter.hasNext())<br/>
+      {<br/>
+         list.add( getEntityEJBLocalObject(iter.next()) );<br/>
+      }<br/>
+      return list;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Invoke a Home interface method.<br/>
+    */<br/>
+   public Object invokeHome(Method m, Object[] args)<br/>
+   throws Exception<br/>
+   {<br/>
+      // Set the right context classloader<br/>
+      ClassLoader oldCl = Thread.currentThread().getContextClassLoader();<br/>
+      Thread.currentThread().setContextClassLoader(container.getClassLoader());<br/>
+<br/>
+      try<br/>
+      {<br/>
+         return container.invokeHome(new MethodInvocation(null, m, args, <br/>
+            getTransaction(), getPrincipal(), getCredential()));<br/>
+      } finally<br/>
+      {<br/>
+         Thread.currentThread().setContextClassLoader(oldCl);<br/>
+      }<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Return the principal to use for invocations with this proxy.<br/>
+    */<br/>
+   Principal getPrincipal()<br/>
+   {<br/>
+      return SecurityAssociation.getPrincipal();<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Return the credentials to use for invocations with this proxy.<br/>
+    */<br/>
+   Object getCredential()<br/>
+   {<br/>
+      return SecurityAssociation.getCredential();<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Return the transaction associated with the current thread.<br/>
+    *  Returns &lt;code&gt;null&lt;/code&gt; if the transaction manager was never<br/>
+    *  set, or if no transaction is associated with the current thread.<br/>
+    */<br/>
+   Transaction getTransaction()<br/>
+      throws javax.transaction.SystemException<br/>
+   {<br/>
+      return (transactionManager == null) ? null : transactionManager.getTransaction();<br/>
+   }<br/>
+<br/>
+   <br/>
+   /**<br/>
+    *  Invoke a Remote interface method.<br/>
+    */<br/>
+   public Object invoke(Object id, Method m, Object[] args )<br/>
+   throws Exception<br/>
+   {<br/>
+      // Set the right context classloader<br/>
+      ClassLoader oldCl = Thread.currentThread().getContextClassLoader();<br/>
+      Thread.currentThread().setContextClassLoader(container.getClassLoader());<br/>
+<br/>
+      try<br/>
+      {<br/>
+         return container.invoke(new MethodInvocation(id, m, args, getTransaction(), <br/>
+            getPrincipal(), getCredential()));<br/>
+      } finally<br/>
+      {<br/>
+         Thread.currentThread().setContextClassLoader(oldCl);<br/>
+      }<br/>
+   }<br/>
+   <br/>
+    <br/>
+   class HomeProxy extends LocalHomeProxy<br/>
+      implements InvocationHandler<br/>
+   {<br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+<br/>
+       public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+       {<br/>
+          if (args == null)<br/>
+              args = EMPTY_ARGS;<br/>
+          <br/>
+          Object retValue = super.invoke( proxy, m, args );<br/>
+          if (retValue != null)<br/>
+             return retValue;<br/>
+          <br/>
+        else if (m.equals(REMOVE_BY_PRIMARY_KEY)) {<br/>
+            // The trick is simple we trick the container in believe it<br/>
+            // is a remove() on the instance<br/>
+            Object id = new CacheKey(args[0]);<br/>
+            return BaseLocalContainerInvoker.this.invoke(<br/>
+               id, REMOVE_OBJECT, EMPTY_ARGS);<br/>
+        }<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invokeHome(<br/>
+               m, args);<br/>
+          }<br/>
+       }<br/>
+   }<br/>
+<br/>
+   class EntityProxy extends LocalProxy <br/>
+      implements InvocationHandler<br/>
+   {<br/>
+      CacheKey cacheKey;<br/>
+      <br/>
+      EntityProxy( Object id )<br/>
+      {<br/>
+         if (!(id instanceof CacheKey))<br/>
+            id = new CacheKey( id );<br/>
+         cacheKey = (CacheKey) id;<br/>
+      }<br/>
+      <br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return cacheKey.id;<br/>
+       }<br/>
+      <br/>
+      <br/>
+      public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+       {<br/>
+          if (args == null)<br/>
+              args = EMPTY_ARGS;<br/>
+          <br/>
+          Object retValue = super.invoke( proxy, m, args );<br/>
+          if (retValue != null)<br/>
+             return retValue;<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invoke(<br/>
+               cacheKey, m, args);<br/>
+          }<br/>
+       }<br/>
+      <br/>
+    }<br/>
+   <br/>
+   class StatefulSessionProxy extends LocalProxy <br/>
+      implements InvocationHandler<br/>
+   {<br/>
+      Object id;<br/>
+      <br/>
+      StatefulSessionProxy( Object id )<br/>
+      {<br/>
+         this.id = id;<br/>
+      }<br/>
+<br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return id;<br/>
+       }  <br/>
+      <br/>
+      public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+       {<br/>
+          if (args == null)<br/>
+              args = EMPTY_ARGS;<br/>
+          <br/>
+          Object retValue = super.invoke( proxy, m, args );<br/>
+          if (retValue != null)<br/>
+             return retValue;<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invoke(<br/>
+               id, m, args);<br/>
+          }<br/>
+       }<br/>
+   }<br/>
+   <br/>
+   class StatelessSessionProxy extends LocalProxy <br/>
+      implements InvocationHandler<br/>
+   {<br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+      <br/>
+      <br/>
+      public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+     {<br/>
+        if (args == null)<br/>
+           args = EMPTY_ARGS;<br/>
+          <br/>
+       // Implement local methods<br/>
+       if (m.equals(TO_STRING)) {<br/>
+               return jndiName + ":Stateless";<br/>
+       }<br/>
+       else if (m.equals(EQUALS)) {<br/>
+               return invoke(proxy, IS_IDENTICAL, args);<br/>
+       }<br/>
+       else if (m.equals(HASH_CODE)) {<br/>
+               // We base the stateless hash on the hash of the proxy...<br/>
+               // MF XXX: it could be that we want to return the hash of the name?<br/>
+               return new Integer(this.hashCode());<br/>
+       }<br/>
+       else if (m.equals(GET_PRIMARY_KEY)) {<br/>
+               // MF FIXME <br/>
+               // The spec says that SSB PrimaryKeys should not be returned and the call should throw an exception<br/>
+               // However we need to expose the field *somehow* so we can check for "isIdentical"<br/>
+               // For now we use a non-spec compliant implementation and just return the key as is<br/>
+               // See jboss1.0 for the PKHolder and the hack to be spec-compliant and yet solve the problem<br/>
+<br/>
+               // This should be the following call <br/>
+               //throw new RemoteException("Session Beans do not expose their keys, RTFS");<br/>
+<br/>
+               // This is how it can be solved with a PKHolder (extends RemoteException)<br/>
+               // throw new PKHolder("RTFS", name);<br/>
+<br/>
+               // This is non-spec compliant but will do for now<br/>
+               // We can consider the name of the container to be the primary key, since all stateless beans<br/>
+               // are equal within a home<br/>
+               return jndiName;<br/>
+       }<br/>
+        else if (m.equals(GET_EJB_HOME)) {<br/>
+         throw new UnsupportedOperationException();<br/>
+        }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (m.equals(IS_IDENTICAL)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// All stateless beans are identical within a home,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// if the names are equal we are equal<br/>
+            return isIdentical(args[0], jndiName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invoke(<br/>
+               jndiName, m, args);<br/>
+          }<br/>
+       }<br/>
+   }<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_BaseLocalContainerInvoker_1.3.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * JBoss, the OpenSource EJB server<br/>
+ *<br/>
+ * Distributable under LGPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+package org.jboss.ejb.plugins.local;<br/>
+<br/>
+import java.awt.Component;<br/>
+import java.beans.beancontext.BeanContextChildComponentProxy;<br/>
+import java.io.File;<br/>
+import java.io.IOException;<br/>
+import java.lang.reflect.Method;<br/>
+import java.lang.reflect.Constructor;<br/>
+import java.security.Principal;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.Map;<br/>
+import java.util.HashMap;<br/>
+import java.util.Properties;<br/>
+import java.lang.reflect.InvocationHandler;<br/>
+import java.lang.reflect.Proxy;<br/>
+<br/>
+import javax.ejb.EJBMetaData;<br/>
+import javax.ejb.EJBLocalHome;<br/>
+import javax.ejb.EJBLocalObject;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.InitialContext;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.transaction.Transaction;<br/>
+import javax.transaction.TransactionManager;<br/>
+<br/>
+import org.jboss.ejb.MethodInvocation;<br/>
+import org.jboss.ejb.plugins.jrmp.interfaces.RemoteMethodInvocation;<br/>
+<br/>
+import org.jboss.ejb.Container;<br/>
+import org.jboss.ejb.ContainerInvokerContainer;<br/>
+import org.jboss.ejb.Interceptor;<br/>
+import org.jboss.ejb.LocalContainerInvoker;<br/>
+import org.jboss.ejb.plugins.jrmp.interfaces.EJBMetaDataImpl;<br/>
+import org.jboss.ejb.CacheKey;<br/>
+<br/>
+import org.jboss.tm.TransactionPropagationContextFactory;<br/>
+<br/>
+import org.jboss.security.SecurityAssociation;<br/>
+<br/>
+import org.jboss.logging.Logger;<br/>
+<br/>
+import org.jboss.ejb.DeploymentException;<br/>
+import org.jboss.metadata.MetaData;<br/>
+import org.jboss.metadata.EntityMetaData;<br/>
+import org.jboss.metadata.SessionMetaData;<br/>
+<br/>
+<br/>
+/**<br/>
+ *      &lt;description&gt;<br/>
+ *<br/>
+ *      @author Daniel OConnor (docodan@mvcsoft.com)<br/>
+ */<br/>
+public class BaseLocalContainerInvoker implements LocalContainerInvoker<br/>
+{<br/>
+   // Attributes ----------------------------------------------------<br/>
+   protected Container container;<br/>
+   protected String jndiName;<br/>
+   protected TransactionManager transactionManager;<br/>
+   // The home can be one.<br/>
+   protected EJBLocalHome home;<br/>
+   // The Stateless Object can be one.<br/>
+   protected EJBLocalObject statelessObject;<br/>
+<br/>
+   protected Map beanMethodInvokerMap;<br/>
+   protected Map homeMethodInvokerMap;<br/>
+   <br/>
+   // Static --------------------------------------------------------<br/>
+<br/>
+   private static TransactionPropagationContextFactory tpcFactory;<br/>
+<br/>
+   // Constructors --------------------------------------------------<br/>
+<br/>
+   // Public --------------------------------------------------------<br/>
+<br/>
+   <br/>
+   public String getJndiName()<br/>
+   {<br/>
+      return jndiName;<br/>
+   }<br/>
+<br/>
+   // ContainerService implementation -------------------------------<br/>
+   public void setContainer(Container con)<br/>
+   {<br/>
+      this.container = con;<br/>
+   }<br/>
+<br/>
+   public void init()<br/>
+   throws Exception<br/>
+   {<br/>
+      Context ctx = new InitialContext();<br/>
+<br/>
+      jndiName = container.getBeanMetaData().getJndiName();<br/>
+<br/>
+      // Set the transaction manager and transaction propagation<br/>
+      // context factory of the GenericProxy class<br/>
+      transactionManager = ((TransactionManager)ctx.lookup("java:/TransactionManager"));<br/>
+<br/>
+      // Create method mappings for container invoker<br/>
+      Method[] methods = ((ContainerInvokerContainer)container).getLocalClass().getMethods();<br/>
+      beanMethodInvokerMap = new HashMap();<br/>
+      for (int i = 0; i &lt; methods.length; i++)<br/>
+         beanMethodInvokerMap.put(new Long(RemoteMethodInvocation.calculateHash(methods[i])), methods[i]);<br/>
+      <br/>
+      methods = ((ContainerInvokerContainer)container).getLocalHomeClass().getMethods();<br/>
+      homeMethodInvokerMap = new HashMap();<br/>
+      for (int i = 0; i &lt; methods.length; i++)<br/>
+         homeMethodInvokerMap.put(new Long(RemoteMethodInvocation.calculateHash(methods[i])), methods[i]);<br/>
+   }<br/>
+<br/>
+   public void start()<br/>
+   throws Exception<br/>
+   {<br/>
+      // put in the static hashmap<br/>
+   }<br/>
+<br/>
+   public void stop()<br/>
+   {<br/>
+      // remove from the static hashmap<br/>
+   }<br/>
+<br/>
+   public void destroy()<br/>
+   {<br/>
+   }<br/>
+     <br/>
+   <br/>
+   // ContainerInvoker implementation -------------------------------<br/>
+   public EJBLocalHome getEJBLocalHome()<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalHome) Proxy.newProxyInstance( <br/>
+         cic.getLocalHomeClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalHomeClass()}, new HomeProxy() );<br/>
+   }<br/>
+<br/>
+   public EJBLocalObject getStatelessSessionEJBLocalObject()<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalObject) Proxy.newProxyInstance( <br/>
+         cic.getLocalClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalClass()}, new StatelessSessionProxy() );<br/>
+   }<br/>
+<br/>
+   public EJBLocalObject getStatefulSessionEJBLocalObject(Object id)<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalObject) Proxy.newProxyInstance( <br/>
+         cic.getLocalClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalClass()}, new StatefulSessionProxy(id) );<br/>
+   }<br/>
+<br/>
+   public EJBLocalObject getEntityEJBLocalObject(Object id)<br/>
+   {<br/>
+      ContainerInvokerContainer cic = (ContainerInvokerContainer) container;<br/>
+      return (EJBLocalObject) Proxy.newProxyInstance( <br/>
+         cic.getLocalClass().getClassLoader(),<br/>
+         new Class[]{cic.getLocalClass()}, new EntityProxy(id ) );<br/>
+   }<br/>
+<br/>
+   public Collection getEntityLocalCollection(Collection ids)<br/>
+   {<br/>
+      ArrayList list = new ArrayList( ids.size() );<br/>
+      Iterator iter = ids.iterator();<br/>
+      while (iter.hasNext())<br/>
+      {<br/>
+         list.add( getEntityEJBLocalObject(iter.next()) );<br/>
+      }<br/>
+      return list;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Invoke a Home interface method.<br/>
+    */<br/>
+   public Object invokeHome(Method m, Object[] args)<br/>
+   throws Exception<br/>
+   {<br/>
+      // Set the right context classloader<br/>
+      ClassLoader oldCl = Thread.currentThread().getContextClassLoader();<br/>
+      Thread.currentThread().setContextClassLoader(container.getClassLoader());<br/>
+<br/>
+      try<br/>
+      {<br/>
+         return container.invokeHome(new MethodInvocation(null, m, args, <br/>
+            getTransaction(), getPrincipal(), getCredential()));<br/>
+      } finally<br/>
+      {<br/>
+         Thread.currentThread().setContextClassLoader(oldCl);<br/>
+      }<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Return the principal to use for invocations with this proxy.<br/>
+    */<br/>
+   Principal getPrincipal()<br/>
+   {<br/>
+      return SecurityAssociation.getPrincipal();<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Return the credentials to use for invocations with this proxy.<br/>
+    */<br/>
+   Object getCredential()<br/>
+   {<br/>
+      return SecurityAssociation.getCredential();<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    *  Return the transaction associated with the current thread.<br/>
+    *  Returns &lt;code&gt;null&lt;/code&gt; if the transaction manager was never<br/>
+    *  set, or if no transaction is associated with the current thread.<br/>
+    */<br/>
+   Transaction getTransaction()<br/>
+      throws javax.transaction.SystemException<br/>
+   {<br/>
+      return (transactionManager == null) ? null : transactionManager.getTransaction();<br/>
+   }<br/>
+<br/>
+   <br/>
+   /**<br/>
+    *  Invoke a Remote interface method.<br/>
+    */<br/>
+   public Object invoke(Object id, Method m, Object[] args )<br/>
+   throws Exception<br/>
+   {<br/>
+      // Set the right context classloader<br/>
+      ClassLoader oldCl = Thread.currentThread().getContextClassLoader();<br/>
+      Thread.currentThread().setContextClassLoader(container.getClassLoader());<br/>
+<br/>
+      try<br/>
+      {<br/>
+         return container.invoke(new MethodInvocation(id, m, args, getTransaction(), <br/>
+            getPrincipal(), getCredential()));<br/>
+      } finally<br/>
+      {<br/>
+         Thread.currentThread().setContextClassLoader(oldCl);<br/>
+      }<br/>
+   }<br/>
+   <br/>
+    <br/>
+   class HomeProxy extends LocalHomeProxy<br/>
+      implements InvocationHandler<br/>
+   {<br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+<br/>
+       public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+       {<br/>
+          if (args == null)<br/>
+              args = EMPTY_ARGS;<br/>
+          <br/>
+          Object retValue = super.invoke( proxy, m, args );<br/>
+          if (retValue != null)<br/>
+             return retValue;<br/>
+          <br/>
+        else if (m.equals(REMOVE_BY_PRIMARY_KEY)) {<br/>
+            // The trick is simple we trick the container in believe it<br/>
+            // is a remove() on the instance<br/>
+            Object id = new CacheKey(args[0]);<br/>
+            return BaseLocalContainerInvoker.this.invoke(<br/>
+               id, REMOVE_OBJECT, EMPTY_ARGS);<br/>
+        }<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invokeHome(<br/>
+               m, args);<br/>
+          }<br/>
+       }<br/>
+   }<br/>
+<br/>
+   class EntityProxy extends LocalProxy <br/>
+      implements InvocationHandler<br/>
+   {<br/>
+      CacheKey cacheKey;<br/>
+      <br/>
+      EntityProxy( Object id )<br/>
+      {<br/>
+         if (!(id instanceof CacheKey))<br/>
+            id = new CacheKey( id );<br/>
+         cacheKey = (CacheKey) id;<br/>
+      }<br/>
+      <br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return cacheKey.id;<br/>
+       }<br/>
+      <br/>
+      <br/>
+      public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+       {<br/>
+          if (args == null)<br/>
+              args = EMPTY_ARGS;<br/>
+          <br/>
+          Object retValue = super.invoke( proxy, m, args );<br/>
+          if (retValue != null)<br/>
+             return retValue;<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invoke(<br/>
+               cacheKey, m, args);<br/>
+          }<br/>
+       }<br/>
+      <br/>
+    }<br/>
+   <br/>
+   class StatefulSessionProxy extends LocalProxy <br/>
+      implements InvocationHandler<br/>
+   {<br/>
+      Object id;<br/>
+      <br/>
+      StatefulSessionProxy( Object id )<br/>
+      {<br/>
+         this.id = id;<br/>
+      }<br/>
+<br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return id;<br/>
+       }  <br/>
+      <br/>
+      public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+       {<br/>
+          if (args == null)<br/>
+              args = EMPTY_ARGS;<br/>
+          <br/>
+          Object retValue = super.invoke( proxy, m, args );<br/>
+          if (retValue != null)<br/>
+             return retValue;<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invoke(<br/>
+               id, m, args);<br/>
+          }<br/>
+       }<br/>
+   }<br/>
+   <br/>
+   class StatelessSessionProxy extends LocalProxy <br/>
+      implements InvocationHandler<br/>
+   {<br/>
+       protected String getJndiName()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+       <br/>
+       protected Object getId()<br/>
+       {<br/>
+           return jndiName;<br/>
+       }<br/>
+      <br/>
+      <br/>
+      public final Object invoke(final Object proxy,<br/>
+                               final Method m,<br/>
+                               Object[] args)<br/>
+        throws Throwable<br/>
+     {<br/>
+        if (args == null)<br/>
+           args = EMPTY_ARGS;<br/>
+          <br/>
+       // Implement local methods<br/>
+       if (m.equals(TO_STRING)) {<br/>
+               return jndiName + ":Stateless";<br/>
+       }<br/>
+       else if (m.equals(EQUALS)) {<br/>
+               return invoke(proxy, IS_IDENTICAL, args);<br/>
+       }<br/>
+       else if (m.equals(HASH_CODE)) {<br/>
+               // We base the stateless hash on the hash of the proxy...<br/>
+               // MF XXX: it could be that we want to return the hash of the name?<br/>
+               return new Integer(this.hashCode());<br/>
+       }<br/>
+       else if (m.equals(GET_PRIMARY_KEY)) {<br/>
+               // MF FIXME <br/>
+               // The spec says that SSB PrimaryKeys should not be returned and the call should throw an exception<br/>
+               // However we need to expose the field *somehow* so we can check for "isIdentical"<br/>
+               // For now we use a non-spec compliant implementation and just return the key as is<br/>
+               // See jboss1.0 for the PKHolder and the hack to be spec-compliant and yet solve the problem<br/>
+<br/>
+               // This should be the following call <br/>
+               //throw new RemoteException("Session Beans do not expose their keys, RTFS");<br/>
+<br/>
+               // This is how it can be solved with a PKHolder (extends RemoteException)<br/>
+               // throw new PKHolder("RTFS", name);<br/>
+<br/>
+               // This is non-spec compliant but will do for now<br/>
+               // We can consider the name of the container to be the primary key, since all stateless beans<br/>
+               // are equal within a home<br/>
+               return jndiName;<br/>
+       }<br/>
+        else if (m.equals(GET_EJB_HOME)) {<br/>
+         throw new UnsupportedOperationException();<br/>
+        }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (m.equals(IS_IDENTICAL)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// All stateless beans are identical within a home,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// if the names are equal we are equal<br/>
+            return isIdentical(args[0], jndiName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+          // If not taken care of, go on and call the container<br/>
+          else {<br/>
+              return BaseLocalContainerInvoker.this.invoke(<br/>
+               jndiName, m, args);<br/>
+          }<br/>
+       }<br/>
+   }<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+diff --git a/t_230084/left_EditingOptionPane_1.13.java b/t_230084/right_EditingOptionPane_1.14.java
+index 1141531..635d235 100644
+--- a/t_230084/left_EditingOptionPane_1.13.java
++++ b/t_230084/right_EditingOptionPane_1.14.java
+@@ -244,7 +244,7 @@ public class EditingOptionPane extends AbstractOptionPane
+ 			}
+ 			else if(evt.getSource() == useDefaults)
+ 			{
+-				modeProps[mode.getSelectedIndex()].useDefaults =
++				modeProps[mode.getSelectedIndex() - 1].useDefaults =
+ 					useDefaults.isSelected();
+ 				updateEnabled();
+ 			}

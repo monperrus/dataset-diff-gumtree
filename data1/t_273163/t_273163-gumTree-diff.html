@@ -1,0 +1,1169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_FastViewPane_1.37.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2004 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials <br/>
+ * are made available under the terms of the Common Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/cpl-v10.html<br/>
+ * <br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.internal;<br/>
+<br/>
+import org.eclipse.jface.action.ContributionItem;<br/>
+import org.eclipse.jface.action.IContributionItem;<br/>
+import org.eclipse.jface.action.IMenuManager;<br/>
+import org.eclipse.jface.util.Geometry;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.events.FocusAdapter;<br/>
+import org.eclipse.swt.events.FocusEvent;<br/>
+import org.eclipse.swt.events.KeyAdapter;<br/>
+import org.eclipse.swt.events.KeyEvent;<br/>
+import org.eclipse.swt.events.KeyListener;<br/>
+import org.eclipse.swt.events.SelectionAdapter;<br/>
+import org.eclipse.swt.events.SelectionEvent;<br/>
+import org.eclipse.swt.graphics.Point;<br/>
+import org.eclipse.swt.graphics.Rectangle;<br/>
+import org.eclipse.swt.widgets.Composite;<br/>
+import org.eclipse.swt.widgets.Control;<br/>
+import org.eclipse.swt.widgets.Display;<br/>
+import org.eclipse.swt.widgets.Event;<br/>
+import org.eclipse.swt.widgets.Listener;<br/>
+import org.eclipse.swt.widgets.Sash;<br/>
+import org.eclipse.swt.widgets.ToolBar;<br/>
+import org.eclipse.ui.internal.dnd.DragUtil;<br/>
+import org.eclipse.ui.internal.presentations.SystemMenuFastView;<br/>
+import org.eclipse.ui.internal.presentations.SystemMenuFastViewOrientation;<br/>
+import org.eclipse.ui.internal.presentations.SystemMenuSizeFastView;<br/>
+import org.eclipse.ui.internal.presentations.UpdatingActionContributionItem;<br/>
+import org.eclipse.ui.presentations.AbstractPresentationFactory;<br/>
+import org.eclipse.ui.presentations.IPresentablePart;<br/>
+import org.eclipse.ui.presentations.IStackPresentationSite;<br/>
+import org.eclipse.ui.presentations.StackPresentation;<br/>
+<br/>
+/**<br/>
+ * Handles the presentation of an active fastview. A fast view pane docks to one side of a<br/>
+ * parent composite, and is capable of displaying a single view. The view may be resized.<br/>
+ * Displaying a new view will hide any view currently being displayed in the pane. <br/>
+ * <br/>
+ * Currently, the fast view pane does not own or contain the view. It only controls the view's <br/>
+ * position and visibility.  <br/>
+ * <br/>
+ * @see org.ecliplse.ui.internal.FastViewBar<br/>
+ */<br/>
+public class FastViewPane {<br/>
+    private int side = SWT.LEFT;<br/>
+<br/>
+    private ViewPane currentPane;<br/>
+<br/>
+    private Composite clientComposite;<br/>
+<br/>
+    private static final int SASH_SIZE = 3;<br/>
+<br/>
+    private int minSize = 10;<br/>
+<br/>
+    private int size;<br/>
+<br/>
+    private Sash sash;<br/>
+<br/>
+    // Traverse listener -- listens to ESC and closes the active fastview <br/>
+    private Listener escapeListener = new Listener() {<br/>
+        public void handleEvent(Event event) {<br/>
+            if (event.character == SWT.ESC) {<br/>
+                if (currentPane != null) {<br/>
+                    currentPane.getPage().hideFastView();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private DefaultStackPresentationSite site = new DefaultStackPresentationSite() {<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.ui.internal.skins.IPresentationSite#setState(int)<br/>
+         */<br/>
+        public void setState(int newState) {<br/>
+            super.setState(newState);<br/>
+            ViewPane pane = currentPane;<br/>
+            switch (newState) {<br/>
+            case IStackPresentationSite.STATE_MINIMIZED:<br/>
+                currentPane.getPage().hideFastView();<br/>
+                break;<br/>
+            case IStackPresentationSite.STATE_MAXIMIZED:<br/>
+                pane.setZoomed(true);<br/>
+                sash.setVisible(false);<br/>
+                getPresentation().setBounds(getBounds());<br/>
+                break;<br/>
+            case IStackPresentationSite.STATE_RESTORED:<br/>
+                pane.setZoomed(false);<br/>
+                sash.setVisible(true);<br/>
+                getPresentation().setBounds(getBounds());<br/>
+                break;<br/>
+            default:<br/>
+            }<br/>
+        }<br/>
+<br/>
+        public void close(IPresentablePart part) {<br/>
+            if (!isCloseable(part)) {<br/>
+                return;<br/>
+            }<br/>
+            currentPane.getPage().hideView(currentPane.getViewReference());<br/>
+        }<br/>
+<br/>
+        public void close(IPresentablePart[] parts) {<br/>
+            for (int idx = 0; idx &lt; parts.length; idx++) {<br/>
+                close(parts[idx]);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.ui.internal.skins.IPresentationSite#dragStart(org.eclipse.ui.internal.skins.IPresentablePart, boolean)<br/>
+         */<br/>
+        public void dragStart(IPresentablePart beingDragged,<br/>
+                Point initialPosition, boolean keyboard) {<br/>
+            dragStart(initialPosition, keyboard);<br/>
+        }<br/>
+<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.ui.internal.skins.IPresentationSite#dragStart(boolean)<br/>
+         */<br/>
+        public void dragStart(Point initialPosition, boolean keyboard) {<br/>
+            if (!isPartMoveable())<br/>
+                return;<br/>
+<br/>
+            ViewPane pane = currentPane;<br/>
+<br/>
+            Control control = getPresentation().getControl();<br/>
+<br/>
+            Rectangle bounds = Geometry.toDisplay(clientComposite, control<br/>
+                    .getBounds());<br/>
+<br/>
+            WorkbenchPage page = currentPane.getPage();<br/>
+<br/>
+            Perspective persp = page.getActivePerspective();<br/>
+<br/>
+            page.hideFastView();<br/>
+            if (page.isZoomed()) {<br/>
+                page.zoomOut();<br/>
+            }<br/>
+<br/>
+            DragUtil.performDrag(pane, bounds, initialPosition, !keyboard);<br/>
+        }<br/>
+<br/>
+        public IPresentablePart getSelectedPart() {<br/>
+            if (currentPane == null) {<br/>
+                return null;<br/>
+            }<br/>
+            return currentPane.getPresentablePart();<br/>
+        }<br/>
+<br/>
+        public void addSystemActions(IMenuManager menuManager) {<br/>
+            appendToGroupIfPossible(menuManager,<br/>
+                    "misc", new SystemMenuFastViewOrientation(currentPane)); //$NON-NLS-1$<br/>
+            appendToGroupIfPossible(menuManager,<br/>
+                    "misc", new UpdatingActionContributionItem(fastViewAction)); //$NON-NLS-1$<br/>
+            appendToGroupIfPossible(menuManager,<br/>
+                    "size", new SystemMenuSizeFastView(FastViewPane.this)); //$NON-NLS-1$<br/>
+        }<br/>
+<br/>
+        public boolean isCloseable(IPresentablePart toClose) {<br/>
+            if (currentPane == null)<br/>
+                return true;<br/>
+            Perspective perspective = currentPane.getPage()<br/>
+                    .getActivePerspective();<br/>
+            if (perspective == null) {<br/>
+                // Shouldn't happen -- can't have a FastViewPane without a perspective<br/>
+                return true;<br/>
+            }<br/>
+            return perspective.isCloseable(currentPane.getViewReference());<br/>
+        }<br/>
+<br/>
+        public boolean isPartMoveable(IPresentablePart toMove) {<br/>
+            return isPartMoveable();<br/>
+        }<br/>
+<br/>
+        public boolean isStackMoveable() {<br/>
+            // a fast view stack is moveable iff its part is moveable<br/>
+            return isPartMoveable();<br/>
+        }<br/>
+<br/>
+        private boolean isPartMoveable() {<br/>
+            if (currentPane == null)<br/>
+                return false;<br/>
+            Perspective perspective = currentPane.getPage()<br/>
+                    .getActivePerspective();<br/>
+            if (perspective == null) {<br/>
+                // Shouldn't happen -- can't have a FastViewPane without a perspective<br/>
+                return false;<br/>
+            }<br/>
+            return perspective.isMoveable(currentPane.getViewReference());<br/>
+        }<br/>
+<br/>
+        public boolean supportsState(int newState) {<br/>
+            if (currentPane == null)<br/>
+                return false;<br/>
+            if (currentPane.getPage().isFixedLayout())<br/>
+                return false;<br/>
+            return true;<br/>
+        }<br/>
+<br/>
+    };<br/>
+<br/>
+    private SystemMenuFastView fastViewAction = new SystemMenuFastView(site);<br/>
+<br/>
+    private static void appendToGroupIfPossible(IMenuManager m, String groupId,<br/>
+            ContributionItem item) {<br/>
+        try {<br/>
+            m.appendToGroup(groupId, item);<br/>
+        } catch (IllegalArgumentException e) {<br/>
+            m.add(item);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private Listener mouseDownListener = new Listener() {<br/>
+        public void handleEvent(Event event) {<br/>
+            if (event.widget instanceof Control) {<br/>
+                Control control = (Control) event.widget;<br/>
+<br/>
+                if (control.getShell() != clientComposite.getShell()) {<br/>
+                    return;<br/>
+                }<br/>
+<br/>
+                if (event.widget instanceof ToolBar) {<br/>
+                    // Ignore mouse down on actual tool bar buttons<br/>
+                    Point pt = new Point(event.x, event.y);<br/>
+                    ToolBar toolBar = (ToolBar) event.widget;<br/>
+                    if (toolBar.getItem(pt) != null)<br/>
+                        return;<br/>
+                }<br/>
+<br/>
+                Point loc = DragUtil.getEventLoc(event);<br/>
+<br/>
+                Rectangle bounds = DragUtil.getDisplayBounds(clientComposite);<br/>
+                if (site.getState() != IStackPresentationSite.STATE_MAXIMIZED) {<br/>
+                    bounds = Geometry.getExtrudedEdge(bounds, size + SASH_SIZE,<br/>
+                            side);<br/>
+                }<br/>
+<br/>
+                if (!bounds.contains(loc)) {<br/>
+                    site.setState(IStackPresentationSite.STATE_MINIMIZED);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private IContributionItem systemMenuContribution;<br/>
+<br/>
+    public void moveSash() {<br/>
+        final KeyListener listener = new KeyAdapter() {<br/>
+            public void keyPressed(KeyEvent e) {<br/>
+                if (e.character == SWT.ESC || e.character == '\r') {<br/>
+                    currentPane.setFocus();<br/>
+                }<br/>
+            }<br/>
+        };<br/>
+        sash.addFocusListener(new FocusAdapter() {<br/>
+            public void focusGained(FocusEvent e) {<br/>
+                sash.setBackground(sash.getDisplay().getSystemColor(<br/>
+                        SWT.COLOR_LIST_SELECTION));<br/>
+                sash.addKeyListener(listener);<br/>
+            }<br/>
+<br/>
+            public void focusLost(FocusEvent e) {<br/>
+                sash.setBackground(null);<br/>
+                sash.removeKeyListener(listener);<br/>
+            }<br/>
+        });<br/>
+        sash.setFocus();<br/>
+    }<br/>
+<br/>
+    private Listener resizeListener = new Listener() {<br/>
+        public void handleEvent(Event event) {<br/>
+            if (event.type == SWT.Resize &amp;&amp; currentPane != null) {<br/>
+                setSize(size);<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private SelectionAdapter selectionListener = new SelectionAdapter() {<br/>
+        public void widgetSelected(SelectionEvent e) {<br/>
+<br/>
+            if (currentPane != null) {<br/>
+                Rectangle bounds = clientComposite.getClientArea();<br/>
+                Point location = new Point(e.x, e.y);<br/>
+                int distanceFromEdge = Geometry.getDistanceFromEdge(bounds,<br/>
+                        location, side);<br/>
+<br/>
+                if (!(side == SWT.TOP || side == SWT.LEFT)) {<br/>
+                    distanceFromEdge -= SASH_SIZE;<br/>
+                }<br/>
+<br/>
+                setSize(distanceFromEdge);<br/>
+<br/>
+                if (e.detail != SWT.DRAG) {<br/>
+                    updateFastViewSashBounds();<br/>
+                    //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getPresentation().getControl().moveAbove(null);<br/>
+                    //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentPane.moveAbove(null); <br/>
+                    //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sash.moveAbove(null);<br/>
+                    //currentPane.getControl().redraw();<br/>
+                    sash.redraw();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private void setSize(int size) {<br/>
+<br/>
+        if (size &lt; minSize) {<br/>
+            size = minSize;<br/>
+        }<br/>
+        this.size = size;<br/>
+<br/>
+        StackPresentation presentation = getPresentation();<br/>
+        if (presentation == null || presentation.getControl().isDisposed()) {<br/>
+            return;<br/>
+        }<br/>
+        getPresentation().setBounds(getBounds());<br/>
+        updateFastViewSashBounds();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the current fastview size ratio. Returns 0.0 if there is no fastview visible.<br/>
+     * <br/>
+     * @return<br/>
+     */<br/>
+    public float getCurrentRatio() {<br/>
+        if (currentPane == null) {<br/>
+            return 0.0f;<br/>
+        }<br/>
+<br/>
+        boolean isVertical = !Geometry.isHorizontal(side);<br/>
+        Rectangle clientArea = clientComposite.getClientArea();<br/>
+<br/>
+        int clientSize = Geometry.getDimension(clientArea, isVertical);<br/>
+<br/>
+        return (float) size / (float) clientSize;<br/>
+    }<br/>
+<br/>
+    private Rectangle getClientArea() {<br/>
+        return clientComposite.getClientArea();<br/>
+    }<br/>
+<br/>
+    private Rectangle getBounds() {<br/>
+        Rectangle bounds = getClientArea();<br/>
+<br/>
+        if (site.getState() == IStackPresentationSite.STATE_MAXIMIZED) {<br/>
+            return bounds;<br/>
+        }<br/>
+<br/>
+        boolean horizontal = Geometry.isHorizontal(side);<br/>
+<br/>
+        int available = Geometry.getDimension(bounds, !horizontal);<br/>
+<br/>
+        return Geometry.getExtrudedEdge(bounds, Math.min(<br/>
+                FastViewPane.this.size, available), side);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Displays the given view as a fastview. The view will be docked to the edge of the<br/>
+     * given composite until it is subsequently hidden by a call to hideFastView. <br/>
+     * <br/>
+     * @param newClientComposite<br/>
+     * @param pane<br/>
+     * @param newSide<br/>
+     */<br/>
+    public void showView(Composite newClientComposite, ViewPane pane,<br/>
+            int newSide, float sizeRatio) {<br/>
+        side = newSide;<br/>
+<br/>
+        if (currentPane != null) {<br/>
+            hideView();<br/>
+        }<br/>
+<br/>
+        currentPane = pane;<br/>
+<br/>
+        fastViewAction.setPane(currentPane);<br/>
+        clientComposite = newClientComposite;<br/>
+<br/>
+        clientComposite.addListener(SWT.Resize, resizeListener);<br/>
+<br/>
+        // Create the control first<br/>
+        Control ctrl = pane.getControl();<br/>
+        if (ctrl == null) {<br/>
+            pane.createControl(clientComposite);<br/>
+            ctrl = pane.getControl();<br/>
+        }<br/>
+<br/>
+        ctrl.addListener(SWT.Traverse, escapeListener);<br/>
+<br/>
+        // Temporarily use the same appearance as docked views .. eventually, fastviews will<br/>
+        // be independently pluggable.<br/>
+        AbstractPresentationFactory factory = ((WorkbenchWindow) pane<br/>
+                .getWorkbenchWindow()).getWindowConfigurer()<br/>
+                .getPresentationFactory();<br/>
+        StackPresentation presentation = factory.createViewPresentation(<br/>
+                newClientComposite, site);<br/>
+<br/>
+        site.setPresentation(presentation);<br/>
+        site.setPresentationState(IStackPresentationSite.STATE_RESTORED);<br/>
+        presentation.addPart(pane.getPresentablePart(), null);<br/>
+        presentation.selectPart(pane.getPresentablePart());<br/>
+        presentation.setActive(StackPresentation.AS_ACTIVE_FOCUS);<br/>
+        presentation.setVisible(true);<br/>
+<br/>
+        Point minimumPresentationSize = presentation.computeMinimumSize();<br/>
+        minSize = Geometry.isHorizontal(side) ? minimumPresentationSize.y<br/>
+                : minimumPresentationSize.x;<br/>
+<br/>
+        // Show pane fast.<br/>
+        ctrl.setEnabled(true); // Add focus support.<br/>
+        Composite parent = ctrl.getParent();<br/>
+<br/>
+        <span class="del"><span class="del"><span class="del">pane</span>.<span class="del">setVisible</span>(<span class="del">true</span>)</span>;</span><br/>
+        pane.setFocus();<br/>
+<br/>
+        boolean horizontal = Geometry.isHorizontal(side);<br/>
+        sash = new Sash(parent, Geometry<br/>
+                .getSwtHorizontalOrVerticalConstant(horizontal));<br/>
+<br/>
+        sash.addSelectionListener(selectionListener);<br/>
+<br/>
+        Rectangle clientArea = newClientComposite.getClientArea();<br/>
+<br/>
+        getPresentation().getControl().moveAbove(null);<br/>
+        currentPane.moveAbove(null);<br/>
+        sash.moveAbove(null);<br/>
+<br/>
+        setSize((int) (Geometry.getDimension(clientArea, !horizontal) * sizeRatio));<br/>
+<br/>
+        Display display = sash.getDisplay();<br/>
+<br/>
+        display.addFilter(SWT.MouseDown, mouseDownListener);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Updates the position of the resize sash.<br/>
+     * <br/>
+     * @param bounds<br/>
+     */<br/>
+    private void updateFastViewSashBounds() {<br/>
+        Rectangle bounds = getBounds();<br/>
+<br/>
+        int oppositeSide = Geometry.getOppositeSide(side);<br/>
+        Rectangle newBounds = Geometry.getExtrudedEdge(bounds, -SASH_SIZE,<br/>
+                oppositeSide);<br/>
+<br/>
+        Rectangle oldBounds = sash.getBounds();<br/>
+<br/>
+        if (!newBounds.equals(oldBounds)) {<br/>
+            sash.setBounds(newBounds);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Disposes of any active widgetry being used for the fast view pane. Does not dispose<br/>
+     * of the view itself.<br/>
+     */<br/>
+    public void dispose() {<br/>
+        hideView();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the bounding rectangle for the currently visible fastview, given the rectangle<br/>
+     * in which the fastview can dock. <br/>
+     * <br/>
+     * @param clientArea<br/>
+     * @param ratio<br/>
+     * @param orientation<br/>
+     * @return<br/>
+     */<br/>
+    private Rectangle getFastViewBounds() {<br/>
+        Rectangle clientArea = clientComposite.getClientArea();<br/>
+<br/>
+        boolean isVertical = !Geometry.isHorizontal(side);<br/>
+        int clientSize = Geometry.getDimension(clientArea, isVertical);<br/>
+        int viewSize = Math.min(Geometry.getDimension(getBounds(), isVertical),<br/>
+                clientSize - minSize);<br/>
+<br/>
+        return Geometry.getExtrudedEdge(clientArea, viewSize, side);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return<br/>
+     */<br/>
+    private StackPresentation getPresentation() {<br/>
+        return site.getPresentation();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Hides the sash for the fastview if it is currently visible. This method may not be<br/>
+     * required anymore, and might be removed from the public interface.<br/>
+     */<br/>
+    public void hideFastViewSash() {<br/>
+        if (sash != null) {<br/>
+            sash.setVisible(false);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Hides the currently visible fastview.<br/>
+     */<br/>
+    public void hideView() {<br/>
+<br/>
+        if (clientComposite != null) {<br/>
+            Display display = clientComposite.getDisplay();<br/>
+<br/>
+            display.removeFilter(SWT.MouseDown, mouseDownListener);<br/>
+        }<br/>
+<br/>
+        if (currentPane == null) {<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        //unzoom before hiding<br/>
+        currentPane.setZoomed(false);<br/>
+<br/>
+        if (sash != null) {<br/>
+            sash.dispose();<br/>
+            sash = null;<br/>
+        }<br/>
+<br/>
+        clientComposite.removeListener(SWT.Resize, resizeListener);<br/>
+<br/>
+        // Get pane.<br/>
+        // Hide the right side sash first<br/>
+        //hideFastViewSash();<br/>
+        Control ctrl = currentPane.getControl();<br/>
+<br/>
+        ctrl.removeListener(SWT.Traverse, escapeListener);<br/>
+<br/>
+        // Hide it completely.<br/>
+        getPresentation().setVisible(false);<br/>
+        site.dispose();<br/>
+        //currentPane.setFastViewSash(null);<br/>
+        ctrl.setEnabled(false); // Remove focus support.<br/>
+<br/>
+        currentPane = null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Returns the currently visible fastview or null if none<br/>
+     */<br/>
+    public ViewPane getCurrentPane() {<br/>
+        return currentPane;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Zooms or unzooms the fast view pane.<br/>
+     *<br/>
+     */<br/>
+    public void toggleZoom() {<br/>
+        if (site.getState() == IStackPresentationSite.STATE_MAXIMIZED) {<br/>
+            site.setState(IStackPresentationSite.STATE_RESTORED);<br/>
+        } else {<br/>
+            site.setState(IStackPresentationSite.STATE_MAXIMIZED);<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_FastViewPane_1.38.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2004 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials <br/>
+ * are made available under the terms of the Common Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/cpl-v10.html<br/>
+ * <br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.internal;<br/>
+<br/>
+import org.eclipse.jface.action.ContributionItem;<br/>
+import org.eclipse.jface.action.IContributionItem;<br/>
+import org.eclipse.jface.action.IMenuManager;<br/>
+import org.eclipse.jface.util.Geometry;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.events.FocusAdapter;<br/>
+import org.eclipse.swt.events.FocusEvent;<br/>
+import org.eclipse.swt.events.KeyAdapter;<br/>
+import org.eclipse.swt.events.KeyEvent;<br/>
+import org.eclipse.swt.events.KeyListener;<br/>
+import org.eclipse.swt.events.SelectionAdapter;<br/>
+import org.eclipse.swt.events.SelectionEvent;<br/>
+import org.eclipse.swt.graphics.Point;<br/>
+import org.eclipse.swt.graphics.Rectangle;<br/>
+import org.eclipse.swt.widgets.Composite;<br/>
+import org.eclipse.swt.widgets.Control;<br/>
+import org.eclipse.swt.widgets.Display;<br/>
+import org.eclipse.swt.widgets.Event;<br/>
+import org.eclipse.swt.widgets.Listener;<br/>
+import org.eclipse.swt.widgets.Sash;<br/>
+import org.eclipse.swt.widgets.ToolBar;<br/>
+import org.eclipse.ui.internal.dnd.DragUtil;<br/>
+import org.eclipse.ui.internal.presentations.SystemMenuFastView;<br/>
+import org.eclipse.ui.internal.presentations.SystemMenuFastViewOrientation;<br/>
+import org.eclipse.ui.internal.presentations.SystemMenuSizeFastView;<br/>
+import org.eclipse.ui.internal.presentations.UpdatingActionContributionItem;<br/>
+import org.eclipse.ui.presentations.AbstractPresentationFactory;<br/>
+import org.eclipse.ui.presentations.IPresentablePart;<br/>
+import org.eclipse.ui.presentations.IStackPresentationSite;<br/>
+import org.eclipse.ui.presentations.StackPresentation;<br/>
+<br/>
+/**<br/>
+ * Handles the presentation of an active fastview. A fast view pane docks to one side of a<br/>
+ * parent composite, and is capable of displaying a single view. The view may be resized.<br/>
+ * Displaying a new view will hide any view currently being displayed in the pane. <br/>
+ * <br/>
+ * Currently, the fast view pane does not own or contain the view. It only controls the view's <br/>
+ * position and visibility.  <br/>
+ * <br/>
+ * @see org.ecliplse.ui.internal.FastViewBar<br/>
+ */<br/>
+public class FastViewPane {<br/>
+    private int side = SWT.LEFT;<br/>
+<br/>
+    private ViewPane currentPane;<br/>
+<br/>
+    private Composite clientComposite;<br/>
+<br/>
+    private static final int SASH_SIZE = 3;<br/>
+<br/>
+    private int minSize = 10;<br/>
+<br/>
+    private int size;<br/>
+<br/>
+    private Sash sash;<br/>
+<br/>
+    // Traverse listener -- listens to ESC and closes the active fastview <br/>
+    private Listener escapeListener = new Listener() {<br/>
+        public void handleEvent(Event event) {<br/>
+            if (event.character == SWT.ESC) {<br/>
+                if (currentPane != null) {<br/>
+                    currentPane.getPage().hideFastView();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private DefaultStackPresentationSite site = new DefaultStackPresentationSite() {<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.ui.internal.skins.IPresentationSite#setState(int)<br/>
+         */<br/>
+        public void setState(int newState) {<br/>
+            super.setState(newState);<br/>
+            ViewPane pane = currentPane;<br/>
+            switch (newState) {<br/>
+            case IStackPresentationSite.STATE_MINIMIZED:<br/>
+                currentPane.getPage().hideFastView();<br/>
+                break;<br/>
+            case IStackPresentationSite.STATE_MAXIMIZED:<br/>
+                pane.setZoomed(true);<br/>
+                sash.setVisible(false);<br/>
+                getPresentation().setBounds(getBounds());<br/>
+                break;<br/>
+            case IStackPresentationSite.STATE_RESTORED:<br/>
+                pane.setZoomed(false);<br/>
+                sash.setVisible(true);<br/>
+                getPresentation().setBounds(getBounds());<br/>
+                break;<br/>
+            default:<br/>
+            }<br/>
+        }<br/>
+<br/>
+        public void close(IPresentablePart part) {<br/>
+            if (!isCloseable(part)) {<br/>
+                return;<br/>
+            }<br/>
+            currentPane.getPage().hideView(currentPane.getViewReference());<br/>
+        }<br/>
+<br/>
+        public void close(IPresentablePart[] parts) {<br/>
+            for (int idx = 0; idx &lt; parts.length; idx++) {<br/>
+                close(parts[idx]);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.ui.internal.skins.IPresentationSite#dragStart(org.eclipse.ui.internal.skins.IPresentablePart, boolean)<br/>
+         */<br/>
+        public void dragStart(IPresentablePart beingDragged,<br/>
+                Point initialPosition, boolean keyboard) {<br/>
+            dragStart(initialPosition, keyboard);<br/>
+        }<br/>
+<br/>
+        /* (non-Javadoc)<br/>
+         * @see org.eclipse.ui.internal.skins.IPresentationSite#dragStart(boolean)<br/>
+         */<br/>
+        public void dragStart(Point initialPosition, boolean keyboard) {<br/>
+            if (!isPartMoveable())<br/>
+                return;<br/>
+<br/>
+            ViewPane pane = currentPane;<br/>
+<br/>
+            Control control = getPresentation().getControl();<br/>
+<br/>
+            Rectangle bounds = Geometry.toDisplay(clientComposite, control<br/>
+                    .getBounds());<br/>
+<br/>
+            WorkbenchPage page = currentPane.getPage();<br/>
+<br/>
+            Perspective persp = page.getActivePerspective();<br/>
+<br/>
+            page.hideFastView();<br/>
+            if (page.isZoomed()) {<br/>
+                page.zoomOut();<br/>
+            }<br/>
+<br/>
+            DragUtil.performDrag(pane, bounds, initialPosition, !keyboard);<br/>
+        }<br/>
+<br/>
+        public IPresentablePart getSelectedPart() {<br/>
+            if (currentPane == null) {<br/>
+                return null;<br/>
+            }<br/>
+            return currentPane.getPresentablePart();<br/>
+        }<br/>
+<br/>
+        public void addSystemActions(IMenuManager menuManager) {<br/>
+            appendToGroupIfPossible(menuManager,<br/>
+                    "misc", new SystemMenuFastViewOrientation(currentPane)); //$NON-NLS-1$<br/>
+            appendToGroupIfPossible(menuManager,<br/>
+                    "misc", new UpdatingActionContributionItem(fastViewAction)); //$NON-NLS-1$<br/>
+            appendToGroupIfPossible(menuManager,<br/>
+                    "size", new SystemMenuSizeFastView(FastViewPane.this)); //$NON-NLS-1$<br/>
+        }<br/>
+<br/>
+        public boolean isCloseable(IPresentablePart toClose) {<br/>
+            if (currentPane == null)<br/>
+                return true;<br/>
+            Perspective perspective = currentPane.getPage()<br/>
+                    .getActivePerspective();<br/>
+            if (perspective == null) {<br/>
+                // Shouldn't happen -- can't have a FastViewPane without a perspective<br/>
+                return true;<br/>
+            }<br/>
+            return perspective.isCloseable(currentPane.getViewReference());<br/>
+        }<br/>
+<br/>
+        public boolean isPartMoveable(IPresentablePart toMove) {<br/>
+            return isPartMoveable();<br/>
+        }<br/>
+<br/>
+        public boolean isStackMoveable() {<br/>
+            // a fast view stack is moveable iff its part is moveable<br/>
+            return isPartMoveable();<br/>
+        }<br/>
+<br/>
+        private boolean isPartMoveable() {<br/>
+            if (currentPane == null)<br/>
+                return false;<br/>
+            Perspective perspective = currentPane.getPage()<br/>
+                    .getActivePerspective();<br/>
+            if (perspective == null) {<br/>
+                // Shouldn't happen -- can't have a FastViewPane without a perspective<br/>
+                return false;<br/>
+            }<br/>
+            return perspective.isMoveable(currentPane.getViewReference());<br/>
+        }<br/>
+<br/>
+        public boolean supportsState(int newState) {<br/>
+            if (currentPane == null)<br/>
+                return false;<br/>
+            if (currentPane.getPage().isFixedLayout())<br/>
+                return false;<br/>
+            return true;<br/>
+        }<br/>
+<br/>
+    };<br/>
+<br/>
+    private SystemMenuFastView fastViewAction = new SystemMenuFastView(site);<br/>
+<br/>
+    private static void appendToGroupIfPossible(IMenuManager m, String groupId,<br/>
+            ContributionItem item) {<br/>
+        try {<br/>
+            m.appendToGroup(groupId, item);<br/>
+        } catch (IllegalArgumentException e) {<br/>
+            m.add(item);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private Listener mouseDownListener = new Listener() {<br/>
+        public void handleEvent(Event event) {<br/>
+            if (event.widget instanceof Control) {<br/>
+                Control control = (Control) event.widget;<br/>
+<br/>
+                if (control.getShell() != clientComposite.getShell()) {<br/>
+                    return;<br/>
+                }<br/>
+<br/>
+                if (event.widget instanceof ToolBar) {<br/>
+                    // Ignore mouse down on actual tool bar buttons<br/>
+                    Point pt = new Point(event.x, event.y);<br/>
+                    ToolBar toolBar = (ToolBar) event.widget;<br/>
+                    if (toolBar.getItem(pt) != null)<br/>
+                        return;<br/>
+                }<br/>
+<br/>
+                Point loc = DragUtil.getEventLoc(event);<br/>
+<br/>
+                Rectangle bounds = DragUtil.getDisplayBounds(clientComposite);<br/>
+                if (site.getState() != IStackPresentationSite.STATE_MAXIMIZED) {<br/>
+                    bounds = Geometry.getExtrudedEdge(bounds, size + SASH_SIZE,<br/>
+                            side);<br/>
+                }<br/>
+<br/>
+                if (!bounds.contains(loc)) {<br/>
+                    site.setState(IStackPresentationSite.STATE_MINIMIZED);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private IContributionItem systemMenuContribution;<br/>
+<br/>
+    public void moveSash() {<br/>
+        final KeyListener listener = new KeyAdapter() {<br/>
+            public void keyPressed(KeyEvent e) {<br/>
+                if (e.character == SWT.ESC || e.character == '\r') {<br/>
+                    currentPane.setFocus();<br/>
+                }<br/>
+            }<br/>
+        };<br/>
+        sash.addFocusListener(new FocusAdapter() {<br/>
+            public void focusGained(FocusEvent e) {<br/>
+                sash.setBackground(sash.getDisplay().getSystemColor(<br/>
+                        SWT.COLOR_LIST_SELECTION));<br/>
+                sash.addKeyListener(listener);<br/>
+            }<br/>
+<br/>
+            public void focusLost(FocusEvent e) {<br/>
+                sash.setBackground(null);<br/>
+                sash.removeKeyListener(listener);<br/>
+            }<br/>
+        });<br/>
+        sash.setFocus();<br/>
+    }<br/>
+<br/>
+    private Listener resizeListener = new Listener() {<br/>
+        public void handleEvent(Event event) {<br/>
+            if (event.type == SWT.Resize &amp;&amp; currentPane != null) {<br/>
+                setSize(size);<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private SelectionAdapter selectionListener = new SelectionAdapter() {<br/>
+        public void widgetSelected(SelectionEvent e) {<br/>
+<br/>
+            if (currentPane != null) {<br/>
+                Rectangle bounds = clientComposite.getClientArea();<br/>
+                Point location = new Point(e.x, e.y);<br/>
+                int distanceFromEdge = Geometry.getDistanceFromEdge(bounds,<br/>
+                        location, side);<br/>
+<br/>
+                if (!(side == SWT.TOP || side == SWT.LEFT)) {<br/>
+                    distanceFromEdge -= SASH_SIZE;<br/>
+                }<br/>
+<br/>
+                setSize(distanceFromEdge);<br/>
+<br/>
+                if (e.detail != SWT.DRAG) {<br/>
+                    updateFastViewSashBounds();<br/>
+                    //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getPresentation().getControl().moveAbove(null);<br/>
+                    //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentPane.moveAbove(null); <br/>
+                    //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sash.moveAbove(null);<br/>
+                    //currentPane.getControl().redraw();<br/>
+                    sash.redraw();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+<br/>
+    private void setSize(int size) {<br/>
+<br/>
+        if (size &lt; minSize) {<br/>
+            size = minSize;<br/>
+        }<br/>
+        this.size = size;<br/>
+<br/>
+        StackPresentation presentation = getPresentation();<br/>
+        if (presentation == null || presentation.getControl().isDisposed()) {<br/>
+            return;<br/>
+        }<br/>
+        getPresentation().setBounds(getBounds());<br/>
+        updateFastViewSashBounds();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the current fastview size ratio. Returns 0.0 if there is no fastview visible.<br/>
+     * <br/>
+     * @return<br/>
+     */<br/>
+    public float getCurrentRatio() {<br/>
+        if (currentPane == null) {<br/>
+            return 0.0f;<br/>
+        }<br/>
+<br/>
+        boolean isVertical = !Geometry.isHorizontal(side);<br/>
+        Rectangle clientArea = clientComposite.getClientArea();<br/>
+<br/>
+        int clientSize = Geometry.getDimension(clientArea, isVertical);<br/>
+<br/>
+        return (float) size / (float) clientSize;<br/>
+    }<br/>
+<br/>
+    private Rectangle getClientArea() {<br/>
+        return clientComposite.getClientArea();<br/>
+    }<br/>
+<br/>
+    private Rectangle getBounds() {<br/>
+        Rectangle bounds = getClientArea();<br/>
+<br/>
+        if (site.getState() == IStackPresentationSite.STATE_MAXIMIZED) {<br/>
+            return bounds;<br/>
+        }<br/>
+<br/>
+        boolean horizontal = Geometry.isHorizontal(side);<br/>
+<br/>
+        int available = Geometry.getDimension(bounds, !horizontal);<br/>
+<br/>
+        return Geometry.getExtrudedEdge(bounds, Math.min(<br/>
+                FastViewPane.this.size, available), side);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Displays the given view as a fastview. The view will be docked to the edge of the<br/>
+     * given composite until it is subsequently hidden by a call to hideFastView. <br/>
+     * <br/>
+     * @param newClientComposite<br/>
+     * @param pane<br/>
+     * @param newSide<br/>
+     */<br/>
+    public void showView(Composite newClientComposite, ViewPane pane,<br/>
+            int newSide, float sizeRatio) {<br/>
+        side = newSide;<br/>
+<br/>
+        if (currentPane != null) {<br/>
+            hideView();<br/>
+        }<br/>
+<br/>
+        currentPane = pane;<br/>
+<br/>
+        fastViewAction.setPane(currentPane);<br/>
+        clientComposite = newClientComposite;<br/>
+<br/>
+        clientComposite.addListener(SWT.Resize, resizeListener);<br/>
+<br/>
+        // Create the control first<br/>
+        Control ctrl = pane.getControl();<br/>
+        if (ctrl == null) {<br/>
+            pane.createControl(clientComposite);<br/>
+            ctrl = pane.getControl();<br/>
+        }<br/>
+<br/>
+        ctrl.addListener(SWT.Traverse, escapeListener);<br/>
+<br/>
+        // Temporarily use the same appearance as docked views .. eventually, fastviews will<br/>
+        // be independently pluggable.<br/>
+        AbstractPresentationFactory factory = ((WorkbenchWindow) pane<br/>
+                .getWorkbenchWindow()).getWindowConfigurer()<br/>
+                .getPresentationFactory();<br/>
+        StackPresentation presentation = factory.createViewPresentation(<br/>
+                newClientComposite, site);<br/>
+<br/>
+        site.setPresentation(presentation);<br/>
+        site.setPresentationState(IStackPresentationSite.STATE_RESTORED);<br/>
+        presentation.addPart(pane.getPresentablePart(), null);<br/>
+        presentation.selectPart(pane.getPresentablePart());<br/>
+        presentation.setActive(StackPresentation.AS_ACTIVE_FOCUS);<br/>
+        presentation.setVisible(true);<br/>
+<br/>
+        Point minimumPresentationSize = presentation.computeMinimumSize();<br/>
+        minSize = Geometry.isHorizontal(side) ? minimumPresentationSize.y<br/>
+                : minimumPresentationSize.x;<br/>
+<br/>
+        // Show pane fast.<br/>
+        ctrl.setEnabled(true); // Add focus support.<br/>
+        Composite parent = ctrl.getParent();<br/>
+<br/>
+        pane.setFocus();<br/>
+<br/>
+        boolean horizontal = Geometry.isHorizontal(side);<br/>
+        sash = new Sash(parent, Geometry<br/>
+                .getSwtHorizontalOrVerticalConstant(horizontal));<br/>
+<br/>
+        sash.addSelectionListener(selectionListener);<br/>
+<br/>
+        Rectangle clientArea = newClientComposite.getClientArea();<br/>
+<br/>
+        getPresentation().getControl().moveAbove(null);<br/>
+        currentPane.moveAbove(null);<br/>
+        sash.moveAbove(null);<br/>
+<br/>
+        setSize((int) (Geometry.getDimension(clientArea, !horizontal) * sizeRatio));<br/>
+<br/>
+        Display display = sash.getDisplay();<br/>
+<br/>
+        display.addFilter(SWT.MouseDown, mouseDownListener);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Updates the position of the resize sash.<br/>
+     * <br/>
+     * @param bounds<br/>
+     */<br/>
+    private void updateFastViewSashBounds() {<br/>
+        Rectangle bounds = getBounds();<br/>
+<br/>
+        int oppositeSide = Geometry.getOppositeSide(side);<br/>
+        Rectangle newBounds = Geometry.getExtrudedEdge(bounds, -SASH_SIZE,<br/>
+                oppositeSide);<br/>
+<br/>
+        Rectangle oldBounds = sash.getBounds();<br/>
+<br/>
+        if (!newBounds.equals(oldBounds)) {<br/>
+            sash.setBounds(newBounds);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Disposes of any active widgetry being used for the fast view pane. Does not dispose<br/>
+     * of the view itself.<br/>
+     */<br/>
+    public void dispose() {<br/>
+        hideView();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the bounding rectangle for the currently visible fastview, given the rectangle<br/>
+     * in which the fastview can dock. <br/>
+     * <br/>
+     * @param clientArea<br/>
+     * @param ratio<br/>
+     * @param orientation<br/>
+     * @return<br/>
+     */<br/>
+    private Rectangle getFastViewBounds() {<br/>
+        Rectangle clientArea = clientComposite.getClientArea();<br/>
+<br/>
+        boolean isVertical = !Geometry.isHorizontal(side);<br/>
+        int clientSize = Geometry.getDimension(clientArea, isVertical);<br/>
+        int viewSize = Math.min(Geometry.getDimension(getBounds(), isVertical),<br/>
+                clientSize - minSize);<br/>
+<br/>
+        return Geometry.getExtrudedEdge(clientArea, viewSize, side);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return<br/>
+     */<br/>
+    private StackPresentation getPresentation() {<br/>
+        return site.getPresentation();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Hides the sash for the fastview if it is currently visible. This method may not be<br/>
+     * required anymore, and might be removed from the public interface.<br/>
+     */<br/>
+    public void hideFastViewSash() {<br/>
+        if (sash != null) {<br/>
+            sash.setVisible(false);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Hides the currently visible fastview.<br/>
+     */<br/>
+    public void hideView() {<br/>
+<br/>
+        if (clientComposite != null) {<br/>
+            Display display = clientComposite.getDisplay();<br/>
+<br/>
+            display.removeFilter(SWT.MouseDown, mouseDownListener);<br/>
+        }<br/>
+<br/>
+        if (currentPane == null) {<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        //unzoom before hiding<br/>
+        currentPane.setZoomed(false);<br/>
+<br/>
+        if (sash != null) {<br/>
+            sash.dispose();<br/>
+            sash = null;<br/>
+        }<br/>
+<br/>
+        clientComposite.removeListener(SWT.Resize, resizeListener);<br/>
+<br/>
+        // Get pane.<br/>
+        // Hide the right side sash first<br/>
+        //hideFastViewSash();<br/>
+        Control ctrl = currentPane.getControl();<br/>
+<br/>
+        ctrl.removeListener(SWT.Traverse, escapeListener);<br/>
+<br/>
+        // Hide it completely.<br/>
+        getPresentation().setVisible(false);<br/>
+        site.dispose();<br/>
+        //currentPane.setFastViewSash(null);<br/>
+        ctrl.setEnabled(false); // Remove focus support.<br/>
+<br/>
+        currentPane = null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Returns the currently visible fastview or null if none<br/>
+     */<br/>
+    public ViewPane getCurrentPane() {<br/>
+        return currentPane;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Zooms or unzooms the fast view pane.<br/>
+     *<br/>
+     */<br/>
+    public void toggleZoom() {<br/>
+        if (site.getState() == IStackPresentationSite.STATE_MAXIMIZED) {<br/>
+            site.setState(IStackPresentationSite.STATE_RESTORED);<br/>
+        } else {<br/>
+            site.setState(IStackPresentationSite.STATE_MAXIMIZED);<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

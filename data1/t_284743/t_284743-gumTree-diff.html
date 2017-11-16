@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ComponentBase_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Created on Jan 3, 2005<br/>
+ *<br/>
+ * To change the template for this generated file go to<br/>
+ * Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments<br/>
+ */<br/>
+package org.apache.log4j.spi;<br/>
+<br/>
+import org.apache.log4j.LogManager;<br/>
+import org.apache.ugli.ULogger;<br/>
+import org.apache.ugli.impl.NOPLogger;<br/>
+<br/>
+<br/>
+/**<br/>
+ * Most log4j components derive from this class.<br/>
+ * <br/>
+ * @author Ceki Gulcu<br/>
+ * @since 1.3<br/>
+ */<br/>
+public class ComponentBase implements Component {<br/>
+<br/>
+  private final static int ERROR_COUNT_LIMIT = 3;<br/>
+  <br/>
+  protected LoggerRepository repository;<br/>
+  private ULogger logger;<br/>
+  private int errorCount = 0;<br/>
+  <br/>
+  <br/>
+  /**<br/>
+   * Called by derived classes when they deem that the component has recovered<br/>
+   * from an erroneous state.<br/>
+   */<br/>
+  protected void resetErrorCount() {<br/>
+    errorCount = 0;<br/>
+  }<br/>
+  /**<br/>
+   * Set the owning repository. The owning repository cannot be set more than<br/>
+   * once.<br/>
+   */<br/>
+  public void setLoggerRepository(LoggerRepository repository) {<br/>
+    if(this.repository == null) {<br/>
+      this.repository = repository;<br/>
+    } else if(this.repository != repository) {<br/>
+      throw new IllegalStateException("Repository has been already set");<br/>
+    } <br/>
+  }<br/>
+  <br/>
+  /**<br/>
+   * Return an instance specific logger to be used by the component itself.<br/>
+   * This logger is not intended to be accessed by the end-user, hence the <br/>
+   * protected keyword.<br/>
+   * <br/>
+   * &lt;p&gt;In case the repository for this component is not set,<br/>
+   * this implementations returns a {@link SimpleLogger} instance.<br/>
+   * <br/>
+   * @return A ULogger instance.<br/>
+   */<br/>
+  protected ULogger getLogger() {<br/>
+    if(logger == null) {<br/>
+      if(repository != null) {<br/>
+        logger = repository.getLogger(this.getClass().getName());<br/>
+      } else {<br/>
+        logger = LogManager.SIMPLE_LOGGER_FA.getLogger(this.getClass().getName());<br/>
+      }<br/>
+    } else if(repository != null &amp;&amp; !(logger instanceof org.apache.log4j.Logger)){<br/>
+      // if repository is set but logger is not an instance of Logger, we<br/>
+      // could reset the logger, as in the line below. However, we chose not to<br/>
+      // do so in order to make the bigger problem more apparent.<br/>
+      <br/>
+      // logger = repository.getLogger(this.getClass().getName());<br/>
+    }<br/>
+    return logger;<br/>
+  } <br/>
+  <br/>
+  /**<br/>
+   * Frequently called methods in log4j components can invoke this method in<br/>
+   * order to avoid flooding the output when logging lasting error conditions. <br/>
+   * <br/>
+   * @return a regular logger, or a NOPLogger if called too frequently.<br/>
+   */<br/>
+  protected ULogger getNonFloodingLogger() {<br/>
+    if(errorCount++ &gt;= ERROR_COUNT_LIMIT) {<br/>
+      return NOPLogger.NOP_LOGGER;<br/>
+    } else {<br/>
+      return getLogger();<br/>
+    }<br/>
+  } <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ComponentBase_1.6.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Created on Jan 3, 2005<br/>
+ *<br/>
+ * To change the template for this generated file go to<br/>
+ * Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments<br/>
+ */<br/>
+package org.apache.log4j.spi;<br/>
+<br/>
+import org.apache.log4j.LogManager;<br/>
+import org.apache.ugli.ULogger;<br/>
+import org.apache.ugli.impl.NOPLogger;<br/>
+<br/>
+<br/>
+/**<br/>
+ * Most log4j components derive from this class.<br/>
+ * <br/>
+ * @author Ceki Gulcu<br/>
+ * @since 1.3<br/>
+ */<br/>
+public class ComponentBase implements Component {<br/>
+<br/>
+  private final static int ERROR_COUNT_LIMIT = 3;<br/>
+  <br/>
+  protected LoggerRepository repository;<br/>
+  private ULogger logger;<br/>
+  private int errorCount = 0;<br/>
+  <br/>
+  <br/>
+  /**<br/>
+   * Called by derived classes when they deem that the component has recovered<br/>
+   * from an erroneous state.<br/>
+   */<br/>
+  protected void resetErrorCount() {<br/>
+    errorCount = 0;<br/>
+  }<br/>
+  /**<br/>
+   * Set the owning repository. The owning repository cannot be set more than<br/>
+   * once.<br/>
+   */<br/>
+  public void setLoggerRepository(LoggerRepository repository) {<br/>
+    if(this.repository == null) {<br/>
+      this.repository = repository;<br/>
+    } else if(this.repository != repository) {<br/>
+      throw new IllegalStateException("Repository has been already set");<br/>
+    } <br/>
+  }<br/>
+  <br/>
+  <span class="add"><span class="add">/**<br/>
+   * Return the {@link LoggerRepository} this component is attached to.<br/>
+   * <br/>
+   * @return Owning LoggerRepository<br/>
+   */</span><br/>
+  <span class="add">protected</span> <span class="add"><span class="add">LoggerRepository</span></span> <span class="add">getLoggerRepository</span>() <span class="add">{<br/>
+    <span class="add">return <span class="add">repository</span>;</span><br/>
+  }</span></span><br/>
+  <br/>
+  /**<br/>
+   * Return an instance specific logger to be used by the component itself.<br/>
+   * This logger is not intended to be accessed by the end-user, hence the <br/>
+   * protected keyword.<br/>
+   * <br/>
+   * &lt;p&gt;In case the repository for this component is not set,<br/>
+   * this implementations returns a {@link SimpleLogger} instance.<br/>
+   * <br/>
+   * @return A ULogger instance.<br/>
+   */<br/>
+  protected ULogger getLogger() {<br/>
+    if(logger == null) {<br/>
+      if(repository != null) {<br/>
+        logger = repository.getLogger(this.getClass().getName());<br/>
+      } else {<br/>
+        logger = LogManager.SIMPLE_LOGGER_FA.getLogger(this.getClass().getName());<br/>
+      }<br/>
+    } else if(repository != null &amp;&amp; !(logger instanceof org.apache.log4j.Logger)){<br/>
+      // if repository is set but logger is not an instance of Logger, we<br/>
+      // could reset the logger, as in the line below. However, we chose not to<br/>
+      // do so in order to make the bigger problem more apparent.<br/>
+      <br/>
+      // logger = repository.getLogger(this.getClass().getName());<br/>
+    }<br/>
+    return logger;<br/>
+  } <br/>
+  <br/>
+  /**<br/>
+   * Frequently called methods in log4j components can invoke this method in<br/>
+   * order to avoid flooding the output when logging lasting error conditions. <br/>
+   * <br/>
+   * @return a regular logger, or a NOPLogger if called too frequently.<br/>
+   */<br/>
+  protected ULogger getNonFloodingLogger() {<br/>
+    if(errorCount++ &gt;= ERROR_COUNT_LIMIT) {<br/>
+      return NOPLogger.NOP_LOGGER;<br/>
+    } else {<br/>
+      return getLogger();<br/>
+    }<br/>
+  } <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

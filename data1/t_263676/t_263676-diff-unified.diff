@@ -1,0 +1,11 @@
+--- t_263676/left_BlockScope_1.95.java	2013-03-17 15:47:18.000000000 +0100
++++ t_263676/right_BlockScope_1.96.java	2013-03-17 15:47:18.000000000 +0100
+@@ -499,7 +499,7 @@
+ 			if ((mask & Binding.FIELD) != 0 && (binding = findField(typeBinding, nextName, invocationSite, true /*resolve*/)) != null) {
+ 				if (!binding.isValidBinding())
+ 					return new ProblemFieldBinding(
+-						(FieldBinding)binding,
++						((ProblemFieldBinding)binding).closestMatch,
+ 						CharOperation.subarray(compoundName, 0, currentIndex),
+ 						binding.problemId());
+ 				break; // binding is now a field

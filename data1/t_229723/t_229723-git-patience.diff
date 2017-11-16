@@ -1,0 +1,18 @@
+diff --git a/t_229723/left_CompleteWord_1.8.java b/t_229723/right_CompleteWord_1.9.java
+index 7fba537..17b4014 100644
+--- a/t_229723/left_CompleteWord_1.8.java
++++ b/t_229723/right_CompleteWord_1.9.java
+@@ -274,6 +274,13 @@ public class CompleteWord extends JWindow
+ 		textArea.setSelectedText(words.getSelectedValue().toString()
+ 			.substring(word.length()));
+ 		dispose();
++		SwingUtilities.invokeLater(new Runnable()
++		{
++			public void run()
++			{
++				textArea.requestFocus();
++			}
++		});
+ 	} //}}}
+ 
+ 	//}}}

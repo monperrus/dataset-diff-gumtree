@@ -1,0 +1,17 @@
+--- t_277078/left_ActivityCategoryPreferencePage_1.22.java	2013-03-17 15:47:22.000000000 +0100
++++ t_277078/right_ActivityCategoryPreferencePage_1.23.java	2013-03-17 15:47:22.000000000 +0100
+@@ -719,4 +719,14 @@
+             strings.putAll(table);
+         }
+     }
++    
++    /* (non-Javadoc)
++     * @see org.eclipse.jface.dialogs.DialogPage#dispose()
++     */
++    public void dispose() {
++    	if (workingCopy != null) {
++    		workingCopy.removeActivityManagerListener((CategoryLabelProvider)categoryViewer.getLabelProvider());
++    	}
++    	super.dispose();
++    }
+ }

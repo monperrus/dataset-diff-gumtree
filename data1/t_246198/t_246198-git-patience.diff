@@ -1,0 +1,13 @@
+diff --git a/t_246198/left_TXTRecord_1.52.java b/t_246198/right_TXTRecord_1.53.java
+index cfb34d2..a4506a8 100644
+--- a/t_246198/left_TXTRecord_1.52.java
++++ b/t_246198/right_TXTRecord_1.53.java
+@@ -54,7 +54,7 @@ TXTRecord(Name name, int dclass, long ttl, List strings) {
+  */
+ public
+ TXTRecord(Name name, int dclass, long ttl, String string) {
+-	this(name, dclass, ttl, Collections.nCopies(1, string));
++	this(name, dclass, ttl, Collections.singletonList(string));
+ }
+ 
+ void

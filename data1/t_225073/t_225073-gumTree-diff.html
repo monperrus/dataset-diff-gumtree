@@ -1,0 +1,1078 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_IndexWriter_1.21.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.index;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.io.IOException;<br/>
+import java.io.File;<br/>
+import java.io.PrintStream;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.lucene.store.Directory;<br/>
+import org.apache.lucene.store.RAMDirectory;<br/>
+import org.apache.lucene.store.FSDirectory;<br/>
+import org.apache.lucene.store.Lock;<br/>
+import org.apache.lucene.store.InputStream;<br/>
+import org.apache.lucene.store.OutputStream;<br/>
+import org.apache.lucene.search.Similarity;<br/>
+import org.apache.lucene.document.Document;<br/>
+import org.apache.lucene.analysis.Analyzer;<br/>
+<br/>
+<br/>
+/**<br/>
+  An IndexWriter creates and maintains an index.<br/>
+<br/>
+  The third argument to the &lt;a href="#IndexWriter"&gt;&lt;b&gt;constructor&lt;/b&gt;&lt;/a&gt;<br/>
+  determines whether a new index is created, or whether an existing index is<br/>
+  opened for the addition of new documents.<br/>
+<br/>
+  In either case, documents are added with the &lt;a<br/>
+  href="#addDocument"&gt;&lt;b&gt;addDocument&lt;/b&gt;&lt;/a&gt; method.  When finished adding<br/>
+  documents, &lt;a href="#close"&gt;&lt;b&gt;close&lt;/b&gt;&lt;/a&gt; should be called.<br/>
+<br/>
+  If an index will not have more documents added for a while and optimal search<br/>
+  performance is desired, then the &lt;a href="#optimize"&gt;&lt;b&gt;optimize&lt;/b&gt;&lt;/a&gt;<br/>
+  method should be called before the index is closed.<br/>
+  */<br/>
+<br/>
+public class IndexWriter {<br/>
+  public static long WRITE_LOCK_TIMEOUT = 1000;<br/>
+  public static long COMMIT_LOCK_TIMEOUT = 10000;<br/>
+<br/>
+  public static final String WRITE_LOCK_NAME = "write.lock";<br/>
+  public static final String COMMIT_LOCK_NAME = "commit.lock";<br/>
+  <br/>
+  private Directory directory;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // where this index resides<br/>
+  private Analyzer analyzer;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // how to analyze text<br/>
+<br/>
+  private Similarity similarity = Similarity.getDefault(); // how to normalize<br/>
+<br/>
+  private SegmentInfos segmentInfos = new SegmentInfos(); // the segments<br/>
+  private final Directory ramDirectory = new RAMDirectory(); // for temp segs<br/>
+<br/>
+  private Lock writeLock;<br/>
+<br/>
+  /** Use compound file setting. Defaults to false to maintain multiple files <br/>
+   *  per segment behavior.<br/>
+   */  <br/>
+  private boolean useCompoundFile = false;<br/>
+  <br/>
+  <br/>
+  /** Setting to turn on usage of a compound file. When on, multiple files<br/>
+   *  for each segment are merged into a single file once the segment creation<br/>
+   *  is finished. This is done regardless of what directory is in use.<br/>
+   */<br/>
+  public boolean getUseCompoundFile() {<br/>
+    return useCompoundFile;<br/>
+  }<br/>
+  <br/>
+  /** Setting to turn on usage of a compound file. When on, multiple files<br/>
+   *  for each segment are merged into a single file once the segment creation<br/>
+   *  is finished. This is done regardless of what directory is in use.<br/>
+   */<br/>
+  public void setUseCompoundFile(boolean value) {<br/>
+    useCompoundFile = value;<br/>
+  }<br/>
+<br/>
+  <br/>
+    /** Expert: Set the Similarity implementation used by this IndexWriter.<br/>
+   *<br/>
+   * @see Similarity#setDefault(Similarity)<br/>
+   */<br/>
+  public void setSimilarity(Similarity similarity) {<br/>
+    this.similarity = similarity;<br/>
+  }<br/>
+<br/>
+  /** Expert: Return the Similarity implementation used by this IndexWriter.<br/>
+   *<br/>
+   * &lt;p&gt;This defaults to the current value of {@link Similarity#getDefault()}.<br/>
+   */<br/>
+  public Similarity getSimilarity() {<br/>
+    return this.similarity;<br/>
+  }<br/>
+<br/>
+  /** Constructs an IndexWriter for the index in &lt;code&gt;path&lt;/code&gt;.  Text will<br/>
+    be analyzed with &lt;code&gt;a&lt;/code&gt;.  If &lt;code&gt;create&lt;/code&gt; is true, then a<br/>
+    new, empty index will be created in &lt;code&gt;path&lt;/code&gt;, replacing the index<br/>
+    already there, if any. */<br/>
+  public IndexWriter(String path, Analyzer a, boolean create)<br/>
+       throws IOException {<br/>
+    this(FSDirectory.getDirectory(path, create), a, create);<br/>
+  }<br/>
+<br/>
+  /** Constructs an IndexWriter for the index in &lt;code&gt;path&lt;/code&gt;.  Text will<br/>
+    be analyzed with &lt;code&gt;a&lt;/code&gt;.  If &lt;code&gt;create&lt;/code&gt; is true, then a<br/>
+    new, empty index will be created in &lt;code&gt;path&lt;/code&gt;, replacing the index<br/>
+    already there, if any. */<br/>
+  public IndexWriter(File path, Analyzer a, boolean create)<br/>
+       throws IOException {<br/>
+    this(FSDirectory.getDirectory(path, create), a, create);<br/>
+  }<br/>
+<br/>
+  /** Constructs an IndexWriter for the index in &lt;code&gt;d&lt;/code&gt;.  Text will be<br/>
+    analyzed with &lt;code&gt;a&lt;/code&gt;.  If &lt;code&gt;create&lt;/code&gt; is true, then a new,<br/>
+    empty index will be created in &lt;code&gt;d&lt;/code&gt;, replacing the index already<br/>
+    there, if any. */<br/>
+  public IndexWriter(Directory d, Analyzer a, final boolean create)<br/>
+       throws IOException {<br/>
+    directory = d;<br/>
+    analyzer = a;<br/>
+<br/>
+    Lock writeLock = directory.makeLock(IndexWriter.WRITE_LOCK_NAME);<br/>
+    if (!writeLock.obtain(WRITE_LOCK_TIMEOUT)) // obtain write lock<br/>
+      throw new IOException("Index locked for write: " + writeLock);<br/>
+    this.writeLock = writeLock;                   // save it<br/>
+<br/>
+    synchronized (directory) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // in- &amp; inter-process sync<br/>
+      new Lock.With(directory.makeLock(IndexWriter.COMMIT_LOCK_NAME), COMMIT_LOCK_TIMEOUT) {<br/>
+          public Object doBody() throws IOException {<br/>
+            if (create)<br/>
+              segmentInfos.write(directory);<br/>
+            else<br/>
+              segmentInfos.read(directory);<br/>
+            return null;<br/>
+          }<br/>
+        }.run();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Flushes all changes to an index, closes all associated files, and closes<br/>
+    the directory that the index is stored in. */<br/>
+  public synchronized void close() throws IOException {<br/>
+    flushRamSegments();<br/>
+    ramDirectory.close();<br/>
+    writeLock.release();                          // release write lock<br/>
+    writeLock = null;<br/>
+    directory.close();<br/>
+  }<br/>
+<br/>
+  /** Release the write lock, if needed. */<br/>
+  protected void finalize() throws IOException {<br/>
+    if (writeLock != null) {<br/>
+      writeLock.release();                        // release write lock<br/>
+      writeLock = null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Returns the analyzer used by this index. */<br/>
+  public Analyzer getAnalyzer() {<br/>
+      return analyzer;<br/>
+  }<br/>
+<br/>
+<br/>
+  /** Returns the number of documents currently in this index. */<br/>
+  public synchronized int docCount() {<br/>
+    int count = 0;<br/>
+    for (int i = 0; i &lt; segmentInfos.size(); i++) {<br/>
+      SegmentInfo si = segmentInfos.info(i);<br/>
+      count += si.docCount;<br/>
+    }<br/>
+    return count;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * The maximum number of terms that will be indexed for a single field in a<br/>
+   * document.  This limits the amount of memory required for indexing, so that<br/>
+   * collections with very large files will not crash the indexing process by<br/>
+   * running out of memory.&lt;p/&gt;<br/>
+   * Note that this effectively truncates large documents, excluding from the<br/>
+   * index terms that occur further in the document.  If you know your source<br/>
+   * documents are large, be sure to set this value high enough to accomodate<br/>
+   * the expected size.  If you set it to Integer.MAX_VALUE, then the only limit<br/>
+   * is your memory, but you should anticipate an OutOfMemoryError.&lt;p/&gt;<br/>
+   * By default, no more than 10,000 terms will be indexed for a field.<br/>
+  */<br/>
+  public int maxFieldLength = 10000;<br/>
+<br/>
+  /**<br/>
+   * Adds a document to this index.  If the document contains more than<br/>
+   * {@link #maxFieldLength} terms for a given field, the remainder are<br/>
+   * discarded.<br/>
+   */<br/>
+  public void addDocument(Document doc) throws IOException {<br/>
+    addDocument(doc, analyzer);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Adds a document to this index, using the provided analyzer instead of the<br/>
+   * value of {@link #getAnalyzer()}.  If the document contains more than<br/>
+   * {@link #maxFieldLength} terms for a given field, the remainder are<br/>
+   * discarded.<br/>
+   */<br/>
+  public void addDocument(Document doc, Analyzer analyzer) throws IOException {<br/>
+    DocumentWriter dw =<br/>
+      new DocumentWriter(ramDirectory, analyzer, similarity, maxFieldLength);<br/>
+    String segmentName = newSegmentName();<br/>
+    dw.addDocument(segmentName, doc);<br/>
+    synchronized (this) {<br/>
+      segmentInfos.addElement(new SegmentInfo(segmentName, 1, ramDirectory));<br/>
+      maybeMergeSegments();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private final synchronized String newSegmentName() {<br/>
+    return "_" + Integer.toString(segmentInfos.counter++, Character.MAX_RADIX);<br/>
+  }<br/>
+<br/>
+  /** Determines how often segment indices are merged by addDocument().  With<br/>
+   * smaller values, less RAM is used while indexing, and searches on<br/>
+   * unoptimized indices are faster, but indexing speed is slower.  With larger<br/>
+   * values, more RAM is used during indexing, and while searches on unoptimized<br/>
+   * indices are slower, indexing is faster.  Thus larger values (&gt; 10) are best<br/>
+   * for batch index creation, and smaller values (&lt; 10) for indices that are<br/>
+   * interactively maintained.<br/>
+   *<br/>
+   * &lt;p&gt;This must never be less than 2.  The default value is 10.*/<br/>
+  public int mergeFactor = 10;<br/>
+  <br/>
+  /** Determines the minimal number of documents required before the buffered<br/>
+   * in-memory documents are merging and a new Segment is created.<br/>
+   * Since Documents are merged in a {@link org.apache.lucene.store.RAMDirectory},<br/>
+   * large value gives faster indexing.  At the same time, mergeFactor limits<br/>
+   * the number of files open in a FSDirectory.<br/>
+   * <br/>
+   * &lt;p&gt; The default value is 10.*/<br/>
+  public int minMergeDocs = 10;<br/>
+<br/>
+<br/>
+  /** Determines the largest number of documents ever merged by addDocument().<br/>
+   * Small values (e.g., less than 10,000) are best for interactive indexing,<br/>
+   * as this limits the length of pauses while indexing to a few seconds.<br/>
+   * Larger values are best for batched indexing and speedier searches.<br/>
+   *<br/>
+   * &lt;p&gt;The default value is {@link Integer#MAX_VALUE}. */<br/>
+  public int maxMergeDocs = Integer.MAX_VALUE;<br/>
+<br/>
+  /** If non-null, information about merges will be printed to this. */<br/>
+  public PrintStream infoStream = null;<br/>
+<br/>
+  /** Merges all segments together into a single segment, optimizing an index<br/>
+      for search. */<br/>
+  public synchronized void optimize() throws IOException {<br/>
+    flushRamSegments();<br/>
+    while (segmentInfos.size() &gt; 1 ||<br/>
+           (segmentInfos.size() == 1 &amp;&amp;<br/>
+            (SegmentReader.hasDeletions(segmentInfos.info(0)) ||<br/>
+             (useCompoundFile &amp;&amp; <br/>
+              !SegmentReader.usesCompoundFile(segmentInfos.info(0))) ||<br/>
+              segmentInfos.info(0).dir != directory))) {<br/>
+      int minSegment = segmentInfos.size() - mergeFactor;<br/>
+      mergeSegments(minSegment &lt; 0 ? 0 : minSegment);<br/>
+    }    <br/>
+  }<br/>
+<br/>
+  /** Merges all segments from an array of indexes into this index.<br/>
+   *<br/>
+   * &lt;p&gt;This may be used to parallelize batch indexing.  A large document<br/>
+   * collection can be broken into sub-collections.  Each sub-collection can be<br/>
+   * indexed in parallel, on a different thread, process or machine.  The<br/>
+   * complete index can then be created by merging sub-collection indexes<br/>
+   * with this method.<br/>
+   *<br/>
+   * &lt;p&gt;After this completes, the index is optimized. */<br/>
+  public synchronized void addIndexes(Directory[] dirs)<br/>
+      throws IOException {<br/>
+    optimize();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // start with zero or 1 seg<br/>
+    for (int i = 0; i &lt; dirs.length; i++) {<br/>
+      SegmentInfos sis = new SegmentInfos();&nbsp;&nbsp;&nbsp;&nbsp;  // read infos from dir<br/>
+      sis.read(dirs[i]);<br/>
+      for (int j = 0; j &lt; sis.size(); j++) {<br/>
+        segmentInfos.addElement(sis.info(j));&nbsp;&nbsp;&nbsp;&nbsp;  // add each info<br/>
+      }<br/>
+    }<br/>
+    optimize();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // final cleanup<br/>
+  }<br/>
+<br/>
+  /** Merges the provided indexes into this index.<br/>
+   * &lt;p&gt;After this completes, the index is optimized. */<br/>
+  public synchronized void addIndexes(IndexReader[] readers)<br/>
+    throws IOException {<br/>
+<br/>
+    optimize();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // start with zero or 1 seg<br/>
+<br/>
+    String mergedName = newSegmentName();<br/>
+    SegmentMerger merger = new SegmentMerger(directory, mergedName, false);<br/>
+<br/>
+    if (segmentInfos.size() == 1)                 // add existing index, if any<br/>
+      merger.add(new SegmentReader(segmentInfos.info(0)));<br/>
+<br/>
+    for (int i = 0; i &lt; readers.length; i++)      // add new indexes<br/>
+      merger.add(readers[i]);<br/>
+<br/>
+    int docCount = merger.merge();                // merge 'em<br/>
+<br/>
+    segmentInfos.setSize(0);                      // pop old infos &amp; add new<br/>
+    segmentInfos.addElement(new SegmentInfo(mergedName, docCount, directory));<br/>
+<br/>
+    synchronized (directory) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // in- &amp; inter-process sync<br/>
+      new Lock.With(directory.makeLock("commit.lock")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  public Object doBody() throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    segmentInfos.write(directory);&nbsp;&nbsp;&nbsp;&nbsp;  // commit changes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.run();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Merges all RAM-resident segments. */<br/>
+  private final void flushRamSegments() throws IOException {<br/>
+    int minSegment = segmentInfos.size()-1;<br/>
+    int docCount = 0;<br/>
+    while (minSegment &gt;= 0 &amp;&amp;<br/>
+           (segmentInfos.info(minSegment)).dir == ramDirectory) {<br/>
+      docCount += segmentInfos.info(minSegment).docCount;<br/>
+      minSegment--;<br/>
+    }<br/>
+    if (minSegment &lt; 0 ||&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // add one FS segment?<br/>
+        (docCount + segmentInfos.info(minSegment).docCount) &gt; mergeFactor ||<br/>
+        !(segmentInfos.info(segmentInfos.size()-1).dir == ramDirectory))<br/>
+      minSegment++;<br/>
+    if (minSegment &gt;= segmentInfos.size())<br/>
+      return;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // none to merge<br/>
+    mergeSegments(minSegment);<br/>
+  }<br/>
+<br/>
+  /** Incremental segment merger.  */<br/>
+  private final void maybeMergeSegments() throws IOException {<br/>
+    long targetMergeDocs = minMergeDocs;<br/>
+    while (targetMergeDocs &lt;= maxMergeDocs) {<br/>
+      // find segments smaller than current target size<br/>
+      int minSegment = segmentInfos.size();<br/>
+      int mergeDocs = 0;<br/>
+      while (--minSegment &gt;= 0) {<br/>
+        SegmentInfo si = segmentInfos.info(minSegment);<br/>
+        if (si.docCount &gt;= targetMergeDocs)<br/>
+          break;<br/>
+        mergeDocs += si.docCount;<br/>
+      }<br/>
+<br/>
+      if (mergeDocs &gt;= targetMergeDocs)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // found a merge to do<br/>
+        mergeSegments(minSegment+1);<br/>
+      else<br/>
+        break;<br/>
+<br/>
+      targetMergeDocs *= mergeFactor;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // increase target size<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Pops segments off of segmentInfos stack down to minSegment, merges them,<br/>
+    and pushes the merged index onto the top of the segmentInfos stack. */<br/>
+  private final void mergeSegments(int minSegment)<br/>
+      throws IOException {<br/>
+    String mergedName = newSegmentName();<br/>
+    if (infoStream != null) infoStream.print("merging segments");<br/>
+    SegmentMerger merger = <br/>
+        new SegmentMerger(directory, mergedName, useCompoundFile);<br/>
+        <br/>
+    final Vector segmentsToDelete = new Vector();<br/>
+    for (int i = minSegment; i &lt; segmentInfos.size(); i++) {<br/>
+      SegmentInfo si = segmentInfos.info(i);<br/>
+      if (infoStream != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;infoStream.print(" " + si.name + " (" + si.docCount + " docs)");<br/>
+      IndexReader reader = new SegmentReader(si);<br/>
+      merger.add(reader);<br/>
+      if ((reader.directory()==this.directory) || // if we own the directory<br/>
+          (reader.directory()==this.ramDirectory))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;segmentsToDelete.addElement(reader);&nbsp;&nbsp;&nbsp;&nbsp;  // queue segment for deletion<br/>
+    }<br/>
+    <br/>
+    int mergedDocCount = merger.merge();<br/>
+    <br/>
+    if (infoStream != null) {<br/>
+      infoStream.println();<br/>
+      infoStream.println(" into "+mergedName+" ("+mergedDocCount+" docs)");<br/>
+    }<br/>
+    <br/>
+    segmentInfos.setSize(minSegment);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // pop old infos &amp; add new<br/>
+    segmentInfos.addElement(new SegmentInfo(mergedName, mergedDocCount,<br/>
+                                            directory));<br/>
+<br/>
+    synchronized (directory) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // in- &amp; inter-process sync<br/>
+      new Lock.With(directory.makeLock(IndexWriter.COMMIT_LOCK_NAME), COMMIT_LOCK_TIMEOUT) {<br/>
+          public Object doBody() throws IOException {<br/>
+            segmentInfos.write(directory);&nbsp;&nbsp;&nbsp;&nbsp;  // commit before deleting<br/>
+            deleteSegments(segmentsToDelete);&nbsp;&nbsp;&nbsp;&nbsp;  // delete now-unused segments<br/>
+            return null;<br/>
+          }<br/>
+        }.run();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /* Some operating systems (e.g. Windows) don't permit a file to be deleted<br/>
+     while it is opened for read (e.g. by another process or thread).  So we<br/>
+     assume that when a delete fails it is because the file is open in another<br/>
+     process, and queue the file for subsequent deletion. */<br/>
+<br/>
+  private final void deleteSegments(Vector segments) throws IOException {<br/>
+    Vector deletable = new Vector();<br/>
+<br/>
+    deleteFiles(readDeleteableFiles(), deletable); // try to delete deleteable<br/>
+<br/>
+    for (int i = 0; i &lt; segments.size(); i++) {<br/>
+      SegmentReader reader = (SegmentReader)segments.elementAt(i);<br/>
+      if (reader.directory() == this.directory)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;deleteFiles(reader.files(), deletable);&nbsp;&nbsp;&nbsp;&nbsp;  // try to delete our files<br/>
+      else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;deleteFiles(reader.files(), reader.directory()); // delete other files<br/>
+    }<br/>
+<br/>
+    writeDeleteableFiles(deletable);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // note files we can't delete<br/>
+  }<br/>
+<br/>
+  private final void deleteFiles(Vector files, Directory directory)<br/>
+       throws IOException {<br/>
+    for (int i = 0; i &lt; files.size(); i++)<br/>
+      directory.deleteFile((String)files.elementAt(i));<br/>
+  }<br/>
+<br/>
+  private final void deleteFiles(Vector files, Vector deletable)<br/>
+       throws IOException {<br/>
+    for (int i = 0; i &lt; files.size(); i++) {<br/>
+      String file = (String)files.elementAt(i);<br/>
+      try {<br/>
+        directory.deleteFile(file);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // try to delete each file<br/>
+      } catch (IOException e) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // if delete fails<br/>
+        if (directory.fileExists(file)) {<br/>
+          if (infoStream != null)<br/>
+            infoStream.println(e.getMessage() + "; Will re-try later.");<br/>
+          deletable.addElement(file);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // add to deletable<br/>
+        }<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private final Vector readDeleteableFiles() throws IOException {<br/>
+    Vector result = new Vector();<br/>
+    if (!directory.fileExists("deletable"))<br/>
+      return result;<br/>
+<br/>
+    InputStream input = directory.openFile("deletable");<br/>
+    try {<br/>
+      for (int i = input.readInt(); i &gt; 0; i--)&nbsp;&nbsp;&nbsp;&nbsp;  // read file names<br/>
+        result.addElement(input.readString());<br/>
+    } finally {<br/>
+      input.close();<br/>
+    }<br/>
+    return result;<br/>
+  }<br/>
+<br/>
+  private final void writeDeleteableFiles(Vector files) throws IOException {<br/>
+    OutputStream output = directory.createFile("deleteable.new");<br/>
+    try {<br/>
+      output.writeInt(files.size());<br/>
+      for (int i = 0; i &lt; files.size(); i++)<br/>
+        output.writeString((String)files.elementAt(i));<br/>
+    } finally {<br/>
+      output.close();<br/>
+    }<br/>
+    directory.renameFile("deleteable.new", "deletable");<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_IndexWriter_1.22.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.index;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.io.IOException;<br/>
+import java.io.File;<br/>
+import java.io.PrintStream;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.lucene.store.Directory;<br/>
+import org.apache.lucene.store.RAMDirectory;<br/>
+import org.apache.lucene.store.FSDirectory;<br/>
+import org.apache.lucene.store.Lock;<br/>
+import org.apache.lucene.store.InputStream;<br/>
+import org.apache.lucene.store.OutputStream;<br/>
+import org.apache.lucene.search.Similarity;<br/>
+import org.apache.lucene.document.Document;<br/>
+import org.apache.lucene.analysis.Analyzer;<br/>
+<br/>
+<br/>
+/**<br/>
+  An IndexWriter creates and maintains an index.<br/>
+<br/>
+  The third argument to the &lt;a href="#IndexWriter"&gt;&lt;b&gt;constructor&lt;/b&gt;&lt;/a&gt;<br/>
+  determines whether a new index is created, or whether an existing index is<br/>
+  opened for the addition of new documents.<br/>
+<br/>
+  In either case, documents are added with the &lt;a<br/>
+  href="#addDocument"&gt;&lt;b&gt;addDocument&lt;/b&gt;&lt;/a&gt; method.  When finished adding<br/>
+  documents, &lt;a href="#close"&gt;&lt;b&gt;close&lt;/b&gt;&lt;/a&gt; should be called.<br/>
+<br/>
+  If an index will not have more documents added for a while and optimal search<br/>
+  performance is desired, then the &lt;a href="#optimize"&gt;&lt;b&gt;optimize&lt;/b&gt;&lt;/a&gt;<br/>
+  method should be called before the index is closed.<br/>
+  */<br/>
+<br/>
+public class IndexWriter {<br/>
+  public static long WRITE_LOCK_TIMEOUT = 1000;<br/>
+  public static long COMMIT_LOCK_TIMEOUT = 10000;<br/>
+<br/>
+  public static final String WRITE_LOCK_NAME = "write.lock";<br/>
+  public static final String COMMIT_LOCK_NAME = "commit.lock";<br/>
+  <br/>
+  private Directory directory;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // where this index resides<br/>
+  private Analyzer analyzer;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // how to analyze text<br/>
+<br/>
+  private Similarity similarity = Similarity.getDefault(); // how to normalize<br/>
+<br/>
+  private SegmentInfos segmentInfos = new SegmentInfos(); // the segments<br/>
+  private final Directory ramDirectory = new RAMDirectory(); // for temp segs<br/>
+<br/>
+  private Lock writeLock;<br/>
+<br/>
+  /** Use compound file setting. Defaults to false to maintain multiple files <br/>
+   *  per segment behavior.<br/>
+   */  <br/>
+  private boolean useCompoundFile = false;<br/>
+  <br/>
+  <br/>
+  /** Setting to turn on usage of a compound file. When on, multiple files<br/>
+   *  for each segment are merged into a single file once the segment creation<br/>
+   *  is finished. This is done regardless of what directory is in use.<br/>
+   */<br/>
+  public boolean getUseCompoundFile() {<br/>
+    return useCompoundFile;<br/>
+  }<br/>
+  <br/>
+  /** Setting to turn on usage of a compound file. When on, multiple files<br/>
+   *  for each segment are merged into a single file once the segment creation<br/>
+   *  is finished. This is done regardless of what directory is in use.<br/>
+   */<br/>
+  public void setUseCompoundFile(boolean value) {<br/>
+    useCompoundFile = value;<br/>
+  }<br/>
+<br/>
+  <br/>
+    /** Expert: Set the Similarity implementation used by this IndexWriter.<br/>
+   *<br/>
+   * @see Similarity#setDefault(Similarity)<br/>
+   */<br/>
+  public void setSimilarity(Similarity similarity) {<br/>
+    this.similarity = similarity;<br/>
+  }<br/>
+<br/>
+  /** Expert: Return the Similarity implementation used by this IndexWriter.<br/>
+   *<br/>
+   * &lt;p&gt;This defaults to the current value of {@link Similarity#getDefault()}.<br/>
+   */<br/>
+  public Similarity getSimilarity() {<br/>
+    return this.similarity;<br/>
+  }<br/>
+<br/>
+  /** Constructs an IndexWriter for the index in &lt;code&gt;path&lt;/code&gt;.  Text will<br/>
+    be analyzed with &lt;code&gt;a&lt;/code&gt;.  If &lt;code&gt;create&lt;/code&gt; is true, then a<br/>
+    new, empty index will be created in &lt;code&gt;path&lt;/code&gt;, replacing the index<br/>
+    already there, if any. */<br/>
+  public IndexWriter(String path, Analyzer a, boolean create)<br/>
+       throws IOException {<br/>
+    this(FSDirectory.getDirectory(path, create), a, create);<br/>
+  }<br/>
+<br/>
+  /** Constructs an IndexWriter for the index in &lt;code&gt;path&lt;/code&gt;.  Text will<br/>
+    be analyzed with &lt;code&gt;a&lt;/code&gt;.  If &lt;code&gt;create&lt;/code&gt; is true, then a<br/>
+    new, empty index will be created in &lt;code&gt;path&lt;/code&gt;, replacing the index<br/>
+    already there, if any. */<br/>
+  public IndexWriter(File path, Analyzer a, boolean create)<br/>
+       throws IOException {<br/>
+    this(FSDirectory.getDirectory(path, create), a, create);<br/>
+  }<br/>
+<br/>
+  /** Constructs an IndexWriter for the index in &lt;code&gt;d&lt;/code&gt;.  Text will be<br/>
+    analyzed with &lt;code&gt;a&lt;/code&gt;.  If &lt;code&gt;create&lt;/code&gt; is true, then a new,<br/>
+    empty index will be created in &lt;code&gt;d&lt;/code&gt;, replacing the index already<br/>
+    there, if any. */<br/>
+  public IndexWriter(Directory d, Analyzer a, final boolean create)<br/>
+       throws IOException {<br/>
+    directory = d;<br/>
+    analyzer = a;<br/>
+<br/>
+    Lock writeLock = directory.makeLock(IndexWriter.WRITE_LOCK_NAME);<br/>
+    if (!writeLock.obtain(WRITE_LOCK_TIMEOUT)) // obtain write lock<br/>
+      throw new IOException("Index locked for write: " + writeLock);<br/>
+    this.writeLock = writeLock;                   // save it<br/>
+<br/>
+    synchronized (directory) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // in- &amp; inter-process sync<br/>
+      new Lock.With(directory.makeLock(IndexWriter.COMMIT_LOCK_NAME), COMMIT_LOCK_TIMEOUT) {<br/>
+          public Object doBody() throws IOException {<br/>
+            if (create)<br/>
+              segmentInfos.write(directory);<br/>
+            else<br/>
+              segmentInfos.read(directory);<br/>
+            return null;<br/>
+          }<br/>
+        }.run();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Flushes all changes to an index, closes all associated files, and closes<br/>
+    the directory that the index is stored in. */<br/>
+  public synchronized void close() throws IOException {<br/>
+    flushRamSegments();<br/>
+    ramDirectory.close();<br/>
+    writeLock.release();                          // release write lock<br/>
+    writeLock = null;<br/>
+    directory.close();<br/>
+  }<br/>
+<br/>
+  /** Release the write lock, if needed. */<br/>
+  protected void finalize() throws IOException {<br/>
+    if (writeLock != null) {<br/>
+      writeLock.release();                        // release write lock<br/>
+      writeLock = null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Returns the analyzer used by this index. */<br/>
+  public Analyzer getAnalyzer() {<br/>
+      return analyzer;<br/>
+  }<br/>
+<br/>
+<br/>
+  /** Returns the number of documents currently in this index. */<br/>
+  public synchronized int docCount() {<br/>
+    int count = 0;<br/>
+    for (int i = 0; i &lt; segmentInfos.size(); i++) {<br/>
+      SegmentInfo si = segmentInfos.info(i);<br/>
+      count += si.docCount;<br/>
+    }<br/>
+    return count;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * The maximum number of terms that will be indexed for a single field in a<br/>
+   * document.  This limits the amount of memory required for indexing, so that<br/>
+   * collections with very large files will not crash the indexing process by<br/>
+   * running out of memory.&lt;p/&gt;<br/>
+   * Note that this effectively truncates large documents, excluding from the<br/>
+   * index terms that occur further in the document.  If you know your source<br/>
+   * documents are large, be sure to set this value high enough to accomodate<br/>
+   * the expected size.  If you set it to Integer.MAX_VALUE, then the only limit<br/>
+   * is your memory, but you should anticipate an OutOfMemoryError.&lt;p/&gt;<br/>
+   * By default, no more than 10,000 terms will be indexed for a field.<br/>
+  */<br/>
+  public int maxFieldLength = 10000;<br/>
+<br/>
+  /**<br/>
+   * Adds a document to this index.  If the document contains more than<br/>
+   * {@link #maxFieldLength} terms for a given field, the remainder are<br/>
+   * discarded.<br/>
+   */<br/>
+  public void addDocument(Document doc) throws IOException {<br/>
+    addDocument(doc, analyzer);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Adds a document to this index, using the provided analyzer instead of the<br/>
+   * value of {@link #getAnalyzer()}.  If the document contains more than<br/>
+   * {@link #maxFieldLength} terms for a given field, the remainder are<br/>
+   * discarded.<br/>
+   */<br/>
+  public void addDocument(Document doc, Analyzer analyzer) throws IOException {<br/>
+    DocumentWriter dw =<br/>
+      new DocumentWriter(ramDirectory, analyzer, similarity, maxFieldLength);<br/>
+    String segmentName = newSegmentName();<br/>
+    dw.addDocument(segmentName, doc);<br/>
+    synchronized (this) {<br/>
+      segmentInfos.addElement(new SegmentInfo(segmentName, 1, ramDirectory));<br/>
+      maybeMergeSegments();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private final synchronized String newSegmentName() {<br/>
+    return "_" + Integer.toString(segmentInfos.counter++, Character.MAX_RADIX);<br/>
+  }<br/>
+<br/>
+  /** Determines how often segment indices are merged by addDocument().  With<br/>
+   * smaller values, less RAM is used while indexing, and searches on<br/>
+   * unoptimized indices are faster, but indexing speed is slower.  With larger<br/>
+   * values, more RAM is used during indexing, and while searches on unoptimized<br/>
+   * indices are slower, indexing is faster.  Thus larger values (&gt; 10) are best<br/>
+   * for batch index creation, and smaller values (&lt; 10) for indices that are<br/>
+   * interactively maintained.<br/>
+   *<br/>
+   * &lt;p&gt;This must never be less than 2.  The default value is 10.*/<br/>
+  public int mergeFactor = 10;<br/>
+  <br/>
+  /** Determines the minimal number of documents required before the buffered<br/>
+   * in-memory documents are merging and a new Segment is created.<br/>
+   * Since Documents are merged in a {@link org.apache.lucene.store.RAMDirectory},<br/>
+   * large value gives faster indexing.  At the same time, mergeFactor limits<br/>
+   * the number of files open in a FSDirectory.<br/>
+   * <br/>
+   * &lt;p&gt; The default value is 10.*/<br/>
+  public int minMergeDocs = 10;<br/>
+<br/>
+<br/>
+  /** Determines the largest number of documents ever merged by addDocument().<br/>
+   * Small values (e.g., less than 10,000) are best for interactive indexing,<br/>
+   * as this limits the length of pauses while indexing to a few seconds.<br/>
+   * Larger values are best for batched indexing and speedier searches.<br/>
+   *<br/>
+   * &lt;p&gt;The default value is {@link Integer#MAX_VALUE}. */<br/>
+  public int maxMergeDocs = Integer.MAX_VALUE;<br/>
+<br/>
+  /** If non-null, information about merges will be printed to this. */<br/>
+  public PrintStream infoStream = null;<br/>
+<br/>
+  /** Merges all segments together into a single segment, optimizing an index<br/>
+      for search. */<br/>
+  public synchronized void optimize() throws IOException {<br/>
+    flushRamSegments();<br/>
+    while (segmentInfos.size() &gt; 1 ||<br/>
+           (segmentInfos.size() == 1 &amp;&amp;<br/>
+            (SegmentReader.hasDeletions(segmentInfos.info(0)) ||<br/>
+             (useCompoundFile &amp;&amp; <br/>
+              !SegmentReader.usesCompoundFile(segmentInfos.info(0))) ||<br/>
+              segmentInfos.info(0).dir != directory))) {<br/>
+      int minSegment = segmentInfos.size() - mergeFactor;<br/>
+      mergeSegments(minSegment &lt; 0 ? 0 : minSegment);<br/>
+    }    <br/>
+  }<br/>
+<br/>
+  /** Merges all segments from an array of indexes into this index.<br/>
+   *<br/>
+   * &lt;p&gt;This may be used to parallelize batch indexing.  A large document<br/>
+   * collection can be broken into sub-collections.  Each sub-collection can be<br/>
+   * indexed in parallel, on a different thread, process or machine.  The<br/>
+   * complete index can then be created by merging sub-collection indexes<br/>
+   * with this method.<br/>
+   *<br/>
+   * &lt;p&gt;After this completes, the index is optimized. */<br/>
+  public synchronized void addIndexes(Directory[] dirs)<br/>
+      throws IOException {<br/>
+    optimize();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // start with zero or 1 seg<br/>
+    for (int i = 0; i &lt; dirs.length; i++) {<br/>
+      SegmentInfos sis = new SegmentInfos();&nbsp;&nbsp;&nbsp;&nbsp;  // read infos from dir<br/>
+      sis.read(dirs[i]);<br/>
+      for (int j = 0; j &lt; sis.size(); j++) {<br/>
+        segmentInfos.addElement(sis.info(j));&nbsp;&nbsp;&nbsp;&nbsp;  // add each info<br/>
+      }<br/>
+    }<br/>
+    optimize();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // final cleanup<br/>
+  }<br/>
+<br/>
+  /** Merges the provided indexes into this index.<br/>
+   * &lt;p&gt;After this completes, the index is optimized. */<br/>
+  public synchronized void addIndexes(IndexReader[] readers)<br/>
+    throws IOException {<br/>
+<br/>
+    optimize();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // start with zero or 1 seg<br/>
+<br/>
+    String mergedName = newSegmentName();<br/>
+    SegmentMerger merger = new SegmentMerger(directory, mergedName, false);<br/>
+<br/>
+    if (segmentInfos.size() == 1)                 // add existing index, if any<br/>
+      merger.add(new SegmentReader(segmentInfos.info(0)));<br/>
+<br/>
+    for (int i = 0; i &lt; readers.length; i++)      // add new indexes<br/>
+      merger.add(readers[i]);<br/>
+<br/>
+    int docCount = merger.merge();                // merge 'em<br/>
+<br/>
+    segmentInfos.setSize(0);                      // pop old infos &amp; add new<br/>
+    segmentInfos.addElement(new SegmentInfo(mergedName, docCount, directory));<br/>
+<br/>
+    synchronized (directory) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // in- &amp; inter-process sync<br/>
+      new Lock.With(directory.makeLock("commit.lock"), <span class="add">COMMIT_LOCK_TIMEOUT</span>) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  public Object doBody() throws IOException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    segmentInfos.write(directory);&nbsp;&nbsp;&nbsp;&nbsp;  // commit changes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.run();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Merges all RAM-resident segments. */<br/>
+  private final void flushRamSegments() throws IOException {<br/>
+    int minSegment = segmentInfos.size()-1;<br/>
+    int docCount = 0;<br/>
+    while (minSegment &gt;= 0 &amp;&amp;<br/>
+           (segmentInfos.info(minSegment)).dir == ramDirectory) {<br/>
+      docCount += segmentInfos.info(minSegment).docCount;<br/>
+      minSegment--;<br/>
+    }<br/>
+    if (minSegment &lt; 0 ||&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // add one FS segment?<br/>
+        (docCount + segmentInfos.info(minSegment).docCount) &gt; mergeFactor ||<br/>
+        !(segmentInfos.info(segmentInfos.size()-1).dir == ramDirectory))<br/>
+      minSegment++;<br/>
+    if (minSegment &gt;= segmentInfos.size())<br/>
+      return;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // none to merge<br/>
+    mergeSegments(minSegment);<br/>
+  }<br/>
+<br/>
+  /** Incremental segment merger.  */<br/>
+  private final void maybeMergeSegments() throws IOException {<br/>
+    long targetMergeDocs = minMergeDocs;<br/>
+    while (targetMergeDocs &lt;= maxMergeDocs) {<br/>
+      // find segments smaller than current target size<br/>
+      int minSegment = segmentInfos.size();<br/>
+      int mergeDocs = 0;<br/>
+      while (--minSegment &gt;= 0) {<br/>
+        SegmentInfo si = segmentInfos.info(minSegment);<br/>
+        if (si.docCount &gt;= targetMergeDocs)<br/>
+          break;<br/>
+        mergeDocs += si.docCount;<br/>
+      }<br/>
+<br/>
+      if (mergeDocs &gt;= targetMergeDocs)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // found a merge to do<br/>
+        mergeSegments(minSegment+1);<br/>
+      else<br/>
+        break;<br/>
+<br/>
+      targetMergeDocs *= mergeFactor;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // increase target size<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /** Pops segments off of segmentInfos stack down to minSegment, merges them,<br/>
+    and pushes the merged index onto the top of the segmentInfos stack. */<br/>
+  private final void mergeSegments(int minSegment)<br/>
+      throws IOException {<br/>
+    String mergedName = newSegmentName();<br/>
+    if (infoStream != null) infoStream.print("merging segments");<br/>
+    SegmentMerger merger = <br/>
+        new SegmentMerger(directory, mergedName, useCompoundFile);<br/>
+        <br/>
+    final Vector segmentsToDelete = new Vector();<br/>
+    for (int i = minSegment; i &lt; segmentInfos.size(); i++) {<br/>
+      SegmentInfo si = segmentInfos.info(i);<br/>
+      if (infoStream != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;infoStream.print(" " + si.name + " (" + si.docCount + " docs)");<br/>
+      IndexReader reader = new SegmentReader(si);<br/>
+      merger.add(reader);<br/>
+      if ((reader.directory()==this.directory) || // if we own the directory<br/>
+          (reader.directory()==this.ramDirectory))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;segmentsToDelete.addElement(reader);&nbsp;&nbsp;&nbsp;&nbsp;  // queue segment for deletion<br/>
+    }<br/>
+    <br/>
+    int mergedDocCount = merger.merge();<br/>
+    <br/>
+    if (infoStream != null) {<br/>
+      infoStream.println();<br/>
+      infoStream.println(" into "+mergedName+" ("+mergedDocCount+" docs)");<br/>
+    }<br/>
+    <br/>
+    segmentInfos.setSize(minSegment);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // pop old infos &amp; add new<br/>
+    segmentInfos.addElement(new SegmentInfo(mergedName, mergedDocCount,<br/>
+                                            directory));<br/>
+<br/>
+    synchronized (directory) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // in- &amp; inter-process sync<br/>
+      new Lock.With(directory.makeLock(IndexWriter.COMMIT_LOCK_NAME), COMMIT_LOCK_TIMEOUT) {<br/>
+          public Object doBody() throws IOException {<br/>
+            segmentInfos.write(directory);&nbsp;&nbsp;&nbsp;&nbsp;  // commit before deleting<br/>
+            deleteSegments(segmentsToDelete);&nbsp;&nbsp;&nbsp;&nbsp;  // delete now-unused segments<br/>
+            return null;<br/>
+          }<br/>
+        }.run();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /* Some operating systems (e.g. Windows) don't permit a file to be deleted<br/>
+     while it is opened for read (e.g. by another process or thread).  So we<br/>
+     assume that when a delete fails it is because the file is open in another<br/>
+     process, and queue the file for subsequent deletion. */<br/>
+<br/>
+  private final void deleteSegments(Vector segments) throws IOException {<br/>
+    Vector deletable = new Vector();<br/>
+<br/>
+    deleteFiles(readDeleteableFiles(), deletable); // try to delete deleteable<br/>
+<br/>
+    for (int i = 0; i &lt; segments.size(); i++) {<br/>
+      SegmentReader reader = (SegmentReader)segments.elementAt(i);<br/>
+      if (reader.directory() == this.directory)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;deleteFiles(reader.files(), deletable);&nbsp;&nbsp;&nbsp;&nbsp;  // try to delete our files<br/>
+      else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;deleteFiles(reader.files(), reader.directory()); // delete other files<br/>
+    }<br/>
+<br/>
+    writeDeleteableFiles(deletable);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // note files we can't delete<br/>
+  }<br/>
+<br/>
+  private final void deleteFiles(Vector files, Directory directory)<br/>
+       throws IOException {<br/>
+    for (int i = 0; i &lt; files.size(); i++)<br/>
+      directory.deleteFile((String)files.elementAt(i));<br/>
+  }<br/>
+<br/>
+  private final void deleteFiles(Vector files, Vector deletable)<br/>
+       throws IOException {<br/>
+    for (int i = 0; i &lt; files.size(); i++) {<br/>
+      String file = (String)files.elementAt(i);<br/>
+      try {<br/>
+        directory.deleteFile(file);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // try to delete each file<br/>
+      } catch (IOException e) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // if delete fails<br/>
+        if (directory.fileExists(file)) {<br/>
+          if (infoStream != null)<br/>
+            infoStream.println(e.getMessage() + "; Will re-try later.");<br/>
+          deletable.addElement(file);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // add to deletable<br/>
+        }<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private final Vector readDeleteableFiles() throws IOException {<br/>
+    Vector result = new Vector();<br/>
+    if (!directory.fileExists("deletable"))<br/>
+      return result;<br/>
+<br/>
+    InputStream input = directory.openFile("deletable");<br/>
+    try {<br/>
+      for (int i = input.readInt(); i &gt; 0; i--)&nbsp;&nbsp;&nbsp;&nbsp;  // read file names<br/>
+        result.addElement(input.readString());<br/>
+    } finally {<br/>
+      input.close();<br/>
+    }<br/>
+    return result;<br/>
+  }<br/>
+<br/>
+  private final void writeDeleteableFiles(Vector files) throws IOException {<br/>
+    OutputStream output = directory.createFile("deleteable.new");<br/>
+    try {<br/>
+      output.writeInt(files.size());<br/>
+      for (int i = 0; i &lt; files.size(); i++)<br/>
+        output.writeString((String)files.elementAt(i));<br/>
+    } finally {<br/>
+      output.close();<br/>
+    }<br/>
+    directory.renameFile("deleteable.new", "deletable");<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

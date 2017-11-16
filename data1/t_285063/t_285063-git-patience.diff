@@ -1,0 +1,13 @@
+diff --git a/t_285063/left_DrawApplication_1.14.java b/t_285063/right_DrawApplication_1.15.java
+index 81f5fdc..e79471a 100644
+--- a/t_285063/left_DrawApplication_1.14.java
++++ b/t_285063/right_DrawApplication_1.15.java
+@@ -137,7 +137,7 @@ public	class DrawApplication
+ 			window.open();
+ 		}
+ 		else {
+-			window.open(createDrawingView(initialDrawing));
++			window.open(window.createDrawingView(initialDrawing));
+ 		}
+ 	}
+ 

@@ -1,0 +1,3470 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Modeller_1.134.java</h1>
+<div class="code">
+<div class="id">
+// $Id: Modeller.java,v 1.134 2006-04-13 03:38:30 tfmorris Exp $<br/>
+// Copyright (c) 2003-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.reveng.java;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.HashSet;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Iterator;<br/>
+import java.util.Stack;<br/>
+import java.util.StringTokenizer;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.model.Facade;<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.ocl.OCLUtil;<br/>
+import org.argouml.uml.reveng.DiagramInterface;<br/>
+import org.argouml.uml.reveng.Import;<br/>
+import org.tigris.gef.base.Globals;<br/>
+<br/>
+/**<br/>
+ * Modeller maps Java source code(parsed/recognised by ANTLR) to UML model<br/>
+ * elements, it applies some of the semantics in JSR26.<br/>
+ *<br/>
+ * @author Marcus Andersson<br/>
+ */<br/>
+public class Modeller {<br/>
+    /**<br/>
+     * Logger.&lt;p&gt;<br/>
+     */<br/>
+    private static final Logger LOG = Logger.getLogger(Modeller.class);<br/>
+<br/>
+    /**<br/>
+     * Current working model.<br/>
+     */<br/>
+    private Object model;<br/>
+<br/>
+    private DiagramInterface diagram;<br/>
+<br/>
+    /**<br/>
+     * Current import session.<br/>
+     */<br/>
+    private Import importSession;<br/>
+<br/>
+    /**<br/>
+     * The package which the currentClassifier belongs to.<br/>
+     */<br/>
+    private Object currentPackage;<br/>
+<br/>
+    /**<br/>
+     * Last package name used in addPackage().<br/>
+     * It is null for classes wich are not packaged.<br/>
+     * Used in popClassifier() to create diagram for that<br/>
+     * packaget.<br/>
+     */<br/>
+    private String currentPackageName;<br/>
+<br/>
+    /**<br/>
+     * Keeps the data that varies during parsing.<br/>
+     */<br/>
+    private ParseState parseState;<br/>
+<br/>
+    /**<br/>
+     * Stack up the state when descending inner classes.<br/>
+     */<br/>
+    private Stack parseStateStack;<br/>
+<br/>
+    /**<br/>
+     * Only attributes will be generated.<br/>
+     */<br/>
+    private boolean noAssociations;<br/>
+<br/>
+    /**<br/>
+     * Arrays will be modelled as unique datatypes.<br/>
+     */<br/>
+    private boolean arraysAsDatatype;<br/>
+<br/>
+    /**<br/>
+     * The name of the file being parsed.<br/>
+     */<br/>
+    private String fileName;<br/>
+<br/>
+    /**<br/>
+     * Arbitrary attributes.<br/>
+     */<br/>
+    private Hashtable attributes = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Vector of parsed method calls.<br/>
+     */<br/>
+    private Vector methodCalls = new Vector();<br/>
+<br/>
+    /**<br/>
+     * HashMap of parsed local variables.<br/>
+     */<br/>
+    private Hashtable localVariables = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Create a new modeller.<br/>
+     *<br/>
+     * @param diag the interface to the diagram to add nodes and edges to<br/>
+     * @param imp The current Import session.<br/>
+     * @param noAss whether associations are modelled as attributes<br/>
+     * @param arraysAsDT whether darrays are modelled as dataypes<br/>
+     * @param fName the current file name<br/>
+     *<br/>
+     * @param m The model to work with.<br/>
+     */<br/>
+    public Modeller(Object m,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    DiagramInterface diag,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Import imp,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    boolean noAss,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    boolean arraysAsDT,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String fName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;model = m;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;noAssociations = noAss;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;arraysAsDatatype = arraysAsDT;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;importSession = imp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;currentPackage = this.model;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseState = new ParseState(this.model, getPackage("java.lang"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseStateStack = new Stack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;diagram = diag;<br/>
+        fileName = fName;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param key the key of the attribute to get<br/>
+     * @return the value of the attribute<br/>
+     */<br/>
+    public Object getAttribute(String key) {<br/>
+        return attributes.get(key);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param key the key of the attribute<br/>
+     * @param value the value for the attribute<br/>
+     */<br/>
+    public void setAttribute(String key, Object value) {<br/>
+        attributes.put(key, value);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get the current diagram.<br/>
+     *<br/>
+     * @return a interface to the current diagram.<br/>
+     */<br/>
+    private DiagramInterface getDiagram() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return diagram;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This is a mapping from a Java compilation Unit -&gt; a UML component.<br/>
+     * Classes are resident in a component.<br/>
+     * Imports are relationships between components and other classes<br/>
+     * / packages.&lt;p&gt;<br/>
+     *<br/>
+     * See JSR 26.&lt;p&gt;<br/>
+     *<br/>
+     * Adding components is a little messy since there are 2 cases:<br/>
+     *<br/>
+     * &lt;ol&gt;<br/>
+     * &lt;li&gt;source file has package statement, will be added several times<br/>
+     *     since lookup in addComponent() only looks in the model since the<br/>
+     *     package namespace is not yet known.<br/>
+     *<br/>
+     * &lt;li&gt;source file has not package statement: component is added<br/>
+     *     to the model namespace. the is no package statement so the<br/>
+     *     lookup will always work.<br/>
+     *<br/>
+     * &lt;/ol&gt;<br/>
+     * Therefore in the case of (1), we need to delete duplicate components<br/>
+     * in the addPackage() method.&lt;p&gt;<br/>
+     *<br/>
+     * In either case we need to add a package since we don't know in advance<br/>
+     * if there will be a package statement.&lt;p&gt;<br/>
+     */<br/>
+    public void addComponent() {<br/>
+<br/>
+        // try and find the component in the current package<br/>
+        // to cope with repeated imports<br/>
+        // [this will never work if a package statmeent exists:<br/>
+        // because the package statement is parsed after the component is<br/>
+        // identified]<br/>
+        Object component = Model.getFacade().lookupIn(currentPackage, fileName);<br/>
+<br/>
+        if (component == null) {<br/>
+<br/>
+            // remove the java specific ending (per JSR 26).<br/>
+            // BUT we can't do this because then the component will be confused<br/>
+            // with its class with the same name when invoking<br/>
+            // Model.getFacade().lookupIn(Object,String)<br/>
+            /*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      if(fileName.endsWith(".java"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      fileName = fileName.substring(0, fileName.length()-5);<br/>
+            */<br/>
+<br/>
+            component = Model.getCoreFactory().createComponent();<br/>
+            Model.getCoreHelper().setName(component, fileName);<br/>
+        }<br/>
+<br/>
+        parseState.addComponent(component);<br/>
+<br/>
+        // set the namespace of the component, in the event<br/>
+        // that the source file does not have a package stmt<br/>
+        Model.getCoreHelper().setNamespace(parseState.getComponent(), model);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when a package clause is found.<br/>
+     *<br/>
+     * @param name The name of the package.<br/>
+     */<br/>
+    public void addPackage(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add a package figure for this package to the owners class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// diagram, if it's not in the diagram yet. I do this for all<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the class diagrams up to the top level, since I need<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// diagrams for all the packages.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ownerPackageName, currentName = name;<br/>
+        ownerPackageName = getPackageName(currentName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (!"".equals(ownerPackageName)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (getDiagram() != null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; importSession != null<br/>
+                &amp;&amp; importSession.isCreateDiagramsChecked()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; getDiagram().isDiagramInProject(ownerPackageName)) {<br/>
+<br/>
+                getDiagram().selectClassDiagram(getPackage(ownerPackageName),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ownerPackageName);<br/>
+                getDiagram().addPackage(getPackage(currentName));<br/>
+<br/>
+            }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    currentName = ownerPackageName;<br/>
+            ownerPackageName = getPackageName(currentName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Save src_path in the upper package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mPackage = getPackage(currentName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (importSession != null &amp;&amp; importSession.getSrcPath() != null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; Model.getFacade().getTaggedValue(mPackage, "src_path") == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setTaggedValue(mPackage, "src_path",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       importSession.getSrcPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Find or create a Package model element for this package.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mPackage = getPackage(name);<br/>
+        currentPackageName = name;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set the current package for the following source code.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;currentPackage = mPackage;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseState.addPackageContext(mPackage);<br/>
+<br/>
+        // Delay diagram creation until any classifier (class or<br/>
+        // interface) will be found<br/>
+<br/>
+        //set the namespace of the component<br/>
+        // check to see if there is already a component defined:<br/>
+        Object component = Model.getFacade().lookupIn(currentPackage, fileName);<br/>
+<br/>
+        if (component == null) {<br/>
+<br/>
+            // set the namespace of the component<br/>
+            Model.getCoreHelper().setNamespace(<br/>
+                    parseState.getComponent(),<br/>
+                    currentPackage);<br/>
+        } else {<br/>
+<br/>
+            // a component already exists,<br/>
+            // so delete the latest one(the duplicate)<br/>
+            Model.getUmlFactory().delete(parseState.getComponent());<br/>
+        // change the parse state to the existing one.<br/>
+            parseState.addComponent(component);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an import clause is found.<br/>
+     *<br/>
+     * @param name The name of the import. Can end with a '*'.<br/>
+     */<br/>
+    public void addImport(String name) {<br/>
+        // only do imports on the 2nd pass.<br/>
+        Object level = this.getAttribute("level");<br/>
+        if (level != null) {<br/>
+            if (level.equals(new Integer(0))) {<br/>
+                return;<br/>
+            }<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String packageName = getPackageName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String classifierName = getClassifierName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mPackage = getPackage(packageName);<br/>
+<br/>
+        // import on demand<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (classifierName.equals("*")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    parseState.addPackageContext(mPackage);<br/>
+            Object perm = null;<br/>
+<br/>
+            // try find an existing permission<br/>
+            Iterator dependenciesIt =<br/>
+                Model.getCoreHelper()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getDependencies(mPackage, parseState.getComponent())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .iterator();<br/>
+            while (dependenciesIt.hasNext()) {<br/>
+<br/>
+                Object dependency = dependenciesIt.next();<br/>
+                if (Model.getFacade().isAPermission(dependency)) {<br/>
+<br/>
+                    perm = dependency;<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // if no existing permission was found.<br/>
+            if (perm == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;perm =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .buildPermission(parseState.getComponent(), mPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String newName =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getFacade().getName(parseState.getComponent())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    + " -&gt; "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    + packageName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setName(perm, newName);<br/>
+            }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        // single type import<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+            Object mClassifier = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mClassifier =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (new PackageContext(null, mPackage)).get(classifierName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parseState.addClassifierContext(mClassifier);<br/>
+                Object perm = null;<br/>
+<br/>
+                // try find an existing permission<br/>
+                Iterator dependenciesIt =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper()<br/>
+                        .getDependencies(mClassifier,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parseState.getComponent())<br/>
+                            .iterator();<br/>
+                while (dependenciesIt.hasNext()) {<br/>
+<br/>
+                    Object dependency = dependenciesIt.next();<br/>
+                    if (Model.getFacade().isAPermission(dependency)) {<br/>
+<br/>
+                        perm = dependency;<br/>
+                        break;<br/>
+                    }<br/>
+                }<br/>
+<br/>
+                // if no existing permission was found.<br/>
+                if (perm == null) {<br/>
+                    perm =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .buildPermission(parseState.getComponent(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     mClassifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String newName =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getFacade().getName(parseState.getComponent())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ " -&gt; "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ Model.getFacade().getName(mClassifier);<br/>
+                    Model.getCoreHelper().setName(perm, newName);<br/>
+                }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + " file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(to generate an imported classifier) - "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when a class declaration is found.<br/>
+     *<br/>
+     * @param name The name of the class.<br/>
+     * @param modifiers A sequence of class modifiers.<br/>
+     * @param superclassName Zero or one string with the name of the<br/>
+     *        superclass. Can be fully qualified or<br/>
+     *        just a simple class name.<br/>
+     * @param interfaces Zero or more strings with the names of implemented<br/>
+     *        interfaces. Can be fully qualified or just a<br/>
+     *        simple interface name.<br/>
+     * @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+     */<br/>
+    public void addClass(String name,<br/>
+                         short modifiers,<br/>
+                         String superclassName,<br/>
+                         Vector interfaces,<br/>
+                         String javadoc) {<br/>
+        Object mClass =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addClassifier(Model.getCoreFactory().createClass(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  name, modifiers, javadoc);<br/>
+<br/>
+        Model.getCoreHelper().setAbstract(<br/>
+                mClass,<br/>
+                (modifiers &amp; JavaRecognizer.ACC_ABSTRACT) &gt; 0);<br/>
+        Model.getCoreHelper().setLeaf(<br/>
+                mClass,<br/>
+                (modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0);<br/>
+        Model.getCoreHelper().setRoot(mClass, false);<br/>
+<br/>
+        // only do generalizations and realizations on the 2nd pass.<br/>
+        Object level = this.getAttribute("level");<br/>
+        if (level != null) {<br/>
+            if (level.equals(new Integer(0))) {<br/>
+                return;<br/>
+            }<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (superclassName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object parentClass =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(superclassName)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .get(getClassifierName(superclassName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getGeneralization(currentPackage, parentClass, mClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// model/classpath then information will be lost from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// source files, because the classifier cannot be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// created on the fly.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOG.warn("Modeller.java: a classifier that was in the source"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + " file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(to generate a generalization)- information lost",<br/>
+                         e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (interfaces != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for (Iterator i = interfaces.iterator(); i.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String interfaceName = (String) i.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Object mInterface =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getContext(interfaceName)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getInterface(getClassifierName(interfaceName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Object mAbstraction =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getAbstraction(mInterface, mClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (Model.getFacade().getSuppliers(mAbstraction).size()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addSupplier(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mAbstraction,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mInterface);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addClient(mAbstraction, mClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setNamespace(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            mAbstraction,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            currentPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().addStereotype(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            mAbstraction,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            getStereotype("realize"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // Currently if a classifier cannot be found in the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // model/classpath then information will be lost from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // source files, because the classifier cannot be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // created on the fly.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    LOG.warn("Modeller.java: a classifier that was in "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "the source file could not be generated "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "(to generate a abstraction)- information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an anonymous inner class is found.<br/>
+     *<br/>
+     * @param type The type of this anonymous class.<br/>
+     */<br/>
+    public void addAnonymousClass(String type) {<br/>
+        String name = parseState.anonymousClass();<br/>
+        try {<br/>
+            Object mClassifier = getContext(type).get(getClassifierName(type));<br/>
+            Vector interfaces = new Vector();<br/>
+            if (Model.getFacade().isAInterface(mClassifier)) {<br/>
+                interfaces.add(type);<br/>
+            }<br/>
+            addClass(name,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     (short) 0,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     Model.getFacade().isAClass(mClassifier) ? type : null,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     interfaces,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "");<br/>
+        } catch (ClassifierNotFoundException e) {<br/>
+            // Must add it anyway, or the class poping will mismatch.<br/>
+            addClass(name, (short) 0, null, new Vector(), "");<br/>
+            LOG.warn("Modeller.java: an anonymous class was created "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "although it could not be found in the classpath.",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Called from the parser when an interface declaration is found.<br/>
+<br/>
+       @param name The name of the interface.<br/>
+       @param modifiers A sequence of interface modifiers.<br/>
+       @param interfaces Zero or more strings with the names of extended<br/>
+       interfaces. Can be fully qualified or just a<br/>
+       simple interface name.<br/>
+       @param javadoc The javadoc comment. "" if no comment available.<br/>
+    */<br/>
+    public void addInterface(String name,<br/>
+                             short modifiers,<br/>
+                             Vector interfaces,<br/>
+                             String javadoc) {<br/>
+        Object mInterface =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addClassifier(Model.getCoreFactory().createInterface(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  name,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  modifiers,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  javadoc);<br/>
+<br/>
+        // only do generalizations and realizations on the 2nd pass.<br/>
+        Object level = this.getAttribute("level");<br/>
+        if (level != null) {<br/>
+            if (level.equals(new Integer(0))) {<br/>
+                return;<br/>
+            }<br/>
+        }<br/>
+<br/>
+        for (Iterator i = interfaces.iterator(); i.hasNext();) {<br/>
+            String interfaceName = (String) i.next();<br/>
+            try {<br/>
+                Object parentInterface =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(interfaceName)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .getInterface(getClassifierName(interfaceName));<br/>
+                getGeneralization(currentPackage, parentInterface, mInterface);<br/>
+            } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + " file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(to generate a generalization)- information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Common code used by addClass and addInterface.<br/>
+<br/>
+       @param newClassifier Supply one if none is found in the model.<br/>
+       @param name Name of the classifier.<br/>
+       @param modifiers String of modifiers.<br/>
+       @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+       @return The newly created/found classifier.<br/>
+    */<br/>
+    private Object addClassifier(Object newClassifier,<br/>
+                                 String name,<br/>
+                                 short modifiers,<br/>
+                                 String javadoc) {<br/>
+        Object mClassifier;<br/>
+        Object mNamespace;<br/>
+<br/>
+        if (parseState.getClassifier() != null) {<br/>
+            // the new classifier is a java inner class<br/>
+            mClassifier =<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;Model.getFacade().lookupIn(parseState.getClassifier(), name);<br/>
+            mNamespace = parseState.getClassifier();<br/>
+        } else {<br/>
+            // the new classifier is a top level java class<br/>
+            parseState.outerClassifier();<br/>
+            mClassifier = Model.getFacade().lookupIn(currentPackage, name);<br/>
+            mNamespace = currentPackage;<br/>
+        }<br/>
+<br/>
+<br/>
+        if (mClassifier == null) {<br/>
+            // if the classifier could not be could in the model<br/>
+            if (LOG.isInfoEnabled()) {<br/>
+                LOG.info("Created new classifier for " + name);<br/>
+            }<br/>
+            mClassifier = newClassifier;<br/>
+            Model.getCoreHelper().setName(mClassifier, name);<br/>
+            Model.getCoreHelper().setNamespace(mClassifier, mNamespace);<br/>
+        } else {<br/>
+            // it was found and we delete any existing tagged values.<br/>
+            if (LOG.isInfoEnabled()) {<br/>
+                LOG.info("Found existing classifier for " + name);<br/>
+            }<br/>
+            cleanModelElement(mClassifier);<br/>
+        }<br/>
+<br/>
+        parseState.innerClassifier(mClassifier);<br/>
+<br/>
+        // set up the component residency (only for top level classes)<br/>
+        if (parseState.getClassifier() == null) {<br/>
+            // set the clasifier to be a resident in its component:<br/>
+            // (before we push a new parse state on the stack)<br/>
+            <br/>
+            // This test is carried over from a previous implementation,<br/>
+            // but I'm not sure why it would already be set - tfm<br/>
+            if (Model.getFacade().getElementResidences(mClassifier).isEmpty()) {<br/>
+                Object resident = Model.getCoreFactory()<br/>
+                        .createElementResidence();<br/>
+                Model.getCoreHelper().setResident(resident, mClassifier);<br/>
+                Model.getCoreHelper().setContainer(resident,<br/>
+                        parseState.getComponent());<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // change the parse state to a classifier parse state<br/>
+        parseStateStack.push(parseState);<br/>
+        parseState = new ParseState(parseState, mClassifier, currentPackage);<br/>
+<br/>
+        setVisibility(mClassifier, modifiers);<br/>
+        addDocumentationTag (mClassifier, javadoc);<br/>
+<br/>
+        return mClassifier;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Called from the parser when a classifier is completely parsed.<br/>
+    */<br/>
+    public void popClassifier() {<br/>
+        // now create diagram if it doesn't exists in project<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (importSession != null &amp;&amp; importSession.isCreateDiagramsChecked()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (getDiagram() == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;diagram = new DiagramInterface(Globals.curEditor());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentPackageName != null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; !currentPackageName.trim().equals("")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // create new diagram or select existing diagram for package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    diagram.createOrSelectClassDiagram(currentPackage,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentPackageName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // create new diagram in root for classifier without package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    diagram.createRootClassDiagram();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentPackageName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getDiagram().selectClassDiagram(currentPackage,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    currentPackageName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the DiagramInterface is instantiated already<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// but the class is in a source file<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// with no package declaration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // create new diagram in root for classifier without package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    diagram.createRootClassDiagram();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        // add the current classifier to the diagram.<br/>
+        Object classifier = parseState.getClassifier();<br/>
+        if (Model.getFacade().isAInterface(classifier)) {<br/>
+            if (getDiagram() != null &amp;&amp; importSession != null<br/>
+                    &amp;&amp; importSession.isCreateDiagramsChecked()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;diagram.addInterface(classifier,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      importSession.isMinimiseFigsChecked());<br/>
+            }<br/>
+        } else {<br/>
+            if (Model.getFacade().isAClass(classifier)) {<br/>
+                if (getDiagram() != null &amp;&amp; importSession != null<br/>
+                        &amp;&amp; importSession.isCreateDiagramsChecked()) {<br/>
+                    diagram.addClass(classifier,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      importSession.isMinimiseFigsChecked());<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // Remove operations and attributes not in source<br/>
+        parseState.removeObsoleteFeatures();<br/>
+<br/>
+        // Remove inner classes not in source<br/>
+        parseState.removeObsoleteInnerClasses();<br/>
+<br/>
+        parseState = (ParseState) parseStateStack.pop();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an operation is<br/>
+     * found.<br/>
+     *<br/>
+     * @param modifiers A sequence of operation modifiers.<br/>
+     * @param returnType The return type of the operation.<br/>
+     * @param name The name of the operation as a string<br/>
+     * @param parameters A number of vectors, each representing a<br/>
+     *<br/>
+     * parameter.<br/>
+     * @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+     * @return The operation.<br/>
+     */<br/>
+    public Object addOperation (short modifiers,<br/>
+                                String returnType,<br/>
+                                String name,<br/>
+                                Vector parameters,<br/>
+                                String javadoc) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mOperation = getOperation(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseState.feature(mOperation);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setAbstract(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(modifiers &amp; JavaRecognizer.ACC_ABSTRACT) &gt; 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setLeaf(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setRoot(mOperation, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setOwnerScope(mOperation, modifiers);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setVisibility(mOperation, modifiers);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((modifiers &amp; JavaRecognizer.ACC_SYNCHRONIZED) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setConcurrency(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getConcurrencyKind().getGuarded());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (Model.getFacade().getConcurrency(mOperation)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   == Model.getConcurrencyKind().getGuarded()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setConcurrency(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getConcurrencyKind().getSequential());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        Collection c = new ArrayList(Model.getFacade()<br/>
+                .getParameters(mOperation));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (Iterator i = c.iterator(); i.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().removeParameter(mOperation, i.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mParameter;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String typeName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mClassifier;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (returnType == null<br/>
+            || ("void".equals(returnType)<br/>
+                &amp;&amp; name.equals(Model.getFacade().getName(parseState<br/>
+                        .getClassifier())))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Constructor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().addStereotype(mOperation,<br/>
+                getStereotype(mOperation, "create", "BehavioralFeature"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mClassifier =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(returnType).get(getClassifierName(returnType));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object mdl = ProjectManager.getManager()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getCurrentProject().getModel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object voidType = ProjectManager.getManager()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getCurrentProject().findType("void");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mParameter = Model.getCoreFactory().buildParameter(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mOperation, mdl, voidType);<br/>
+                Model.getCoreHelper().setName(mParameter, "return");<br/>
+                Model.getCoreHelper().setKind(<br/>
+                        mParameter,<br/>
+                        Model.getDirectionKind().getReturnParameter());<br/>
+<br/>
+                Model.getCoreHelper().setType(mParameter, mClassifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(for generating operation return type) - "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (Iterator i = parameters.iterator(); i.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Vector parameter = (Vector) i.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    typeName = (String) parameter.elementAt(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+                mClassifier =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(typeName).get(getClassifierName(typeName));<br/>
+                Object mdl = ProjectManager.getManager()<br/>
+                    .getCurrentProject().getModel();<br/>
+                Object voidType = ProjectManager.getManager()<br/>
+                    .getCurrentProject().findType("void");<br/>
+                mParameter = Model.getCoreFactory().buildParameter(<br/>
+                        mOperation, mdl, voidType);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setName(mParameter,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (String) parameter.elementAt(2));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setKind(mParameter,<br/>
+                        Model.getDirectionKind().getInParameter());<br/>
+                if (Model.getFacade().isAClassifier(mClassifier)) {<br/>
+                    Model.getCoreHelper().setType(mParameter, mClassifier);<br/>
+                } else {<br/>
+                    // the type resolution failed to find a valid classifier.<br/>
+                    LOG.warn("Modeller.java: a valid type for a parameter "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "could not be resolved:\n "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "In file: " + fileName + ", for operation: "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + Model.getFacade().getName(mOperation)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + ", for parameter: "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + Model.getFacade().getName(mParameter));<br/>
+                }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(for generating operation params) - "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addDocumentationTag (mOperation, javadoc);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return mOperation;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser to add a method body to an operation.<br/>
+     * (An operation will have exactly one Java body.)<br/>
+     *<br/>
+     * @param op An operation.<br/>
+     * @param body A method body.<br/>
+     */<br/>
+    public void addBodyToOperation(Object op, String body) {<br/>
+        if (op == null || !Model.getFacade().isAOperation(op)) {<br/>
+//            LOG.warn("adding body failed: no operation!");<br/>
+            return;<br/>
+        }<br/>
+        if (body == null || body.length() == 0) {<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Object method = getMethod(Model.getFacade().getName(op));<br/>
+        parseState.feature(method);<br/>
+        Model.getCoreHelper().setBody(method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getDataTypesFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;.createProcedureExpression("Java",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   body));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add the method to it's specification.<br/>
+        Model.getCoreHelper().addMethod(op, method);<br/>
+<br/>
+        // Add this method as a feature to the classifier that owns<br/>
+        // the operation.<br/>
+        Model.getCoreHelper().addFeature(Model.getFacade().getOwner(op),<br/>
+                method);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an attribute is found.<br/>
+     *<br/>
+     * @param modifiers A sequence of attribute modifiers.<br/>
+     * @param typeSpec The attribute's type.<br/>
+     * @param name The name of the attribute.<br/>
+     * @param initializer The initial value of the attribute.<br/>
+     * @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+     */<br/>
+    public void addAttribute (short modifiers,<br/>
+                              String typeSpec,<br/>
+                              String name,<br/>
+                              String initializer,<br/>
+                              String javadoc) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String multiplicity = null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!arraysAsDatatype &amp;&amp; typeSpec.indexOf('[') != -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    typeSpec = typeSpec.substring(0, typeSpec.indexOf('['));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    multiplicity = "1_N";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    multiplicity = "1_1";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the attribute type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mClassifier = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // get the attribute type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    mClassifier = getContext(typeSpec).get(getClassifierName(typeSpec));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Currently if a classifier cannot be found in the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // model/classpath then information will be lost from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // source files, because the classifier cannot be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // created on the fly.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    LOG.warn("Modeller.java: a classifier that was in the source "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "(for generating an attribute)- information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // if we can't find the attribute type then<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // we can't add the attribute.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// if we want to create a UML attribute:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (noAssociations<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || Model.getFacade().isADataType(mClassifier)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || (Model.getFacade().getNamespace(mClassifier)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;== getPackage("java.lang"))) {<br/>
+<br/>
+            Object mAttribute = parseState.getAttribute(name);<br/>
+            if (mAttribute == null) {<br/>
+                mAttribute = buildAttribute(parseState.getClassifier(), name);<br/>
+            }            <br/>
+            parseState.feature(mAttribute);<br/>
+<br/>
+            setOwnerScope(mAttribute, modifiers);<br/>
+            setVisibility(mAttribute, modifiers);<br/>
+            Model.getCoreHelper().setMultiplicity(mAttribute, multiplicity);<br/>
+<br/>
+            if (Model.getFacade().isAClassifier(mClassifier)) {<br/>
+                Model.getCoreHelper().setType(mAttribute, mClassifier);<br/>
+            } else {<br/>
+                // the type resolution failed to find a valid classifier.<br/>
+                LOG.warn("Modeller.java: a valid type for a parameter "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "could not be resolved:\n "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "In file: " + fileName + ", for attribute: "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + Model.getFacade().getName(mAttribute));<br/>
+            }<br/>
+<br/>
+            // Set the initial value for the attribute.<br/>
+            if (initializer != null) {<br/>
+<br/>
+                // we must remove line endings and tabs from the intializer<br/>
+                // strings, otherwise the classes will display horribly.<br/>
+                initializer = initializer.replace('\n', ' ');<br/>
+                initializer = initializer.replace('\t', ' ');<br/>
+                <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object newInitialValue =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getDataTypesFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .createExpression("Java",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  initializer);<br/>
+                Model.getCoreHelper().setInitialValue(<br/>
+                        mAttribute,<br/>
+                        newInitialValue);<br/>
+            }<br/>
+<br/>
+            if ((modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0) {<br/>
+                Model.getCoreHelper().setChangeable(mAttribute, false);<br/>
+            } else if (!Model.getFacade().isChangeable(mAttribute)) {<br/>
+                Model.getCoreHelper().setChangeable(mAttribute, true);<br/>
+            }<br/>
+            addDocumentationTag(mAttribute, javadoc);<br/>
+        }<br/>
+        // we want to create a UML association from the java attribute<br/>
+        else {<br/>
+<br/>
+            Object mAssociationEnd = getAssociationEnd(name, mClassifier);<br/>
+            setTargetScope(mAssociationEnd, modifiers);<br/>
+            setVisibility(mAssociationEnd, modifiers);<br/>
+            Model.getCoreHelper().setMultiplicity(<br/>
+                    mAssociationEnd,<br/>
+                    multiplicity);<br/>
+            Model.getCoreHelper().setType(mAssociationEnd, mClassifier);<br/>
+            Model.getCoreHelper().setName(mAssociationEnd, name);<br/>
+            if ((modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0) {<br/>
+                Model.getCoreHelper().setChangeable(mAssociationEnd, false);<br/>
+            }<br/>
+            Model.getCoreHelper().setNavigable(mAssociationEnd, true);<br/>
+            addDocumentationTag(mAssociationEnd, javadoc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find a generalization in the model. If it does not exist, a<br/>
+       new generalization is created.<br/>
+<br/>
+       @param mPackage Look in this package.<br/>
+       @param parent The superclass.<br/>
+       @param child The subclass.<br/>
+       @return The generalization found or created.<br/>
+    */<br/>
+    private Object getGeneralization(Object mPackage,<br/>
+                                     Object parent,<br/>
+                                     Object child) {<br/>
+        String name = Model.getFacade().getName(child) + " -&gt; "<br/>
+            + Model.getFacade().getName(parent);<br/>
+        Object mGeneralization = null;<br/>
+        mGeneralization = Model.getFacade().getGeneralization(child, parent);<br/>
+        if (mGeneralization == null) {<br/>
+            mGeneralization =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory().buildGeneralization(child, parent,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     name);<br/>
+        }<br/>
+        if (mGeneralization != null) {<br/>
+            Model.getCoreHelper().setNamespace(mGeneralization, mPackage);<br/>
+        }<br/>
+        return mGeneralization;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Find an abstraction&lt;&lt;realize&gt;&gt; in the model. If it does not<br/>
+     * exist, a new abstraction is created.<br/>
+     *<br/>
+     * @param parent The superclass.<br/>
+     * @param child The subclass.<br/>
+     * @return The abstraction found or created.<br/>
+     */<br/>
+    private Object getAbstraction(Object parent,<br/>
+                                  Object child) {<br/>
+        String name = Model.getFacade().getName(child) + " -&gt; "<br/>
+            + Model.getFacade().getName(parent);<br/>
+        Object mAbstraction = null;<br/>
+        for (Iterator i =<br/>
+                Model.getFacade().getClientDependencies(child).iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     i.hasNext();) {<br/>
+            mAbstraction = i.next();<br/>
+            Collection c = Model.getFacade().getSuppliers(mAbstraction);<br/>
+            if (c == null || c.size() == 0) {<br/>
+                Model.getCoreHelper()<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;.removeClientDependency(child, mAbstraction);<br/>
+            } else {<br/>
+                if (parent != c.toArray()[0]) {<br/>
+                    mAbstraction = null;<br/>
+                } else {<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if (mAbstraction == null) {<br/>
+            mAbstraction = Model.getCoreFactory().buildAbstraction(<br/>
+                   name,<br/>
+                   parent,<br/>
+                   child);<br/>
+        }<br/>
+        return mAbstraction;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find a package in the model. If it does not exist, a new<br/>
+       package is created.<br/>
+<br/>
+       @param name The name of the package.<br/>
+       @return The package found or created.<br/>
+    */<br/>
+    private Object getPackage(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mPackage = searchPackageInModel(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (mPackage == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    mPackage =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getModelManagementFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .buildPackage(getRelativePackageName(name), name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setNamespace(mPackage, model);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Find the owner for this package.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ("".equals(getPackageName(name))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addOwnedElement(model, mPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addOwnedElement(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        getPackage(getPackageName(name)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return mPackage;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Search recursivly for nested packages in the model. So if you<br/>
+     * pass a package org.argouml.kernel , this method searches for a package<br/>
+     * kernel, that is owned by a package argouml, which is owned by a<br/>
+     * package org. This method is required to nest the parsed packages.<br/>
+     *<br/>
+     * @param name The fully qualified package name of the package we<br/>
+     * are searching for.<br/>
+     * @return The found package or null, if it is not in the model.<br/>
+     */<br/>
+    private Object searchPackageInModel(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ("".equals(getPackageName(name))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return Model.getFacade().lookupIn(model, name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        Object owner = searchPackageInModel(getPackageName(name));<br/>
+        return owner == null<br/>
+            ? null<br/>
+            : Model.getFacade().lookupIn(owner, getRelativePackageName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an operation in the currentClassifier. If the operation is<br/>
+       not found, a new is created.<br/>
+<br/>
+       @param name The name of the operation.<br/>
+       @return The operation found or created.<br/>
+    */<br/>
+    private Object getOperation(String name) {<br/>
+        Object mOperation = parseState.getOperation(name);<br/>
+        if (mOperation != null) {<br/>
+            LOG.info("Getting the existing operation " + name);<br/>
+        } else {<br/>
+            LOG.info("Creating a new operation " + name);<br/>
+            Object cls = parseState.getClassifier();<br/>
+            Object mdl = ProjectManager.getManager()<br/>
+                .getCurrentProject().getModel();<br/>
+            Object voidType = ProjectManager.getManager()<br/>
+                .getCurrentProject().findType("void");<br/>
+            mOperation =<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory().buildOperation(<br/>
+                        cls, mdl, voidType, name);<br/>
+//            Iterator it2 =<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ProjectManager.getManager().getCurrentProject()<br/>
+//                .findFigsForMember(parseState.getClassifier()).iterator();<br/>
+//            while (it2.hasNext()) {<br/>
+//                Object listener = it2.next();<br/>
+//                // UmlModelEventPump.getPump()<br/>
+//                //     .removeModelEventListener(listener,<br/>
+//                // mOperation);<br/>
+//                UmlModelEventPump.getPump().addModelEventListener(listener,<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  mOperation);<br/>
+//                // UmlModelEventPump.getPump()<br/>
+//                //     .removeModelEventListener(listener,<br/>
+//                // mOperation.getParameter(0));<br/>
+//                UmlModelEventPump.getPump()<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .addModelEventListener(listener,<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getFacade().getParameter(mOperation,<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    0));<br/>
+//            }<br/>
+        }<br/>
+        return mOperation;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an operation in the currentClassifier. If the operation is<br/>
+       not found, a new is created.<br/>
+<br/>
+       @param name The name of the method.<br/>
+       @return The method found or created.<br/>
+    */<br/>
+    private Object getMethod(String name) {<br/>
+        Object method = parseState.getMethod(name);<br/>
+        if (method != null) {<br/>
+            LOG.info("Getting the existing method " + name);<br/>
+        } else {<br/>
+            LOG.info("Creating a new method " + name);<br/>
+            method = Model.getCoreFactory().buildMethod(name);<br/>
+            Model.getCoreHelper().addFeature(<br/>
+                    parseState.getClassifier(),<br/>
+                    method);<br/>
+        }<br/>
+        return method;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an attribute in the currentClassifier. If the attribute is<br/>
+       not found, a new one is created.<br/>
+<br/>
+       @param name The name of the attribute.<br/>
+       @return The attribute found or created.<br/>
+    */<br/>
+    private Object buildAttribute(Object classifier, String name) {<br/>
+        Project project = ProjectManager.getManager().getCurrentProject(); <br/>
+        Object intType = project.findType("int");<br/>
+        Object myModel = project.getModel();<br/>
+        Object mAttribute = Model.getCoreFactory().buildAttribute(classifier,<br/>
+                myModel, intType);<br/>
+        Model.getCoreHelper().setName(mAttribute, name);<br/>
+        return mAttribute;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an associationEnd from the currentClassifier to the type<br/>
+       specified. If not found, a new is created.<br/>
+<br/>
+       @param name The name of the attribute.<br/>
+       @param mClassifier Where the association ends.<br/>
+       @return The attribute found or created.<br/>
+    */<br/>
+    private Object getAssociationEnd(String name, Object mClassifier) {<br/>
+        Object mAssociationEnd = null;<br/>
+        for (Iterator i = Model.getFacade().getAssociationEnds(mClassifier)<br/>
+                .iterator(); i.hasNext();) {<br/>
+            Object ae = i.next();<br/>
+            if (name.equals(Model.getFacade().getName(ae))<br/>
+                &amp;&amp; Model.getFacade().getType(<br/>
+                        Model.getFacade().getOppositeEnd(ae))<br/>
+                    == parseState.getClassifier()) {<br/>
+                mAssociationEnd = ae;<br/>
+            }<br/>
+        }<br/>
+        if (mAssociationEnd == null &amp;&amp; !noAssociations) {<br/>
+            String newName =<br/>
+                Model.getFacade().getName(parseState.getClassifier())<br/>
+                    + " -&gt; " + Model.getFacade().getName(mClassifier);<br/>
+<br/>
+            Object mAssociation =<br/>
+                Model.getCoreFactory().buildAssociation(<br/>
+                        mClassifier, true, parseState.getClassifier(), false,<br/>
+                        newName);<br/>
+            mAssociationEnd =<br/>
+                Model.getFacade().getAssociationEnd(<br/>
+                        mClassifier,<br/>
+                        mAssociation);<br/>
+        }<br/>
+        return mAssociationEnd;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the stereotype with a specific name.<br/>
+<br/>
+       @param name The name of the stereotype.<br/>
+       @return The stereotype.<br/>
+    */<br/>
+    private Object getStereotype(String name) {<br/>
+        LOG.info("Trying to find a stereotype of name &lt;&lt;" + name + "&gt;&gt;");<br/>
+        // Is this line really safe wouldn't it just return the first<br/>
+        // model element of the same name whether or not it is a stereotype<br/>
+        Object stereotype = Model.getFacade().lookupIn(model, name);<br/>
+<br/>
+        if (stereotype == null) {<br/>
+            LOG.info("Couldn't find so creating it");<br/>
+            return<br/>
+                Model.getExtensionMechanismsFactory()<br/>
+                    .buildStereotype(name, model);<br/>
+        }<br/>
+<br/>
+        if (!Model.getFacade().isAStereotype(stereotype)) {<br/>
+            // and so this piece of code may create an existing stereotype<br/>
+            // in error.<br/>
+            LOG.info("Found something that isn't a stereotype so creating it");<br/>
+            return<br/>
+                Model.getExtensionMechanismsFactory()<br/>
+                    .buildStereotype(name, model);<br/>
+        }<br/>
+<br/>
+        LOG.info("Found it");<br/>
+        return stereotype;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Find the first suitable stereotype with baseclass for a given object.<br/>
+     *<br/>
+     * @param me<br/>
+     * @param name<br/>
+     * @param baseClass<br/>
+     * @return the stereotype if found<br/>
+     *<br/>
+     * @throws IllegalArgumentException if the desired stereotypes for<br/>
+     * the modelelement and baseclass was not found. No stereotype is<br/>
+     * created.<br/>
+     */<br/>
+    private Object getStereotype(Object me, String name, String baseClass) {<br/>
+        Collection models =<br/>
+            ProjectManager.getManager().getCurrentProject().getModels();<br/>
+        Collection stereos =<br/>
+            Model.getExtensionMechanismsHelper()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        .getAllPossibleStereotypes(models, me);<br/>
+        if (stereos != null &amp;&amp; stereos.size() &gt; 0) {<br/>
+            Iterator iter = stereos.iterator();<br/>
+            while (iter.hasNext()) {<br/>
+                Object stereotype = iter.next();<br/>
+                if (Model.getExtensionMechanismsHelper()<br/>
+                        .isStereotypeInh(stereotype, name, baseClass)) {<br/>
+                    LOG.info("Returning the existing stereotype of &lt;&lt;"<br/>
+                            + Model.getFacade().getName(stereotype) + "&gt;&gt;");<br/>
+                    return stereotype;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        // TODO: Instead of failing, this should create any stereotypes that it<br/>
+        // requires.  Most likely cause of failure is that the stereotype isn't<br/>
+        // included in the profile that is being used. - tfm 20060224<br/>
+        throw new IllegalArgumentException("Could not find "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   + "a suitable stereotype for "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   + me + <span class="upd">" "</span> + name + <span class="upd">" "</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   + baseClass);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Return the tagged value with a specific tag.<br/>
+<br/>
+       @param element The tagged value belongs to this.<br/>
+       @param name The tag.<br/>
+       @return The found tag. A new is created if not found.<br/>
+    */<br/>
+    private Object getTaggedValue(Object element, String name) {<br/>
+        Object tv = Model.getFacade().getTaggedValue(element, name);<br/>
+        if (tv == null) {<br/>
+            Model.getCoreHelper().setTaggedValue(element, name, "");<br/>
+            tv = Model.getFacade().getTaggedValue(element, name);<br/>
+        }<br/>
+        return tv;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This classifier was earlier generated by reference but now it is<br/>
+     * its time to be parsed so we clean out remnants.<br/>
+     *<br/>
+     * @param element that they are removed from<br/>
+     */<br/>
+    private void cleanModelElement(Object element) {<br/>
+        for (Iterator i = Model.getFacade().getTaggedValues(element);<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;i.hasNext();) {<br/>
+            Object tv = i.next();<br/>
+            if (Model.getFacade().getValueOfTag(tv).equals(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Facade.GENERATED_TAG)) {<br/>
+                Model.getUmlFactory().delete(tv);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the package name from a fully specified classifier name.<br/>
+<br/>
+       @param name A fully specified classifier name.<br/>
+       @return The package name.<br/>
+    */<br/>
+    private String getPackageName(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lastDot = name.lastIndexOf('.');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lastDot == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        return name.substring(0, lastDot);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the relative package name from a fully qualified<br/>
+     * package name. So if the parameter is 'org.argouml.kernel'<br/>
+     * the method is supposed to return 'kernel' (the package<br/>
+     * kernel is in package 'org.argouml').<br/>
+     *<br/>
+     * @param packageName A fully qualified package name.<br/>
+     * @return The relative package name.<br/>
+     */<br/>
+    private String getRelativePackageName(String packageName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Since the relative package name corresponds<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// to the classifier name of a fully qualified<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// classifier, we simply use this method.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getClassifierName(packageName);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the classifier name from a fully specified classifier name.<br/>
+<br/>
+       @param name A fully specified classifier name.<br/>
+       @return The classifier name.<br/>
+    */<br/>
+    private String getClassifierName(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lastDot = name.lastIndexOf('.');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lastDot == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return name;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        return name.substring(lastDot + 1);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Set the visibility for a model element.<br/>
+<br/>
+       @param element The model element.<br/>
+       @param modifiers A sequence of modifiers which may contain<br/>
+       'private', 'protected' or 'public'.<br/>
+    */<br/>
+    private void setVisibility(Object element,<br/>
+                               short modifiers) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((modifiers &amp; JavaRecognizer.ACC_STATIC) &gt; 0) {<br/>
+            Model.getCoreHelper().setTaggedValue(<br/>
+                    element,<br/>
+                    "src_modifiers",<br/>
+                    "static");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((modifiers &amp; JavaRecognizer.ACC_PRIVATE) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setVisibility(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            element,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getVisibilityKind().getPrivate());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if ((modifiers &amp; JavaRecognizer.ACC_PROTECTED) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setVisibility(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            element,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getVisibilityKind().getProtected());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if ((modifiers &amp; JavaRecognizer.ACC_PUBLIC) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setVisibility(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            element,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getVisibilityKind().getPublic());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+            // Default Java visibility is "package"<br/>
+            Model.getCoreHelper().setVisibility(<br/>
+                    element,<br/>
+                    Model.getVisibilityKind().getPackage());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Set the owner scope for a feature.<br/>
+<br/>
+       @param feature The feature.<br/>
+       @param modifiers A sequence of modifiers which may contain<br/>
+       'static'.<br/>
+    */<br/>
+    private void setOwnerScope(Object feature, short modifiers) {<br/>
+        if ((modifiers &amp; JavaRecognizer.ACC_STATIC) &gt; 0) {<br/>
+            Model.getCoreHelper().setOwnerScope(feature,<br/>
+                    Model.getScopeKind().getClassifier());<br/>
+        } else {<br/>
+            Model.getCoreHelper().setOwnerScope(feature,<br/>
+                    Model.getScopeKind().getInstance());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Set the target scope for an association end.<br/>
+<br/>
+       @param mAssociationEnd The end.<br/>
+       @param modifiers A sequence of modifiers which may contain<br/>
+       'static'.<br/>
+    */<br/>
+    private void setTargetScope(Object mAssociationEnd, short modifiers) {<br/>
+        if ((modifiers &amp; JavaRecognizer.ACC_STATIC) &gt; 0) {<br/>
+            Model.getCoreHelper().setTargetScope(<br/>
+                    mAssociationEnd,<br/>
+                    Model.getScopeKind().getClassifier());<br/>
+        } else {<br/>
+            Model.getCoreHelper().setTargetScope(<br/>
+                    mAssociationEnd,<br/>
+                    Model.getScopeKind().getInstance());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the context for a classifier name that may or may not be<br/>
+       fully qualified.<br/>
+<br/>
+       @param name The classifier name.<br/>
+    */<br/>
+    private Context getContext(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context context = parseState.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String packageName = getPackageName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!"".equals(packageName)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    context = new PackageContext(context, getPackage(packageName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return context;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Add the contents of a single standard javadoc tag to the model element.<br/>
+     * Usually this will be added as a tagged value.<br/>
+     *<br/>
+     * This is called from {@link #addDocumentationTag} only.<br/>
+     *<br/>
+     * @param me the model element to add to<br/>
+     * @param sTagName the name of the javadoc tag<br/>
+     * @param sTagData the contents of the javadoc tag<br/>
+     */<br/>
+    private void addJavadocTagContents(Object me,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String sTagName,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String sTagData) {<br/>
+        int colonPos = (sTagData != null) ? sTagData.indexOf(':') : -1;<br/>
+        if (colonPos != -1 &amp;&amp; (("invariant".equals(sTagName))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || ("pre-condition".equals(sTagName))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || ("post-condition".equals(sTagName)))) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // add as OCL constraint<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String sContext = OCLUtil.getContextString(me);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String name = sTagData.substring(0, colonPos);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String body = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (sTagName.equals ("invariant")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// add as invariant constraint Note that no checking<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// of constraint syntax is performed... BAD!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body = sContext + " inv " + sTagData;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else if (sTagName.equals ("pre-condition")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body = sContext + " pre " + sTagData;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body = sContext + " post " + sTagData;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object bexpr =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getDataTypesFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .createBooleanExpression("OCL", body);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object mc =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory().buildConstraint(name, bexpr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().addConstraint(me, mc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (Model.getFacade().getNamespace(me) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Apparently namespace management is not supported<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// for all model elements. As this does not seem to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// cause problems, I'll just leave it at that for the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// moment...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addOwnedElement(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        Model.getFacade().getNamespace(me),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+        } else {<br/>
+            if ("stereotype".equals(sTagName)) {<br/>
+                // multiple stereotype support: <br/>
+                // make one stereotype tag from many stereotype tags<br/>
+                Object tv = getTaggedValue(me, sTagName);<br/>
+                if (tv != null) {<br/>
+                    String sStereotype = Model.getFacade().getValueOfTag(tv);<br/>
+                    if (sStereotype != null &amp;&amp; sStereotype.length() &gt; 0) {<br/>
+                        sTagData = sStereotype + ',' + sTagData;<br/>
+                    }<br/>
+                }<br/>
+                // now eliminate multiple entries in that comma separated list<br/>
+                HashSet stSet = new HashSet();<br/>
+                StringTokenizer st = new StringTokenizer(sTagData, ", ");<br/>
+                while (st.hasMoreTokens()) {<br/>
+                    stSet.add(st.nextToken().trim());<br/>
+                }<br/>
+                StringBuffer sb = new StringBuffer();<br/>
+                Iterator iter = stSet.iterator();<br/>
+                while (iter.hasNext()) {<br/>
+                    if (sb.length() &gt; 0) {<br/>
+                        sb.append(',');<br/>
+                    }<br/>
+                    sb.append(iter.next());<br/>
+                }<br/>
+                sTagData = sb.toString();<br/>
+<br/>
+            }<br/>
+            Model.getExtensionMechanismsHelper().addTaggedValue(<br/>
+                    me,<br/>
+                    Model.getExtensionMechanismsFactory().buildTaggedValue(<br/>
+                            sTagName, sTagData));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Add the javadocs as a tagged value 'documentation' to the model<br/>
+     * element. All comment delimiters are removed prior to adding the<br/>
+     * comment.<br/>
+     *<br/>
+     * Added 2001-10-05 STEFFEN ZSCHALER.<br/>
+     *<br/>
+     * @param modelElement the model element to which to add the documentation<br/>
+     * @param sJavaDocs the documentation comment to add ("" or null<br/>
+     * if no java docs)<br/>
+     */<br/>
+    private void addDocumentationTag(Object modelElement, String sJavaDocs) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((sJavaDocs != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; (sJavaDocs.trim().length() &gt;= 5)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    StringBuffer sbPureDocs = new StringBuffer(80);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String sCurrentTagName = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String sCurrentTagData = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int nStartPos = 3; // skip the leading /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean fHadAsterisk = true;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (nStartPos &lt; sJavaDocs.length()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (sJavaDocs.charAt (nStartPos)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case '*':<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    fHadAsterisk = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    nStartPos++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case ' ':   // all white space, hope I didn't miss any ;-)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case '\t':<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ignore white space before the first asterisk<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!fHadAsterisk) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nStartPos++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // normal comment text or standard tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // check ahead for tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int j = nStartPos;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    while ((j &lt; sJavaDocs.length())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   &amp;&amp; ((sJavaDocs.charAt (j) == ' ')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       || (sJavaDocs.charAt (j) == '\t'))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;j++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (j &lt; sJavaDocs.length()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (sJavaDocs.charAt (j) == '@') {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // if the last javadoc is on the last line<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // no new line will be found, causing an<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // indexoutofboundexception.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int lineEndPos = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (sJavaDocs.indexOf('\n', j) &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lineEndPos = sJavaDocs.length() - 2;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lineEndPos = sJavaDocs.indexOf('\n', j) + 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sbPureDocs.append(sJavaDocs.substring(j,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lineEndPos));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // start standard tag potentially add<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // current tag to set of tagged values...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (sCurrentTagName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addJavadocTagContents (modelElement,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sCurrentTagName,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sCurrentTagData);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // open new tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int nTemp = sJavaDocs.indexOf (' ', j + 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (nTemp == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp = sJavaDocs.length() - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sCurrentTagName = sJavaDocs.substring(j + 1,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  nTemp);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int nTemp1 = sJavaDocs.indexOf ('\n', ++nTemp);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (nTemp1 == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp1 = sJavaDocs.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp1++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sCurrentTagData =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sJavaDocs.substring (nTemp, nTemp1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    nStartPos = nTemp1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // continue standard tag or comment text<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int nTemp = sJavaDocs.indexOf ('\n', nStartPos);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (nTemp == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp = sJavaDocs.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (sCurrentTagName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sbPureDocs.append(sJavaDocs.substring(nStartPos,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      nTemp));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sCurrentTagData +=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    " "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    + sJavaDocs.substring (nStartPos, nTemp);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sbPureDocs.append(sJavaDocs.substring(nStartPos,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      nTemp));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    nStartPos = nTemp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    fHadAsterisk = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+            sJavaDocs = sbPureDocs.toString();<br/>
+            <br/>
+            /*<br/>
+             * After this, we have the documentation text, but there's still a<br/>
+             * trailing '/' left, either at the end of the actual comment text<br/>
+             * or at the end of the last tag.<br/>
+             */<br/>
+            sJavaDocs = removeTrailingSlash(sJavaDocs);<br/>
+            <br/>
+            // handle last tag, if any (strip trailing slash there too)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (sCurrentTagName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sCurrentTagData = removeTrailingSlash(sCurrentTagData);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addJavadocTagContents (modelElement, sCurrentTagName,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sCurrentTagData);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Now store documentation text in a tagged value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getExtensionMechanismsHelper().addTaggedValue(<br/>
+                    modelElement,<br/>
+                    Model.getExtensionMechanismsFactory().buildTaggedValue(<br/>
+                            "documentation", sJavaDocs));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addStereotypes(modelElement);<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /*<br/>
+     * Remove a trailing slash, including the entire line if it's the only thing<br/>
+     * on the line. <br/>
+     */<br/>
+    private String removeTrailingSlash(String s) {<br/>
+        if (s.endsWith("\n/")) {<br/>
+            return s.substring(0, s.length() - 2);<br/>
+        } else  if (s.endsWith("/")) {<br/>
+            return s.substring(0, s.length() - 1);<br/>
+        } else {<br/>
+            return s;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /*<br/>
+     * If there is a tagged value named 'stereotype', make it a real<br/>
+     * stereotype and remove the tagged value.<br/>
+     * We allow multiple instances of this tagged value <br/>
+     * AND parse a single instance for multiple stereotypes<br/>
+     */<br/>
+    private void addStereotypes(Object modelElement) {<br/>
+        Object tv = Model.getFacade()<br/>
+                .getTaggedValue(modelElement, "stereotype");<br/>
+        if (tv != null) {<br/>
+            String stereo = Model.getFacade().getValueOfTag(tv);<br/>
+            if (stereo != null &amp;&amp; stereo.length() &gt; 0) {<br/>
+                StringTokenizer st = new StringTokenizer(stereo, ", ");<br/>
+                while (st.hasMoreTokens()) {<br/>
+                    Model.getCoreHelper().addStereotype(modelElement,<br/>
+                            getStereotype(st.nextToken().trim()));<br/>
+                }<br/>
+            }<br/>
+            Model.getExtensionMechanismsHelper().removeTaggedValue(<br/>
+                    modelElement, tv);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Collect parsed method calls. Used for reverse engineering of<br/>
+     * interactions.<br/>
+     * <br/>
+     * @param methodName<br/>
+     *            The method name called.<br/>
+     */<br/>
+    public void addCall(String methodName) {<br/>
+        methodCalls.add(methodName);<br/>
+    }<br/>
+<br/>
+    public synchronized Vector getMethodCalls() {<br/>
+        return methodCalls;<br/>
+    }<br/>
+<br/>
+    public void clearMethodCalls() {<br/>
+        methodCalls.clear();<br/>
+    }<br/>
+<br/>
+    public void addLocalVariableDeclaration(String type, String name) {<br/>
+        localVariables.put(name, type);<br/>
+    }<br/>
+<br/>
+    public Hashtable getLocalVariableDeclarations() {<br/>
+        return localVariables;<br/>
+    }<br/>
+<br/>
+    public void clearLocalVariableDeclarations() {<br/>
+        localVariables.clear();<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Modeller_1.135.java</h1>
+<div class="code">
+<div class="id">
+// $Id: Modeller.java,v 1.135 2006-05-29 18:43:14 tfmorris Exp $<br/>
+// Copyright (c) 2003-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.reveng.java;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.HashSet;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Iterator;<br/>
+import java.util.Stack;<br/>
+import java.util.StringTokenizer;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.model.Facade;<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.ocl.OCLUtil;<br/>
+import org.argouml.uml.reveng.DiagramInterface;<br/>
+import org.argouml.uml.reveng.Import;<br/>
+import org.tigris.gef.base.Globals;<br/>
+<br/>
+/**<br/>
+ * Modeller maps Java source code(parsed/recognised by ANTLR) to UML model<br/>
+ * elements, it applies some of the semantics in JSR26.<br/>
+ *<br/>
+ * @author Marcus Andersson<br/>
+ */<br/>
+public class Modeller {<br/>
+    /**<br/>
+     * Logger.&lt;p&gt;<br/>
+     */<br/>
+    private static final Logger LOG = Logger.getLogger(Modeller.class);<br/>
+<br/>
+    /**<br/>
+     * Current working model.<br/>
+     */<br/>
+    private Object model;<br/>
+<br/>
+    private DiagramInterface diagram;<br/>
+<br/>
+    /**<br/>
+     * Current import session.<br/>
+     */<br/>
+    private Import importSession;<br/>
+<br/>
+    /**<br/>
+     * The package which the currentClassifier belongs to.<br/>
+     */<br/>
+    private Object currentPackage;<br/>
+<br/>
+    /**<br/>
+     * Last package name used in addPackage().<br/>
+     * It is null for classes wich are not packaged.<br/>
+     * Used in popClassifier() to create diagram for that<br/>
+     * packaget.<br/>
+     */<br/>
+    private String currentPackageName;<br/>
+<br/>
+    /**<br/>
+     * Keeps the data that varies during parsing.<br/>
+     */<br/>
+    private ParseState parseState;<br/>
+<br/>
+    /**<br/>
+     * Stack up the state when descending inner classes.<br/>
+     */<br/>
+    private Stack parseStateStack;<br/>
+<br/>
+    /**<br/>
+     * Only attributes will be generated.<br/>
+     */<br/>
+    private boolean noAssociations;<br/>
+<br/>
+    /**<br/>
+     * Arrays will be modelled as unique datatypes.<br/>
+     */<br/>
+    private boolean arraysAsDatatype;<br/>
+<br/>
+    /**<br/>
+     * The name of the file being parsed.<br/>
+     */<br/>
+    private String fileName;<br/>
+<br/>
+    /**<br/>
+     * Arbitrary attributes.<br/>
+     */<br/>
+    private Hashtable attributes = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Vector of parsed method calls.<br/>
+     */<br/>
+    private Vector methodCalls = new Vector();<br/>
+<br/>
+    /**<br/>
+     * HashMap of parsed local variables.<br/>
+     */<br/>
+    private Hashtable localVariables = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Create a new modeller.<br/>
+     *<br/>
+     * @param diag the interface to the diagram to add nodes and edges to<br/>
+     * @param imp The current Import session.<br/>
+     * @param noAss whether associations are modelled as attributes<br/>
+     * @param arraysAsDT whether darrays are modelled as dataypes<br/>
+     * @param fName the current file name<br/>
+     *<br/>
+     * @param m The model to work with.<br/>
+     */<br/>
+    public Modeller(Object m,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    DiagramInterface diag,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Import imp,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    boolean noAss,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    boolean arraysAsDT,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String fName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;model = m;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;noAssociations = noAss;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;arraysAsDatatype = arraysAsDT;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;importSession = imp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;currentPackage = this.model;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseState = new ParseState(this.model, getPackage("java.lang"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseStateStack = new Stack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;diagram = diag;<br/>
+        fileName = fName;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param key the key of the attribute to get<br/>
+     * @return the value of the attribute<br/>
+     */<br/>
+    public Object getAttribute(String key) {<br/>
+        return attributes.get(key);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param key the key of the attribute<br/>
+     * @param value the value for the attribute<br/>
+     */<br/>
+    public void setAttribute(String key, Object value) {<br/>
+        attributes.put(key, value);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get the current diagram.<br/>
+     *<br/>
+     * @return a interface to the current diagram.<br/>
+     */<br/>
+    private DiagramInterface getDiagram() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return diagram;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This is a mapping from a Java compilation Unit -&gt; a UML component.<br/>
+     * Classes are resident in a component.<br/>
+     * Imports are relationships between components and other classes<br/>
+     * / packages.&lt;p&gt;<br/>
+     *<br/>
+     * See JSR 26.&lt;p&gt;<br/>
+     *<br/>
+     * Adding components is a little messy since there are 2 cases:<br/>
+     *<br/>
+     * &lt;ol&gt;<br/>
+     * &lt;li&gt;source file has package statement, will be added several times<br/>
+     *     since lookup in addComponent() only looks in the model since the<br/>
+     *     package namespace is not yet known.<br/>
+     *<br/>
+     * &lt;li&gt;source file has not package statement: component is added<br/>
+     *     to the model namespace. the is no package statement so the<br/>
+     *     lookup will always work.<br/>
+     *<br/>
+     * &lt;/ol&gt;<br/>
+     * Therefore in the case of (1), we need to delete duplicate components<br/>
+     * in the addPackage() method.&lt;p&gt;<br/>
+     *<br/>
+     * In either case we need to add a package since we don't know in advance<br/>
+     * if there will be a package statement.&lt;p&gt;<br/>
+     */<br/>
+    public void addComponent() {<br/>
+<br/>
+        // try and find the component in the current package<br/>
+        // to cope with repeated imports<br/>
+        // [this will never work if a package statmeent exists:<br/>
+        // because the package statement is parsed after the component is<br/>
+        // identified]<br/>
+        Object component = Model.getFacade().lookupIn(currentPackage, fileName);<br/>
+<br/>
+        if (component == null) {<br/>
+<br/>
+            // remove the java specific ending (per JSR 26).<br/>
+            // BUT we can't do this because then the component will be confused<br/>
+            // with its class with the same name when invoking<br/>
+            // Model.getFacade().lookupIn(Object,String)<br/>
+            /*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      if(fileName.endsWith(".java"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      fileName = fileName.substring(0, fileName.length()-5);<br/>
+            */<br/>
+<br/>
+            component = Model.getCoreFactory().createComponent();<br/>
+            Model.getCoreHelper().setName(component, fileName);<br/>
+        }<br/>
+<br/>
+        parseState.addComponent(component);<br/>
+<br/>
+        // set the namespace of the component, in the event<br/>
+        // that the source file does not have a package stmt<br/>
+        Model.getCoreHelper().setNamespace(parseState.getComponent(), model);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when a package clause is found.<br/>
+     *<br/>
+     * @param name The name of the package.<br/>
+     */<br/>
+    public void addPackage(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add a package figure for this package to the owners class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// diagram, if it's not in the diagram yet. I do this for all<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the class diagrams up to the top level, since I need<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// diagrams for all the packages.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ownerPackageName, currentName = name;<br/>
+        ownerPackageName = getPackageName(currentName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (!"".equals(ownerPackageName)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (getDiagram() != null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; importSession != null<br/>
+                &amp;&amp; importSession.isCreateDiagramsChecked()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; getDiagram().isDiagramInProject(ownerPackageName)) {<br/>
+<br/>
+                getDiagram().selectClassDiagram(getPackage(ownerPackageName),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ownerPackageName);<br/>
+                getDiagram().addPackage(getPackage(currentName));<br/>
+<br/>
+            }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    currentName = ownerPackageName;<br/>
+            ownerPackageName = getPackageName(currentName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Save src_path in the upper package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mPackage = getPackage(currentName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (importSession != null &amp;&amp; importSession.getSrcPath() != null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; Model.getFacade().getTaggedValue(mPackage, "src_path") == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setTaggedValue(mPackage, "src_path",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       importSession.getSrcPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Find or create a Package model element for this package.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mPackage = getPackage(name);<br/>
+        currentPackageName = name;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set the current package for the following source code.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;currentPackage = mPackage;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseState.addPackageContext(mPackage);<br/>
+<br/>
+        // Delay diagram creation until any classifier (class or<br/>
+        // interface) will be found<br/>
+<br/>
+        //set the namespace of the component<br/>
+        // check to see if there is already a component defined:<br/>
+        Object component = Model.getFacade().lookupIn(currentPackage, fileName);<br/>
+<br/>
+        if (component == null) {<br/>
+<br/>
+            // set the namespace of the component<br/>
+            Model.getCoreHelper().setNamespace(<br/>
+                    parseState.getComponent(),<br/>
+                    currentPackage);<br/>
+        } else {<br/>
+<br/>
+            // a component already exists,<br/>
+            // so delete the latest one(the duplicate)<br/>
+            Model.getUmlFactory().delete(parseState.getComponent());<br/>
+        // change the parse state to the existing one.<br/>
+            parseState.addComponent(component);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an import clause is found.<br/>
+     *<br/>
+     * @param name The name of the import. Can end with a '*'.<br/>
+     */<br/>
+    public void addImport(String name) {<br/>
+        // only do imports on the 2nd pass.<br/>
+        Object level = this.getAttribute("level");<br/>
+        if (level != null) {<br/>
+            if (level.equals(new Integer(0))) {<br/>
+                return;<br/>
+            }<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String packageName = getPackageName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String classifierName = getClassifierName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mPackage = getPackage(packageName);<br/>
+<br/>
+        // import on demand<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (classifierName.equals("*")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    parseState.addPackageContext(mPackage);<br/>
+            Object perm = null;<br/>
+<br/>
+            // try find an existing permission<br/>
+            Iterator dependenciesIt =<br/>
+                Model.getCoreHelper()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getDependencies(mPackage, parseState.getComponent())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .iterator();<br/>
+            while (dependenciesIt.hasNext()) {<br/>
+<br/>
+                Object dependency = dependenciesIt.next();<br/>
+                if (Model.getFacade().isAPermission(dependency)) {<br/>
+<br/>
+                    perm = dependency;<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // if no existing permission was found.<br/>
+            if (perm == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;perm =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .buildPermission(parseState.getComponent(), mPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String newName =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getFacade().getName(parseState.getComponent())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    + " -&gt; "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    + packageName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setName(perm, newName);<br/>
+            }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        // single type import<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+            Object mClassifier = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mClassifier =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (new PackageContext(null, mPackage)).get(classifierName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parseState.addClassifierContext(mClassifier);<br/>
+                Object perm = null;<br/>
+<br/>
+                // try find an existing permission<br/>
+                Iterator dependenciesIt =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper()<br/>
+                        .getDependencies(mClassifier,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parseState.getComponent())<br/>
+                            .iterator();<br/>
+                while (dependenciesIt.hasNext()) {<br/>
+<br/>
+                    Object dependency = dependenciesIt.next();<br/>
+                    if (Model.getFacade().isAPermission(dependency)) {<br/>
+<br/>
+                        perm = dependency;<br/>
+                        break;<br/>
+                    }<br/>
+                }<br/>
+<br/>
+                // if no existing permission was found.<br/>
+                if (perm == null) {<br/>
+                    perm =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .buildPermission(parseState.getComponent(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     mClassifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String newName =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getFacade().getName(parseState.getComponent())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ " -&gt; "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ Model.getFacade().getName(mClassifier);<br/>
+                    Model.getCoreHelper().setName(perm, newName);<br/>
+                }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + " file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(to generate an imported classifier) - "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when a class declaration is found.<br/>
+     *<br/>
+     * @param name The name of the class.<br/>
+     * @param modifiers A sequence of class modifiers.<br/>
+     * @param superclassName Zero or one string with the name of the<br/>
+     *        superclass. Can be fully qualified or<br/>
+     *        just a simple class name.<br/>
+     * @param interfaces Zero or more strings with the names of implemented<br/>
+     *        interfaces. Can be fully qualified or just a<br/>
+     *        simple interface name.<br/>
+     * @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+     */<br/>
+    public void addClass(String name,<br/>
+                         short modifiers,<br/>
+                         String superclassName,<br/>
+                         Vector interfaces,<br/>
+                         String javadoc) {<br/>
+        Object mClass =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addClassifier(Model.getCoreFactory().createClass(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  name, modifiers, javadoc);<br/>
+<br/>
+        Model.getCoreHelper().setAbstract(<br/>
+                mClass,<br/>
+                (modifiers &amp; JavaRecognizer.ACC_ABSTRACT) &gt; 0);<br/>
+        Model.getCoreHelper().setLeaf(<br/>
+                mClass,<br/>
+                (modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0);<br/>
+        Model.getCoreHelper().setRoot(mClass, false);<br/>
+<br/>
+        // only do generalizations and realizations on the 2nd pass.<br/>
+        Object level = this.getAttribute("level");<br/>
+        if (level != null) {<br/>
+            if (level.equals(new Integer(0))) {<br/>
+                return;<br/>
+            }<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (superclassName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object parentClass =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(superclassName)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .get(getClassifierName(superclassName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getGeneralization(currentPackage, parentClass, mClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// model/classpath then information will be lost from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// source files, because the classifier cannot be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// created on the fly.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOG.warn("Modeller.java: a classifier that was in the source"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + " file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(to generate a generalization)- information lost",<br/>
+                         e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (interfaces != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for (Iterator i = interfaces.iterator(); i.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String interfaceName = (String) i.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Object mInterface =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getContext(interfaceName)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getInterface(getClassifierName(interfaceName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Object mAbstraction =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getAbstraction(mInterface, mClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (Model.getFacade().getSuppliers(mAbstraction).size()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addSupplier(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mAbstraction,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mInterface);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addClient(mAbstraction, mClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setNamespace(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            mAbstraction,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            currentPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().addStereotype(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            mAbstraction,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            getStereotype("realize"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // Currently if a classifier cannot be found in the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // model/classpath then information will be lost from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // source files, because the classifier cannot be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // created on the fly.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    LOG.warn("Modeller.java: a classifier that was in "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "the source file could not be generated "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "(to generate a abstraction)- information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an anonymous inner class is found.<br/>
+     *<br/>
+     * @param type The type of this anonymous class.<br/>
+     */<br/>
+    public void addAnonymousClass(String type) {<br/>
+        String name = parseState.anonymousClass();<br/>
+        try {<br/>
+            Object mClassifier = getContext(type).get(getClassifierName(type));<br/>
+            Vector interfaces = new Vector();<br/>
+            if (Model.getFacade().isAInterface(mClassifier)) {<br/>
+                interfaces.add(type);<br/>
+            }<br/>
+            addClass(name,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     (short) 0,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     Model.getFacade().isAClass(mClassifier) ? type : null,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     interfaces,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "");<br/>
+        } catch (ClassifierNotFoundException e) {<br/>
+            // Must add it anyway, or the class poping will mismatch.<br/>
+            addClass(name, (short) 0, null, new Vector(), "");<br/>
+            LOG.warn("Modeller.java: an anonymous class was created "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "although it could not be found in the classpath.",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Called from the parser when an interface declaration is found.<br/>
+<br/>
+       @param name The name of the interface.<br/>
+       @param modifiers A sequence of interface modifiers.<br/>
+       @param interfaces Zero or more strings with the names of extended<br/>
+       interfaces. Can be fully qualified or just a<br/>
+       simple interface name.<br/>
+       @param javadoc The javadoc comment. "" if no comment available.<br/>
+    */<br/>
+    public void addInterface(String name,<br/>
+                             short modifiers,<br/>
+                             Vector interfaces,<br/>
+                             String javadoc) {<br/>
+        Object mInterface =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addClassifier(Model.getCoreFactory().createInterface(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  name,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  modifiers,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  javadoc);<br/>
+<br/>
+        // only do generalizations and realizations on the 2nd pass.<br/>
+        Object level = this.getAttribute("level");<br/>
+        if (level != null) {<br/>
+            if (level.equals(new Integer(0))) {<br/>
+                return;<br/>
+            }<br/>
+        }<br/>
+<br/>
+        for (Iterator i = interfaces.iterator(); i.hasNext();) {<br/>
+            String interfaceName = (String) i.next();<br/>
+            try {<br/>
+                Object parentInterface =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(interfaceName)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .getInterface(getClassifierName(interfaceName));<br/>
+                getGeneralization(currentPackage, parentInterface, mInterface);<br/>
+            } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + " file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(to generate a generalization)- information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Common code used by addClass and addInterface.<br/>
+<br/>
+       @param newClassifier Supply one if none is found in the model.<br/>
+       @param name Name of the classifier.<br/>
+       @param modifiers String of modifiers.<br/>
+       @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+       @return The newly created/found classifier.<br/>
+    */<br/>
+    private Object addClassifier(Object newClassifier,<br/>
+                                 String name,<br/>
+                                 short modifiers,<br/>
+                                 String javadoc) {<br/>
+        Object mClassifier;<br/>
+        Object mNamespace;<br/>
+<br/>
+        if (parseState.getClassifier() != null) {<br/>
+            // the new classifier is a java inner class<br/>
+            mClassifier =<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;Model.getFacade().lookupIn(parseState.getClassifier(), name);<br/>
+            mNamespace = parseState.getClassifier();<br/>
+        } else {<br/>
+            // the new classifier is a top level java class<br/>
+            parseState.outerClassifier();<br/>
+            mClassifier = Model.getFacade().lookupIn(currentPackage, name);<br/>
+            mNamespace = currentPackage;<br/>
+        }<br/>
+<br/>
+<br/>
+        if (mClassifier == null) {<br/>
+            // if the classifier could not be could in the model<br/>
+            if (LOG.isInfoEnabled()) {<br/>
+                LOG.info("Created new classifier for " + name);<br/>
+            }<br/>
+            mClassifier = newClassifier;<br/>
+            Model.getCoreHelper().setName(mClassifier, name);<br/>
+            Model.getCoreHelper().setNamespace(mClassifier, mNamespace);<br/>
+        } else {<br/>
+            // it was found and we delete any existing tagged values.<br/>
+            if (LOG.isInfoEnabled()) {<br/>
+                LOG.info("Found existing classifier for " + name);<br/>
+            }<br/>
+            cleanModelElement(mClassifier);<br/>
+        }<br/>
+<br/>
+        parseState.innerClassifier(mClassifier);<br/>
+<br/>
+        // set up the component residency (only for top level classes)<br/>
+        if (parseState.getClassifier() == null) {<br/>
+            // set the clasifier to be a resident in its component:<br/>
+            // (before we push a new parse state on the stack)<br/>
+            <br/>
+            // This test is carried over from a previous implementation,<br/>
+            // but I'm not sure why it would already be set - tfm<br/>
+            if (Model.getFacade().getElementResidences(mClassifier).isEmpty()) {<br/>
+                Object resident = Model.getCoreFactory()<br/>
+                        .createElementResidence();<br/>
+                Model.getCoreHelper().setResident(resident, mClassifier);<br/>
+                Model.getCoreHelper().setContainer(resident,<br/>
+                        parseState.getComponent());<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // change the parse state to a classifier parse state<br/>
+        parseStateStack.push(parseState);<br/>
+        parseState = new ParseState(parseState, mClassifier, currentPackage);<br/>
+<br/>
+        setVisibility(mClassifier, modifiers);<br/>
+        addDocumentationTag (mClassifier, javadoc);<br/>
+<br/>
+        return mClassifier;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Called from the parser when a classifier is completely parsed.<br/>
+    */<br/>
+    public void popClassifier() {<br/>
+        // now create diagram if it doesn't exists in project<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (importSession != null &amp;&amp; importSession.isCreateDiagramsChecked()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (getDiagram() == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;diagram = new DiagramInterface(Globals.curEditor());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentPackageName != null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; !currentPackageName.trim().equals("")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // create new diagram or select existing diagram for package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    diagram.createOrSelectClassDiagram(currentPackage,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentPackageName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // create new diagram in root for classifier without package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    diagram.createRootClassDiagram();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentPackageName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getDiagram().selectClassDiagram(currentPackage,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    currentPackageName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the DiagramInterface is instantiated already<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// but the class is in a source file<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// with no package declaration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // create new diagram in root for classifier without package<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    diagram.createRootClassDiagram();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        // add the current classifier to the diagram.<br/>
+        Object classifier = parseState.getClassifier();<br/>
+        if (Model.getFacade().isAInterface(classifier)) {<br/>
+            if (getDiagram() != null &amp;&amp; importSession != null<br/>
+                    &amp;&amp; importSession.isCreateDiagramsChecked()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;diagram.addInterface(classifier,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      importSession.isMinimiseFigsChecked());<br/>
+            }<br/>
+        } else {<br/>
+            if (Model.getFacade().isAClass(classifier)) {<br/>
+                if (getDiagram() != null &amp;&amp; importSession != null<br/>
+                        &amp;&amp; importSession.isCreateDiagramsChecked()) {<br/>
+                    diagram.addClass(classifier,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      importSession.isMinimiseFigsChecked());<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // Remove operations and attributes not in source<br/>
+        parseState.removeObsoleteFeatures();<br/>
+<br/>
+        // Remove inner classes not in source<br/>
+        parseState.removeObsoleteInnerClasses();<br/>
+<br/>
+        parseState = (ParseState) parseStateStack.pop();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an operation is<br/>
+     * found.<br/>
+     *<br/>
+     * @param modifiers A sequence of operation modifiers.<br/>
+     * @param returnType The return type of the operation.<br/>
+     * @param name The name of the operation as a string<br/>
+     * @param parameters A number of vectors, each representing a<br/>
+     *<br/>
+     * parameter.<br/>
+     * @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+     * @return The operation.<br/>
+     */<br/>
+    public Object addOperation (short modifiers,<br/>
+                                String returnType,<br/>
+                                String name,<br/>
+                                Vector parameters,<br/>
+                                String javadoc) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mOperation = getOperation(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parseState.feature(mOperation);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setAbstract(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(modifiers &amp; JavaRecognizer.ACC_ABSTRACT) &gt; 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setLeaf(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setRoot(mOperation, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setOwnerScope(mOperation, modifiers);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setVisibility(mOperation, modifiers);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((modifiers &amp; JavaRecognizer.ACC_SYNCHRONIZED) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setConcurrency(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getConcurrencyKind().getGuarded());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (Model.getFacade().getConcurrency(mOperation)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   == Model.getConcurrencyKind().getGuarded()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setConcurrency(mOperation,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getConcurrencyKind().getSequential());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        Collection c = new ArrayList(Model.getFacade()<br/>
+                .getParameters(mOperation));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (Iterator i = c.iterator(); i.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().removeParameter(mOperation, i.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mParameter;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String typeName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mClassifier;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (returnType == null<br/>
+            || ("void".equals(returnType)<br/>
+                &amp;&amp; name.equals(Model.getFacade().getName(parseState<br/>
+                        .getClassifier())))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Constructor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().addStereotype(mOperation,<br/>
+                getStereotype(mOperation, "create", "BehavioralFeature"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mClassifier =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(returnType).get(getClassifierName(returnType));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object mdl = ProjectManager.getManager()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getCurrentProject().getModel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object voidType = ProjectManager.getManager()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getCurrentProject().findType("void");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mParameter = Model.getCoreFactory().buildParameter(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mOperation, mdl, voidType);<br/>
+                Model.getCoreHelper().setName(mParameter, "return");<br/>
+                Model.getCoreHelper().setKind(<br/>
+                        mParameter,<br/>
+                        Model.getDirectionKind().getReturnParameter());<br/>
+<br/>
+                Model.getCoreHelper().setType(mParameter, mClassifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(for generating operation return type) - "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (Iterator i = parameters.iterator(); i.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Vector parameter = (Vector) i.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    typeName = (String) parameter.elementAt(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+                mClassifier =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getContext(typeName).get(getClassifierName(typeName));<br/>
+                Object mdl = ProjectManager.getManager()<br/>
+                    .getCurrentProject().getModel();<br/>
+                Object voidType = ProjectManager.getManager()<br/>
+                    .getCurrentProject().findType("void");<br/>
+                mParameter = Model.getCoreFactory().buildParameter(<br/>
+                        mOperation, mdl, voidType);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setName(mParameter,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (String) parameter.elementAt(2));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().setKind(mParameter,<br/>
+                        Model.getDirectionKind().getInParameter());<br/>
+                if (Model.getFacade().isAClassifier(mClassifier)) {<br/>
+                    Model.getCoreHelper().setType(mParameter, mClassifier);<br/>
+                } else {<br/>
+                    // the type resolution failed to find a valid classifier.<br/>
+                    LOG.warn("Modeller.java: a valid type for a parameter "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "could not be resolved:\n "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "In file: " + fileName + ", for operation: "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + Model.getFacade().getName(mOperation)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + ", for parameter: "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + Model.getFacade().getName(mParameter));<br/>
+                }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Currently if a classifier cannot be found in the<br/>
+                // model/classpath then information will be lost from<br/>
+                // source files, because the classifier cannot be<br/>
+                // created on the fly.<br/>
+                LOG.warn("Modeller.java: a classifier that was in the source "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "(for generating operation params) - "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;addDocumentationTag (mOperation, javadoc);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return mOperation;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser to add a method body to an operation.<br/>
+     * (An operation will have exactly one Java body.)<br/>
+     *<br/>
+     * @param op An operation.<br/>
+     * @param body A method body.<br/>
+     */<br/>
+    public void addBodyToOperation(Object op, String body) {<br/>
+        if (op == null || !Model.getFacade().isAOperation(op)) {<br/>
+//            LOG.warn("adding body failed: no operation!");<br/>
+            return;<br/>
+        }<br/>
+        if (body == null || body.length() == 0) {<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Object method = getMethod(Model.getFacade().getName(op));<br/>
+        parseState.feature(method);<br/>
+        Model.getCoreHelper().setBody(method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getDataTypesFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;.createProcedureExpression("Java",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   body));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add the method to it's specification.<br/>
+        Model.getCoreHelper().addMethod(op, method);<br/>
+<br/>
+        // Add this method as a feature to the classifier that owns<br/>
+        // the operation.<br/>
+        Model.getCoreHelper().addFeature(Model.getFacade().getOwner(op),<br/>
+                method);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Called from the parser when an attribute is found.<br/>
+     *<br/>
+     * @param modifiers A sequence of attribute modifiers.<br/>
+     * @param typeSpec The attribute's type.<br/>
+     * @param name The name of the attribute.<br/>
+     * @param initializer The initial value of the attribute.<br/>
+     * @param javadoc The javadoc comment. null or "" if no comment available.<br/>
+     */<br/>
+    public void addAttribute (short modifiers,<br/>
+                              String typeSpec,<br/>
+                              String name,<br/>
+                              String initializer,<br/>
+                              String javadoc) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String multiplicity = null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!arraysAsDatatype &amp;&amp; typeSpec.indexOf('[') != -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    typeSpec = typeSpec.substring(0, typeSpec.indexOf('['));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    multiplicity = "1_N";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    multiplicity = "1_1";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the attribute type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mClassifier = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // get the attribute type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    mClassifier = getContext(typeSpec).get(getClassifierName(typeSpec));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (ClassifierNotFoundException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Currently if a classifier cannot be found in the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // model/classpath then information will be lost from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // source files, because the classifier cannot be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // created on the fly.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    LOG.warn("Modeller.java: a classifier that was in the source "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "file could not be generated in the model "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "(for generating an attribute)- information lost",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // if we can't find the attribute type then<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // we can't add the attribute.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// if we want to create a UML attribute:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (noAssociations<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || Model.getFacade().isADataType(mClassifier)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || (Model.getFacade().getNamespace(mClassifier)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;== getPackage("java.lang"))) {<br/>
+<br/>
+            Object mAttribute = parseState.getAttribute(name);<br/>
+            if (mAttribute == null) {<br/>
+                mAttribute = buildAttribute(parseState.getClassifier(), name);<br/>
+            }            <br/>
+            parseState.feature(mAttribute);<br/>
+<br/>
+            setOwnerScope(mAttribute, modifiers);<br/>
+            setVisibility(mAttribute, modifiers);<br/>
+            Model.getCoreHelper().setMultiplicity(mAttribute, multiplicity);<br/>
+<br/>
+            if (Model.getFacade().isAClassifier(mClassifier)) {<br/>
+                Model.getCoreHelper().setType(mAttribute, mClassifier);<br/>
+            } else {<br/>
+                // the type resolution failed to find a valid classifier.<br/>
+                LOG.warn("Modeller.java: a valid type for a parameter "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "could not be resolved:\n "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "In file: " + fileName + ", for attribute: "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + Model.getFacade().getName(mAttribute));<br/>
+            }<br/>
+<br/>
+            // Set the initial value for the attribute.<br/>
+            if (initializer != null) {<br/>
+<br/>
+                // we must remove line endings and tabs from the intializer<br/>
+                // strings, otherwise the classes will display horribly.<br/>
+                initializer = initializer.replace('\n', ' ');<br/>
+                initializer = initializer.replace('\t', ' ');<br/>
+                <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object newInitialValue =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Model.getDataTypesFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .createExpression("Java",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  initializer);<br/>
+                Model.getCoreHelper().setInitialValue(<br/>
+                        mAttribute,<br/>
+                        newInitialValue);<br/>
+            }<br/>
+<br/>
+            if ((modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0) {<br/>
+                Model.getCoreHelper().setChangeable(mAttribute, false);<br/>
+            } else if (!Model.getFacade().isChangeable(mAttribute)) {<br/>
+                Model.getCoreHelper().setChangeable(mAttribute, true);<br/>
+            }<br/>
+            addDocumentationTag(mAttribute, javadoc);<br/>
+        }<br/>
+        // we want to create a UML association from the java attribute<br/>
+        else {<br/>
+<br/>
+            Object mAssociationEnd = getAssociationEnd(name, mClassifier);<br/>
+            setTargetScope(mAssociationEnd, modifiers);<br/>
+            setVisibility(mAssociationEnd, modifiers);<br/>
+            Model.getCoreHelper().setMultiplicity(<br/>
+                    mAssociationEnd,<br/>
+                    multiplicity);<br/>
+            Model.getCoreHelper().setType(mAssociationEnd, mClassifier);<br/>
+            Model.getCoreHelper().setName(mAssociationEnd, name);<br/>
+            if ((modifiers &amp; JavaRecognizer.ACC_FINAL) &gt; 0) {<br/>
+                Model.getCoreHelper().setChangeable(mAssociationEnd, false);<br/>
+            }<br/>
+            Model.getCoreHelper().setNavigable(mAssociationEnd, true);<br/>
+            addDocumentationTag(mAssociationEnd, javadoc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find a generalization in the model. If it does not exist, a<br/>
+       new generalization is created.<br/>
+<br/>
+       @param mPackage Look in this package.<br/>
+       @param parent The superclass.<br/>
+       @param child The subclass.<br/>
+       @return The generalization found or created.<br/>
+    */<br/>
+    private Object getGeneralization(Object mPackage,<br/>
+                                     Object parent,<br/>
+                                     Object child) {<br/>
+        String name = Model.getFacade().getName(child) + " -&gt; "<br/>
+            + Model.getFacade().getName(parent);<br/>
+        Object mGeneralization = null;<br/>
+        mGeneralization = Model.getFacade().getGeneralization(child, parent);<br/>
+        if (mGeneralization == null) {<br/>
+            mGeneralization =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory().buildGeneralization(child, parent,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     name);<br/>
+        }<br/>
+        if (mGeneralization != null) {<br/>
+            Model.getCoreHelper().setNamespace(mGeneralization, mPackage);<br/>
+        }<br/>
+        return mGeneralization;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Find an abstraction&lt;&lt;realize&gt;&gt; in the model. If it does not<br/>
+     * exist, a new abstraction is created.<br/>
+     *<br/>
+     * @param parent The superclass.<br/>
+     * @param child The subclass.<br/>
+     * @return The abstraction found or created.<br/>
+     */<br/>
+    private Object getAbstraction(Object parent,<br/>
+                                  Object child) {<br/>
+        String name = Model.getFacade().getName(child) + " -&gt; "<br/>
+            + Model.getFacade().getName(parent);<br/>
+        Object mAbstraction = null;<br/>
+        for (Iterator i =<br/>
+                Model.getFacade().getClientDependencies(child).iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     i.hasNext();) {<br/>
+            mAbstraction = i.next();<br/>
+            Collection c = Model.getFacade().getSuppliers(mAbstraction);<br/>
+            if (c == null || c.size() == 0) {<br/>
+                Model.getCoreHelper()<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;.removeClientDependency(child, mAbstraction);<br/>
+            } else {<br/>
+                if (parent != c.toArray()[0]) {<br/>
+                    mAbstraction = null;<br/>
+                } else {<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if (mAbstraction == null) {<br/>
+            mAbstraction = Model.getCoreFactory().buildAbstraction(<br/>
+                   name,<br/>
+                   parent,<br/>
+                   child);<br/>
+        }<br/>
+        return mAbstraction;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find a package in the model. If it does not exist, a new<br/>
+       package is created.<br/>
+<br/>
+       @param name The name of the package.<br/>
+       @return The package found or created.<br/>
+    */<br/>
+    private Object getPackage(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object mPackage = searchPackageInModel(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (mPackage == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    mPackage =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getModelManagementFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .buildPackage(getRelativePackageName(name), name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setNamespace(mPackage, model);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Find the owner for this package.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ("".equals(getPackageName(name))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addOwnedElement(model, mPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addOwnedElement(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        getPackage(getPackageName(name)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mPackage);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return mPackage;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Search recursivly for nested packages in the model. So if you<br/>
+     * pass a package org.argouml.kernel , this method searches for a package<br/>
+     * kernel, that is owned by a package argouml, which is owned by a<br/>
+     * package org. This method is required to nest the parsed packages.<br/>
+     *<br/>
+     * @param name The fully qualified package name of the package we<br/>
+     * are searching for.<br/>
+     * @return The found package or null, if it is not in the model.<br/>
+     */<br/>
+    private Object searchPackageInModel(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ("".equals(getPackageName(name))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return Model.getFacade().lookupIn(model, name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        Object owner = searchPackageInModel(getPackageName(name));<br/>
+        return owner == null<br/>
+            ? null<br/>
+            : Model.getFacade().lookupIn(owner, getRelativePackageName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an operation in the currentClassifier. If the operation is<br/>
+       not found, a new is created.<br/>
+<br/>
+       @param name The name of the operation.<br/>
+       @return The operation found or created.<br/>
+    */<br/>
+    private Object getOperation(String name) {<br/>
+        Object mOperation = parseState.getOperation(name);<br/>
+        if (mOperation != null) {<br/>
+            LOG.info("Getting the existing operation " + name);<br/>
+        } else {<br/>
+            LOG.info("Creating a new operation " + name);<br/>
+            Object cls = parseState.getClassifier();<br/>
+            Object mdl = ProjectManager.getManager()<br/>
+                .getCurrentProject().getModel();<br/>
+            Object voidType = ProjectManager.getManager()<br/>
+                .getCurrentProject().findType("void");<br/>
+            mOperation =<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory().buildOperation(<br/>
+                        cls, mdl, voidType, name);<br/>
+//            Iterator it2 =<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ProjectManager.getManager().getCurrentProject()<br/>
+//                .findFigsForMember(parseState.getClassifier()).iterator();<br/>
+//            while (it2.hasNext()) {<br/>
+//                Object listener = it2.next();<br/>
+//                // UmlModelEventPump.getPump()<br/>
+//                //     .removeModelEventListener(listener,<br/>
+//                // mOperation);<br/>
+//                UmlModelEventPump.getPump().addModelEventListener(listener,<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  mOperation);<br/>
+//                // UmlModelEventPump.getPump()<br/>
+//                //     .removeModelEventListener(listener,<br/>
+//                // mOperation.getParameter(0));<br/>
+//                UmlModelEventPump.getPump()<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .addModelEventListener(listener,<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getFacade().getParameter(mOperation,<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    0));<br/>
+//            }<br/>
+        }<br/>
+        return mOperation;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an operation in the currentClassifier. If the operation is<br/>
+       not found, a new is created.<br/>
+<br/>
+       @param name The name of the method.<br/>
+       @return The method found or created.<br/>
+    */<br/>
+    private Object getMethod(String name) {<br/>
+        Object method = parseState.getMethod(name);<br/>
+        if (method != null) {<br/>
+            LOG.info("Getting the existing method " + name);<br/>
+        } else {<br/>
+            LOG.info("Creating a new method " + name);<br/>
+            method = Model.getCoreFactory().buildMethod(name);<br/>
+            Model.getCoreHelper().addFeature(<br/>
+                    parseState.getClassifier(),<br/>
+                    method);<br/>
+        }<br/>
+        return method;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an attribute in the currentClassifier. If the attribute is<br/>
+       not found, a new one is created.<br/>
+<br/>
+       @param name The name of the attribute.<br/>
+       @return The attribute found or created.<br/>
+    */<br/>
+    private Object buildAttribute(Object classifier, String name) {<br/>
+        Project project = ProjectManager.getManager().getCurrentProject(); <br/>
+        Object intType = project.findType("int");<br/>
+        Object myModel = project.getModel();<br/>
+        Object mAttribute = Model.getCoreFactory().buildAttribute(classifier,<br/>
+                myModel, intType);<br/>
+        Model.getCoreHelper().setName(mAttribute, name);<br/>
+        return mAttribute;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Find an associationEnd from the currentClassifier to the type<br/>
+       specified. If not found, a new is created.<br/>
+<br/>
+       @param name The name of the attribute.<br/>
+       @param mClassifier Where the association ends.<br/>
+       @return The attribute found or created.<br/>
+    */<br/>
+    private Object getAssociationEnd(String name, Object mClassifier) {<br/>
+        Object mAssociationEnd = null;<br/>
+        for (Iterator i = Model.getFacade().getAssociationEnds(mClassifier)<br/>
+                .iterator(); i.hasNext();) {<br/>
+            Object ae = i.next();<br/>
+            if (name.equals(Model.getFacade().getName(ae))<br/>
+                &amp;&amp; Model.getFacade().getType(<br/>
+                        Model.getFacade().getOppositeEnd(ae))<br/>
+                    == parseState.getClassifier()) {<br/>
+                mAssociationEnd = ae;<br/>
+            }<br/>
+        }<br/>
+        if (mAssociationEnd == null &amp;&amp; !noAssociations) {<br/>
+            String newName =<br/>
+                Model.getFacade().getName(parseState.getClassifier())<br/>
+                    + " -&gt; " + Model.getFacade().getName(mClassifier);<br/>
+<br/>
+            Object mAssociation =<br/>
+                Model.getCoreFactory().buildAssociation(<br/>
+                        mClassifier, true, parseState.getClassifier(), false,<br/>
+                        newName);<br/>
+            mAssociationEnd =<br/>
+                Model.getFacade().getAssociationEnd(<br/>
+                        mClassifier,<br/>
+                        mAssociation);<br/>
+        }<br/>
+        return mAssociationEnd;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the stereotype with a specific name.<br/>
+<br/>
+       @param name The name of the stereotype.<br/>
+       @return The stereotype.<br/>
+    */<br/>
+    private Object getStereotype(String name) {<br/>
+        LOG.info("Trying to find a stereotype of name &lt;&lt;" + name + "&gt;&gt;");<br/>
+        // Is this line really safe wouldn't it just return the first<br/>
+        // model element of the same name whether or not it is a stereotype<br/>
+        Object stereotype = Model.getFacade().lookupIn(model, name);<br/>
+<br/>
+        if (stereotype == null) {<br/>
+            LOG.info("Couldn't find so creating it");<br/>
+            return<br/>
+                Model.getExtensionMechanismsFactory()<br/>
+                    .buildStereotype(name, model);<br/>
+        }<br/>
+<br/>
+        if (!Model.getFacade().isAStereotype(stereotype)) {<br/>
+            // and so this piece of code may create an existing stereotype<br/>
+            // in error.<br/>
+            LOG.info("Found something that isn't a stereotype so creating it");<br/>
+            return<br/>
+                Model.getExtensionMechanismsFactory()<br/>
+                    .buildStereotype(name, model);<br/>
+        }<br/>
+<br/>
+        LOG.info("Found it");<br/>
+        return stereotype;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Find the first suitable stereotype with baseclass for a given object.<br/>
+     *<br/>
+     * @param me<br/>
+     * @param name<br/>
+     * @param baseClass<br/>
+     * @return the stereotype if found<br/>
+     *<br/>
+     * @throws IllegalArgumentException if the desired stereotypes for<br/>
+     * the modelelement and baseclass was not found. No stereotype is<br/>
+     * created.<br/>
+     */<br/>
+    private Object getStereotype(Object me, String name, String baseClass) {<br/>
+        Collection models =<br/>
+            ProjectManager.getManager().getCurrentProject().getModels();<br/>
+        Collection stereos =<br/>
+            Model.getExtensionMechanismsHelper()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        .getAllPossibleStereotypes(models, me);<br/>
+        if (stereos != null &amp;&amp; stereos.size() &gt; 0) {<br/>
+            Iterator iter = stereos.iterator();<br/>
+            while (iter.hasNext()) {<br/>
+                Object stereotype = iter.next();<br/>
+                if (Model.getExtensionMechanismsHelper()<br/>
+                        .isStereotypeInh(stereotype, name, baseClass)) {<br/>
+                    LOG.info("Returning the existing stereotype of &lt;&lt;"<br/>
+                            + Model.getFacade().getName(stereotype) + "&gt;&gt;");<br/>
+                    return stereotype;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        // TODO: Instead of failing, this should create any stereotypes that it<br/>
+        // requires.  Most likely cause of failure is that the stereotype isn't<br/>
+        // included in the profile that is being used. - tfm 20060224<br/>
+        throw new IllegalArgumentException("Could not find "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   + "a suitable stereotype for "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   + me + <span class="upd">" stereotype: &lt;&lt;"</span> + name + <span class="upd">"&gt;&gt; base: "</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   + baseClass);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Return the tagged value with a specific tag.<br/>
+<br/>
+       @param element The tagged value belongs to this.<br/>
+       @param name The tag.<br/>
+       @return The found tag. A new is created if not found.<br/>
+    */<br/>
+    private Object getTaggedValue(Object element, String name) {<br/>
+        Object tv = Model.getFacade().getTaggedValue(element, name);<br/>
+        if (tv == null) {<br/>
+            Model.getCoreHelper().setTaggedValue(element, name, "");<br/>
+            tv = Model.getFacade().getTaggedValue(element, name);<br/>
+        }<br/>
+        return tv;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This classifier was earlier generated by reference but now it is<br/>
+     * its time to be parsed so we clean out remnants.<br/>
+     *<br/>
+     * @param element that they are removed from<br/>
+     */<br/>
+    private void cleanModelElement(Object element) {<br/>
+        for (Iterator i = Model.getFacade().getTaggedValues(element);<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;i.hasNext();) {<br/>
+            Object tv = i.next();<br/>
+            if (Model.getFacade().getValueOfTag(tv).equals(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Facade.GENERATED_TAG)) {<br/>
+                Model.getUmlFactory().delete(tv);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the package name from a fully specified classifier name.<br/>
+<br/>
+       @param name A fully specified classifier name.<br/>
+       @return The package name.<br/>
+    */<br/>
+    private String getPackageName(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lastDot = name.lastIndexOf('.');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lastDot == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        return name.substring(0, lastDot);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the relative package name from a fully qualified<br/>
+     * package name. So if the parameter is 'org.argouml.kernel'<br/>
+     * the method is supposed to return 'kernel' (the package<br/>
+     * kernel is in package 'org.argouml').<br/>
+     *<br/>
+     * @param packageName A fully qualified package name.<br/>
+     * @return The relative package name.<br/>
+     */<br/>
+    private String getRelativePackageName(String packageName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Since the relative package name corresponds<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// to the classifier name of a fully qualified<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// classifier, we simply use this method.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getClassifierName(packageName);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the classifier name from a fully specified classifier name.<br/>
+<br/>
+       @param name A fully specified classifier name.<br/>
+       @return The classifier name.<br/>
+    */<br/>
+    private String getClassifierName(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lastDot = name.lastIndexOf('.');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lastDot == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return name;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        return name.substring(lastDot + 1);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Set the visibility for a model element.<br/>
+<br/>
+       @param element The model element.<br/>
+       @param modifiers A sequence of modifiers which may contain<br/>
+       'private', 'protected' or 'public'.<br/>
+    */<br/>
+    private void setVisibility(Object element,<br/>
+                               short modifiers) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((modifiers &amp; JavaRecognizer.ACC_STATIC) &gt; 0) {<br/>
+            Model.getCoreHelper().setTaggedValue(<br/>
+                    element,<br/>
+                    "src_modifiers",<br/>
+                    "static");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((modifiers &amp; JavaRecognizer.ACC_PRIVATE) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setVisibility(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            element,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getVisibilityKind().getPrivate());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if ((modifiers &amp; JavaRecognizer.ACC_PROTECTED) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setVisibility(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            element,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getVisibilityKind().getProtected());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if ((modifiers &amp; JavaRecognizer.ACC_PUBLIC) &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().setVisibility(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            element,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            Model.getVisibilityKind().getPublic());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+            // Default Java visibility is "package"<br/>
+            Model.getCoreHelper().setVisibility(<br/>
+                    element,<br/>
+                    Model.getVisibilityKind().getPackage());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Set the owner scope for a feature.<br/>
+<br/>
+       @param feature The feature.<br/>
+       @param modifiers A sequence of modifiers which may contain<br/>
+       'static'.<br/>
+    */<br/>
+    private void setOwnerScope(Object feature, short modifiers) {<br/>
+        if ((modifiers &amp; JavaRecognizer.ACC_STATIC) &gt; 0) {<br/>
+            Model.getCoreHelper().setOwnerScope(feature,<br/>
+                    Model.getScopeKind().getClassifier());<br/>
+        } else {<br/>
+            Model.getCoreHelper().setOwnerScope(feature,<br/>
+                    Model.getScopeKind().getInstance());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Set the target scope for an association end.<br/>
+<br/>
+       @param mAssociationEnd The end.<br/>
+       @param modifiers A sequence of modifiers which may contain<br/>
+       'static'.<br/>
+    */<br/>
+    private void setTargetScope(Object mAssociationEnd, short modifiers) {<br/>
+        if ((modifiers &amp; JavaRecognizer.ACC_STATIC) &gt; 0) {<br/>
+            Model.getCoreHelper().setTargetScope(<br/>
+                    mAssociationEnd,<br/>
+                    Model.getScopeKind().getClassifier());<br/>
+        } else {<br/>
+            Model.getCoreHelper().setTargetScope(<br/>
+                    mAssociationEnd,<br/>
+                    Model.getScopeKind().getInstance());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Get the context for a classifier name that may or may not be<br/>
+       fully qualified.<br/>
+<br/>
+       @param name The classifier name.<br/>
+    */<br/>
+    private Context getContext(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context context = parseState.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String packageName = getPackageName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!"".equals(packageName)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    context = new PackageContext(context, getPackage(packageName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return context;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Add the contents of a single standard javadoc tag to the model element.<br/>
+     * Usually this will be added as a tagged value.<br/>
+     *<br/>
+     * This is called from {@link #addDocumentationTag} only.<br/>
+     *<br/>
+     * @param me the model element to add to<br/>
+     * @param sTagName the name of the javadoc tag<br/>
+     * @param sTagData the contents of the javadoc tag<br/>
+     */<br/>
+    private void addJavadocTagContents(Object me,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String sTagName,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String sTagData) {<br/>
+        int colonPos = (sTagData != null) ? sTagData.indexOf(':') : -1;<br/>
+        if (colonPos != -1 &amp;&amp; (("invariant".equals(sTagName))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || ("pre-condition".equals(sTagName))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || ("post-condition".equals(sTagName)))) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // add as OCL constraint<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String sContext = OCLUtil.getContextString(me);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String name = sTagData.substring(0, colonPos);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String body = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (sTagName.equals ("invariant")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// add as invariant constraint Note that no checking<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// of constraint syntax is performed... BAD!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body = sContext + " inv " + sTagData;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else if (sTagName.equals ("pre-condition")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body = sContext + " pre " + sTagData;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body = sContext + " post " + sTagData;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object bexpr =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getDataTypesFactory()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .createBooleanExpression("OCL", body);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object mc =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreFactory().buildConstraint(name, bexpr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getCoreHelper().addConstraint(me, mc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (Model.getFacade().getNamespace(me) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Apparently namespace management is not supported<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// for all model elements. As this does not seem to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// cause problems, I'll just leave it at that for the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// moment...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model.getCoreHelper().addOwnedElement(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        Model.getFacade().getNamespace(me),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        mc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+        } else {<br/>
+            if ("stereotype".equals(sTagName)) {<br/>
+                // multiple stereotype support: <br/>
+                // make one stereotype tag from many stereotype tags<br/>
+                Object tv = getTaggedValue(me, sTagName);<br/>
+                if (tv != null) {<br/>
+                    String sStereotype = Model.getFacade().getValueOfTag(tv);<br/>
+                    if (sStereotype != null &amp;&amp; sStereotype.length() &gt; 0) {<br/>
+                        sTagData = sStereotype + ',' + sTagData;<br/>
+                    }<br/>
+                }<br/>
+                // now eliminate multiple entries in that comma separated list<br/>
+                HashSet stSet = new HashSet();<br/>
+                StringTokenizer st = new StringTokenizer(sTagData, ", ");<br/>
+                while (st.hasMoreTokens()) {<br/>
+                    stSet.add(st.nextToken().trim());<br/>
+                }<br/>
+                StringBuffer sb = new StringBuffer();<br/>
+                Iterator iter = stSet.iterator();<br/>
+                while (iter.hasNext()) {<br/>
+                    if (sb.length() &gt; 0) {<br/>
+                        sb.append(',');<br/>
+                    }<br/>
+                    sb.append(iter.next());<br/>
+                }<br/>
+                sTagData = sb.toString();<br/>
+<br/>
+            }<br/>
+            Model.getExtensionMechanismsHelper().addTaggedValue(<br/>
+                    me,<br/>
+                    Model.getExtensionMechanismsFactory().buildTaggedValue(<br/>
+                            sTagName, sTagData));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Add the javadocs as a tagged value 'documentation' to the model<br/>
+     * element. All comment delimiters are removed prior to adding the<br/>
+     * comment.<br/>
+     *<br/>
+     * Added 2001-10-05 STEFFEN ZSCHALER.<br/>
+     *<br/>
+     * @param modelElement the model element to which to add the documentation<br/>
+     * @param sJavaDocs the documentation comment to add ("" or null<br/>
+     * if no java docs)<br/>
+     */<br/>
+    private void addDocumentationTag(Object modelElement, String sJavaDocs) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ((sJavaDocs != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; (sJavaDocs.trim().length() &gt;= 5)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    StringBuffer sbPureDocs = new StringBuffer(80);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String sCurrentTagName = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String sCurrentTagData = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int nStartPos = 3; // skip the leading /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean fHadAsterisk = true;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (nStartPos &lt; sJavaDocs.length()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (sJavaDocs.charAt (nStartPos)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case '*':<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    fHadAsterisk = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    nStartPos++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case ' ':   // all white space, hope I didn't miss any ;-)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case '\t':<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ignore white space before the first asterisk<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!fHadAsterisk) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nStartPos++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // normal comment text or standard tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // check ahead for tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int j = nStartPos;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    while ((j &lt; sJavaDocs.length())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   &amp;&amp; ((sJavaDocs.charAt (j) == ' ')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       || (sJavaDocs.charAt (j) == '\t'))) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;j++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (j &lt; sJavaDocs.length()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (sJavaDocs.charAt (j) == '@') {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // if the last javadoc is on the last line<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // no new line will be found, causing an<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // indexoutofboundexception.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int lineEndPos = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (sJavaDocs.indexOf('\n', j) &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lineEndPos = sJavaDocs.length() - 2;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lineEndPos = sJavaDocs.indexOf('\n', j) + 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sbPureDocs.append(sJavaDocs.substring(j,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lineEndPos));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // start standard tag potentially add<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // current tag to set of tagged values...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (sCurrentTagName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addJavadocTagContents (modelElement,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sCurrentTagName,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sCurrentTagData);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // open new tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int nTemp = sJavaDocs.indexOf (' ', j + 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (nTemp == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp = sJavaDocs.length() - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sCurrentTagName = sJavaDocs.substring(j + 1,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  nTemp);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int nTemp1 = sJavaDocs.indexOf ('\n', ++nTemp);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (nTemp1 == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp1 = sJavaDocs.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp1++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sCurrentTagData =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sJavaDocs.substring (nTemp, nTemp1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    nStartPos = nTemp1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // continue standard tag or comment text<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int nTemp = sJavaDocs.indexOf ('\n', nStartPos);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (nTemp == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp = sJavaDocs.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nTemp++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (sCurrentTagName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sbPureDocs.append(sJavaDocs.substring(nStartPos,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      nTemp));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sCurrentTagData +=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    " "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    + sJavaDocs.substring (nStartPos, nTemp);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sbPureDocs.append(sJavaDocs.substring(nStartPos,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      nTemp));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    nStartPos = nTemp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    fHadAsterisk = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+            sJavaDocs = sbPureDocs.toString();<br/>
+            <br/>
+            /*<br/>
+             * After this, we have the documentation text, but there's still a<br/>
+             * trailing '/' left, either at the end of the actual comment text<br/>
+             * or at the end of the last tag.<br/>
+             */<br/>
+            sJavaDocs = removeTrailingSlash(sJavaDocs);<br/>
+            <br/>
+            // handle last tag, if any (strip trailing slash there too)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (sCurrentTagName != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sCurrentTagData = removeTrailingSlash(sCurrentTagData);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addJavadocTagContents (modelElement, sCurrentTagName,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sCurrentTagData);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Now store documentation text in a tagged value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Model.getExtensionMechanismsHelper().addTaggedValue(<br/>
+                    modelElement,<br/>
+                    Model.getExtensionMechanismsFactory().buildTaggedValue(<br/>
+                            "documentation", sJavaDocs));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addStereotypes(modelElement);<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /*<br/>
+     * Remove a trailing slash, including the entire line if it's the only thing<br/>
+     * on the line. <br/>
+     */<br/>
+    private String removeTrailingSlash(String s) {<br/>
+        if (s.endsWith("\n/")) {<br/>
+            return s.substring(0, s.length() - 2);<br/>
+        } else  if (s.endsWith("/")) {<br/>
+            return s.substring(0, s.length() - 1);<br/>
+        } else {<br/>
+            return s;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /*<br/>
+     * If there is a tagged value named 'stereotype', make it a real<br/>
+     * stereotype and remove the tagged value.<br/>
+     * We allow multiple instances of this tagged value <br/>
+     * AND parse a single instance for multiple stereotypes<br/>
+     */<br/>
+    private void addStereotypes(Object modelElement) {<br/>
+        Object tv = Model.getFacade()<br/>
+                .getTaggedValue(modelElement, "stereotype");<br/>
+        if (tv != null) {<br/>
+            String stereo = Model.getFacade().getValueOfTag(tv);<br/>
+            if (stereo != null &amp;&amp; stereo.length() &gt; 0) {<br/>
+                StringTokenizer st = new StringTokenizer(stereo, ", ");<br/>
+                while (st.hasMoreTokens()) {<br/>
+                    Model.getCoreHelper().addStereotype(modelElement,<br/>
+                            getStereotype(st.nextToken().trim()));<br/>
+                }<br/>
+            }<br/>
+            Model.getExtensionMechanismsHelper().removeTaggedValue(<br/>
+                    modelElement, tv);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Collect parsed method calls. Used for reverse engineering of<br/>
+     * interactions.<br/>
+     * <br/>
+     * @param methodName<br/>
+     *            The method name called.<br/>
+     */<br/>
+    public void addCall(String methodName) {<br/>
+        methodCalls.add(methodName);<br/>
+    }<br/>
+<br/>
+    public synchronized Vector getMethodCalls() {<br/>
+        return methodCalls;<br/>
+    }<br/>
+<br/>
+    public void clearMethodCalls() {<br/>
+        methodCalls.clear();<br/>
+    }<br/>
+<br/>
+    public void addLocalVariableDeclaration(String type, String name) {<br/>
+        localVariables.put(name, type);<br/>
+    }<br/>
+<br/>
+    public Hashtable getLocalVariableDeclarations() {<br/>
+        return localVariables;<br/>
+    }<br/>
+<br/>
+    public void clearLocalVariableDeclarations() {<br/>
+        localVariables.clear();<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

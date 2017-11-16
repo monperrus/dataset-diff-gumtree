@@ -1,0 +1,445 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_JarPackageFragment_1.37.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2007 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.core;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import java.util.Map;<br/>
+<br/>
+import org.eclipse.core.resources.IResource;<br/>
+import org.eclipse.core.runtime.IPath;<br/>
+import org.eclipse.core.runtime.IProgressMonitor;<br/>
+import org.eclipse.core.runtime.Path;<br/>
+import org.eclipse.jdt.core.IClassFile;<br/>
+import org.eclipse.jdt.core.ICompilationUnit;<br/>
+import org.eclipse.jdt.core.IJarEntryResource;<br/>
+import org.eclipse.jdt.core.IJavaElement;<br/>
+import org.eclipse.jdt.core.IJavaModelStatusConstants;<br/>
+import org.eclipse.jdt.core.JavaModelException;<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del"><span class="del"><span class="del"><span class="del"><span class="del">org</span>.<span class="del">eclipse</span></span>.<span class="del">jdt</span></span>.<span class="del">internal</span></span>.<span class="del">compiler</span></span>.<span class="del">util</span></span>.<span class="del">SuffixConstants</span></span>;</span><br/>
+import org.eclipse.jdt.internal.core.util.Util;<br/>
+<br/>
+/**<br/>
+ * A package fragment that represents a package fragment found in a JAR.<br/>
+ *<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+class JarPackageFragment extends PackageFragment implements <span class="del"><span class="del">SuffixConstants</span></span> {<br/>
+/**<br/>
+ * Constructs a package fragment that is contained within a jar or a zip.<br/>
+ */<br/>
+protected JarPackageFragment(PackageFragmentRoot root, String[] names) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(root, names);<br/>
+}<br/>
+/**<br/>
+ * @see Openable<br/>
+ */<br/>
+protected boolean buildStructure(OpenableElementInfo info, IProgressMonitor pm, Map newElements, IResource underlyingResource) throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JarPackageFragmentRoot root = (JarPackageFragmentRoot) getParent();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JarPackageFragmentRootInfo parentInfo = (JarPackageFragmentRootInfo) root.getElementInfo();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ArrayList[] entries = (ArrayList[]) parentInfo.rawPackageInfo.get(this.names);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (entries == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw newNotPresentException();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JarPackageFragmentInfo fragInfo = (JarPackageFragmentInfo) info;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// compute children<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragInfo.setChildren(computeChildren(entries[0/*class files*/]));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// compute non-Java resources<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragInfo.setNonJavaResources(computeNonJavaResources(entries[1/*non Java resources*/]));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;newElements.put(this, fragInfo);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+/**<br/>
+ * Compute the children of this package fragment. Children of jar package fragments<br/>
+ * can only be IClassFile (representing .class files).<br/>
+ */<br/>
+private IJavaElement[] computeChildren(ArrayList namesWithoutExtension) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int size = namesWithoutExtension.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (size == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NO_ELEMENTS;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IJavaElement[] children = new IJavaElement[size];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String nameWithoutExtension = (String) namesWithoutExtension.get(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;children[i] = new ClassFile(this, nameWithoutExtension);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return children;<br/>
+}<br/>
+/**<br/>
+ * Compute all the non-java resources according to the given entry names.<br/>
+ */<br/>
+private Object[] computeNonJavaResources(ArrayList entryNames) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = entryNames.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (length == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return JavaElementInfo.NO_NON_JAVA_RESOURCES;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;HashMap jarEntries = new HashMap(); // map from IPath to IJarEntryResource<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;HashMap childrenMap = new HashMap(); // map from IPath to ArrayList&lt;IJarEntryResource&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ArrayList topJarEntries = new ArrayList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String resName = (String) entryNames.get(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// consider that a .java file is not a non-java resource (see bug 12246 Packages view shows .class and .java files when JAR has source)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!Util.isJavaLikeFileName(resName)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath filePath = new Path(resName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath childPath = filePath.removeFirstSegments(this.names.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JarEntryFile file = new JarEntryFile(filePath.lastSegment());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntries.put(childPath, file);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (childPath.segmentCount() == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file.setParent(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;topJarEntries.add(file);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath parentPath = childPath.removeLastSegments(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (parentPath.segmentCount() &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ArrayList parentChildren = (ArrayList) childrenMap.get(parentPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parentChildren == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object dir = new JarEntryDirectory(parentPath.lastSegment());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntries.put(parentPath, dir);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childrenMap.put(parentPath, parentChildren = new ArrayList());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentChildren.add(childPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parentPath.segmentCount() == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;topJarEntries.add(dir);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childPath = parentPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentPath = childPath.removeLastSegments(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentChildren.add(childPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break; // all parents are already registered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Iterator entries = childrenMap.entrySet().iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (entries.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Map.Entry entry = (Map.Entry) entries.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath entryPath = (IPath) entry.getKey();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ArrayList entryValue =  (ArrayList) entry.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JarEntryDirectory jarEntryDirectory = (JarEntryDirectory) jarEntries.get(entryPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int size = entryValue.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IJarEntryResource[] children = new IJarEntryResource[size];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JarEntryResource child = (JarEntryResource) jarEntries.get(entryValue.get(i));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;child.setParent(jarEntryDirectory);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;children[i] = child;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntryDirectory.setChildren(children);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (entryPath.segmentCount() == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntryDirectory.setParent(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return topJarEntries.toArray(new Object[topJarEntries.size()]);<br/>
+}<br/>
+/**<br/>
+ * Returns true if this fragment contains at least one java resource.<br/>
+ * Returns false otherwise.<br/>
+ */<br/>
+public boolean containsJavaResources() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((JarPackageFragmentInfo) getElementInfo()).containsJavaResources();<br/>
+}<br/>
+/**<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+public ICompilationUnit createCompilationUnit(String cuName, String contents, boolean force, IProgressMonitor monitor) throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throw new JavaModelException(new JavaModelStatus(IJavaModelStatusConstants.READ_ONLY, this));<br/>
+}<br/>
+/**<br/>
+ * @see JavaElement<br/>
+ */<br/>
+protected Object createElementInfo() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new JarPackageFragmentInfo();<br/>
+}<br/>
+/**<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+public IClassFile[] getClassFiles() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ArrayList list = getChildrenOfType(CLASS_FILE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IClassFile[] array= new IClassFile[list.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;list.toArray(array);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return array;<br/>
+}<br/>
+/**<br/>
+ * A jar package fragment never contains compilation units.<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+public ICompilationUnit[] getCompilationUnits() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return NO_COMPILATION_UNITS;<br/>
+}<br/>
+/**<br/>
+ * A package fragment in a jar has no corresponding resource.<br/>
+ *<br/>
+ * @see IJavaElement<br/>
+ */<br/>
+public IResource getCorrespondingResource() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+}<br/>
+/**<br/>
+ * Returns an array of non-java resources contained in the receiver.<br/>
+ */<br/>
+public Object[] getNonJavaResources() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.isDefaultPackage()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// We don't want to show non java resources of the default package (see PR #1G58NB8)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return JavaElementInfo.NO_NON_JAVA_RESOURCES;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return this.storedNonJavaResources();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Jars and jar entries are all read only<br/>
+ */<br/>
+public boolean isReadOnly() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+protected Object[] storedNonJavaResources() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((JarPackageFragmentInfo) getElementInfo()).getNonJavaResources();<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_JarPackageFragment_1.38.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2007 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.core;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import java.util.Map;<br/>
+<br/>
+import org.eclipse.core.resources.IResource;<br/>
+import org.eclipse.core.runtime.IPath;<br/>
+import org.eclipse.core.runtime.IProgressMonitor;<br/>
+import org.eclipse.core.runtime.Path;<br/>
+import org.eclipse.jdt.core.IClassFile;<br/>
+import org.eclipse.jdt.core.ICompilationUnit;<br/>
+import org.eclipse.jdt.core.IJarEntryResource;<br/>
+import org.eclipse.jdt.core.IJavaElement;<br/>
+import org.eclipse.jdt.core.IJavaModelStatusConstants;<br/>
+import org.eclipse.jdt.core.JavaModelException;<br/>
+import org.eclipse.jdt.internal.core.util.Util;<br/>
+<br/>
+/**<br/>
+ * A package fragment that represents a package fragment found in a JAR.<br/>
+ *<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+class JarPackageFragment extends PackageFragment {<br/>
+/**<br/>
+ * Constructs a package fragment that is contained within a jar or a zip.<br/>
+ */<br/>
+protected JarPackageFragment(PackageFragmentRoot root, String[] names) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(root, names);<br/>
+}<br/>
+/**<br/>
+ * @see Openable<br/>
+ */<br/>
+protected boolean buildStructure(OpenableElementInfo info, IProgressMonitor pm, Map newElements, IResource underlyingResource) throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JarPackageFragmentRoot root = (JarPackageFragmentRoot) getParent();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JarPackageFragmentRootInfo parentInfo = (JarPackageFragmentRootInfo) root.getElementInfo();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ArrayList[] entries = (ArrayList[]) parentInfo.rawPackageInfo.get(this.names);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (entries == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw newNotPresentException();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JarPackageFragmentInfo fragInfo = (JarPackageFragmentInfo) info;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// compute children<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragInfo.setChildren(computeChildren(entries[0/*class files*/]));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// compute non-Java resources<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragInfo.setNonJavaResources(computeNonJavaResources(entries[1/*non Java resources*/]));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;newElements.put(this, fragInfo);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+/**<br/>
+ * Compute the children of this package fragment. Children of jar package fragments<br/>
+ * can only be IClassFile (representing .class files).<br/>
+ */<br/>
+private IJavaElement[] computeChildren(ArrayList namesWithoutExtension) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int size = namesWithoutExtension.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (size == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NO_ELEMENTS;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IJavaElement[] children = new IJavaElement[size];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String nameWithoutExtension = (String) namesWithoutExtension.get(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;children[i] = new ClassFile(this, nameWithoutExtension);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return children;<br/>
+}<br/>
+/**<br/>
+ * Compute all the non-java resources according to the given entry names.<br/>
+ */<br/>
+private Object[] computeNonJavaResources(ArrayList entryNames) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = entryNames.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (length == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return JavaElementInfo.NO_NON_JAVA_RESOURCES;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;HashMap jarEntries = new HashMap(); // map from IPath to IJarEntryResource<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;HashMap childrenMap = new HashMap(); // map from IPath to ArrayList&lt;IJarEntryResource&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ArrayList topJarEntries = new ArrayList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String resName = (String) entryNames.get(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// consider that a .java file is not a non-java resource (see bug 12246 Packages view shows .class and .java files when JAR has source)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!Util.isJavaLikeFileName(resName)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath filePath = new Path(resName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath childPath = filePath.removeFirstSegments(this.names.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JarEntryFile file = new JarEntryFile(filePath.lastSegment());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntries.put(childPath, file);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (childPath.segmentCount() == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file.setParent(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;topJarEntries.add(file);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath parentPath = childPath.removeLastSegments(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (parentPath.segmentCount() &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ArrayList parentChildren = (ArrayList) childrenMap.get(parentPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parentChildren == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object dir = new JarEntryDirectory(parentPath.lastSegment());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntries.put(parentPath, dir);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childrenMap.put(parentPath, parentChildren = new ArrayList());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentChildren.add(childPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parentPath.segmentCount() == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;topJarEntries.add(dir);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childPath = parentPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentPath = childPath.removeLastSegments(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentChildren.add(childPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break; // all parents are already registered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Iterator entries = childrenMap.entrySet().iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (entries.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Map.Entry entry = (Map.Entry) entries.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IPath entryPath = (IPath) entry.getKey();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ArrayList entryValue =  (ArrayList) entry.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JarEntryDirectory jarEntryDirectory = (JarEntryDirectory) jarEntries.get(entryPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int size = entryValue.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IJarEntryResource[] children = new IJarEntryResource[size];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JarEntryResource child = (JarEntryResource) jarEntries.get(entryValue.get(i));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;child.setParent(jarEntryDirectory);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;children[i] = child;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntryDirectory.setChildren(children);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (entryPath.segmentCount() == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;jarEntryDirectory.setParent(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return topJarEntries.toArray(new Object[topJarEntries.size()]);<br/>
+}<br/>
+/**<br/>
+ * Returns true if this fragment contains at least one java resource.<br/>
+ * Returns false otherwise.<br/>
+ */<br/>
+public boolean containsJavaResources() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((JarPackageFragmentInfo) getElementInfo()).containsJavaResources();<br/>
+}<br/>
+/**<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+public ICompilationUnit createCompilationUnit(String cuName, String contents, boolean force, IProgressMonitor monitor) throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throw new JavaModelException(new JavaModelStatus(IJavaModelStatusConstants.READ_ONLY, this));<br/>
+}<br/>
+/**<br/>
+ * @see JavaElement<br/>
+ */<br/>
+protected Object createElementInfo() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new JarPackageFragmentInfo();<br/>
+}<br/>
+/**<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+public IClassFile[] getClassFiles() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ArrayList list = getChildrenOfType(CLASS_FILE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IClassFile[] array= new IClassFile[list.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;list.toArray(array);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return array;<br/>
+}<br/>
+/**<br/>
+ * A jar package fragment never contains compilation units.<br/>
+ * @see org.eclipse.jdt.core.IPackageFragment<br/>
+ */<br/>
+public ICompilationUnit[] getCompilationUnits() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return NO_COMPILATION_UNITS;<br/>
+}<br/>
+/**<br/>
+ * A package fragment in a jar has no corresponding resource.<br/>
+ *<br/>
+ * @see IJavaElement<br/>
+ */<br/>
+public IResource getCorrespondingResource() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+}<br/>
+/**<br/>
+ * Returns an array of non-java resources contained in the receiver.<br/>
+ */<br/>
+public Object[] getNonJavaResources() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.isDefaultPackage()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// We don't want to show non java resources of the default package (see PR #1G58NB8)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return JavaElementInfo.NO_NON_JAVA_RESOURCES;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return this.storedNonJavaResources();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Jars and jar entries are all read only<br/>
+ */<br/>
+public boolean isReadOnly() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+protected Object[] storedNonJavaResources() throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((JarPackageFragmentInfo) getElementInfo()).getNonJavaResources();<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

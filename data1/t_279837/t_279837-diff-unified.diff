@@ -1,0 +1,10 @@
+--- t_279837/left_Ajp12_1.17.java	2013-03-17 15:47:28.000000000 +0100
++++ t_279837/right_Ajp12_1.18.java	2013-03-17 15:47:28.000000000 +0100
+@@ -278,7 +278,6 @@
+                                 ContextManager cm=req.getContextManager();
+ 				cm.shutdown();
+ 				cm.log("Exiting" );
+-				cm.getLog().flush();
+ 				// same behavior as in past, because it seems
+ 				// that stopping everything doesn't work -
+ 				// need to figure

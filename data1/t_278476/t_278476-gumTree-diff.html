@@ -1,0 +1,574 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_DefaultCMSetter_1.23.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */<br/>
+<br/>
+<br/>
+package org.apache.tomcat.context;<br/>
+<br/>
+import org.apache.tomcat.core.*;<br/>
+import org.apache.tomcat.core.Constants;<br/>
+import org.apache.tomcat.request.*;<br/>
+import org.apache.tomcat.util.*;<br/>
+import java.io.*;<br/>
+import java.net.*;<br/>
+import java.util.*;<br/>
+import javax.servlet.http.*;<br/>
+<br/>
+import org.apache.tomcat.logging.*;<br/>
+<br/>
+/**<br/>
+ * Check ContextManager and set defaults for non-set properties<br/>
+ *<br/>
+ * @author costin@dnt.ro<br/>
+ */<br/>
+public class DefaultCMSetter extends BaseInterceptor {<br/>
+<br/>
+    public DefaultCMSetter() {<br/>
+    }<br/>
+<br/>
+    public void engineInit(ContextManager cm) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// check if we are in the right directory<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File f=new File( cm.getHome() + "/conf/web.xml");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! f.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new TomcatException( "Wrong home " + cm.getHome());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+    /** Called when a new context is added to the server.<br/>
+     *<br/>
+     *  - Check it and set defaults for WorkDir, EngineHeader and SessionManager.<br/>
+     *  If you don't like the defaults, set them in Context before adding it to the<br/>
+     *  engine.<br/>
+     *<br/>
+     *  - Set up defaults for context interceptors and session if nothing is set<br/>
+     */<br/>
+    public void addContext(ContextManager cm, Context ctx)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+    }<br/>
+<br/>
+    public void contextInit( Context ctx)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setEngineHeader( ctx );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ctx.getWorkDir() == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    setWorkDir(ctx);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (! ctx.getWorkDir().exists()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //log  System.out.println("Creating work dir " + ctx.getWorkDir() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.getWorkDir().mkdirs();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setAttribute(Constants.ATTRIB_WORKDIR1, ctx.getWorkDir());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setAttribute(Constants.ATTRIB_WORKDIR , ctx.getWorkDir());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set default session manager if none set<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ctx.getSessionManager() == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.setSessionManager(new org.apache.tomcat.session.StandardSessionManager());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//  Alternative: org.apache.tomcat.session.ServerSessionManager.getManager();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper authWrapper=new ServletWrapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;authWrapper.setContext( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;authWrapper.setServletClass( "org.apache.tomcat.servlets.AuthServlet" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;authWrapper.setServletName( "tomcat.authServlet");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServlet( authWrapper );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper errorWrapper=new ServletWrapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;errorWrapper.setContext( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;errorWrapper.setServletClass( "org.apache.tomcat.servlets.DefaultErrorPage" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;errorWrapper.setServletName( "tomcat.errorPage");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServlet( errorWrapper );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// XXX Loader properties - need to be set on loader!!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//ctx.setServletLoader( new org.apache.tomcat.loader.ServletClassLoaderImpl());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setServletLoader( new org.apache.tomcat.loader.AdaptiveServletLoader());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;initURLs( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Validation for error  servlet<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ServletWrapper errorWrapper1=ctx.getServletByName( "tomcat.errorPage");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    errorWrapper1.loadServlet();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    System.out.println("Error loading default servlet ");<br/>
+            ex.printStackTrace();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // XXX remove this context from CM<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new TomcatException( "Error loading default error servlet ", ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    private void initURLs(Context context) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletLoader loader=context.getServletLoader();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( loader==null) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add "WEB-INF/classes"<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String base = context.getDocBase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File dir = new File(base + "/WEB-INF/classes");<br/>
+<br/>
+        // GS, Fix for the jar@lib directory problem.<br/>
+        // Thanks for Kevin Jones for providing the fix.<br/>
+        dir = getAbsolute(dir, context);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( dir.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    loader.addRepository( dir );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File f =  new File(base + "/WEB-INF/lib");<br/>
+        f = getAbsolute(f, context);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Vector jars = new Vector();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;getJars(jars, f);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0; i &lt; jars.size(); ++i) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String jarfile = (String) jars.elementAt(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    loader.addRepository( new File( <span class="del"><span class="mv"><span class="upd">base</span></span> + <span class="del">"/WEB-INF/lib/"</span> +<span class="mv">jarfile</span></span> ));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+<br/>
+    private void getJars(Vector v, File f) {<br/>
+        FilenameFilter jarfilter = new FilenameFilter() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public boolean accept(File dir, String fname) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if(fname.endsWith(".jar"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    };<br/>
+        FilenameFilter dirfilter = new FilenameFilter() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public boolean accept(File dir, String fname) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    File f1 = new File(dir, fname);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if(f1.isDirectory())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    };<br/>
+<br/>
+        if(f.exists() &amp;&amp; f.isDirectory() &amp;&amp; f.isAbsolute()) {<br/>
+            String[] jarlist = f.list(jarfilter);<br/>
+<br/>
+            for(int i=0; (jarlist != null) &amp;&amp; (i &lt; jarlist.length); ++i) {<br/>
+                v.addElement(jarlist[i]);<br/>
+            }<br/>
+<br/>
+            String[] dirlist = f.list(dirfilter);<br/>
+<br/>
+            for(int i=0; (dirlist != null) &amp;&amp; (i &lt; dirlist.length); ++i) {<br/>
+                File dir = new File(f, dirlist[i]);<br/>
+                getJars(v, dir);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private File getAbsolute(File f, Context c) {<br/>
+        if (!f.isAbsolute()) {<br/>
+            // evaluate repository path relative to the context's home directory<br/>
+            ContextManager cm = c.getContextManager();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return new File(cm.getHome(), f.getPath());<br/>
+        }<br/>
+        return f;<br/>
+    }<br/>
+<br/>
+    // -------------------- implementation<br/>
+    /** Encoded ContextManager.getWorkDir() + host + port + path<br/>
+     */<br/>
+    private void setWorkDir(Context ctx ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ContextManager cm=ctx.getContextManager();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer sb=new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(cm.getWorkDir());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(File.separator);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(cm.getHostName() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append("_").append(cm.getPort());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(URLEncoder.encode( ctx.getPath() ));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setWorkDir( new File(sb.toString()));<br/>
+    }<br/>
+    <br/>
+    private void setEngineHeader(Context ctx) {<br/>
+        String engineHeader=ctx.getEngineHeader();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( engineHeader==null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * Whoever modifies this needs to check this modification is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * ok with the code in com.jsp.runtime.ServletEngine or talk<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * to akv before you check it in. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Default value for engine header<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // no longer use core.properties - the configuration comes from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // server.xml or web.xml - no more properties.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    StringBuffer sb=new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(Constants.TOMCAT_NAME).append("/").append(Constants.TOMCAT_VERSION);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(" (").append(Constants.JSP_NAME).append(" ").append(Constants.JSP_VERSION);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append("; ").append(Constants.SERVLET_NAME).append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(Constants.SERVLET_MAJOR).append(".").append(Constants.SERVLET_MINOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append( "; Java " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("java.version")).append("; ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("os.name") + " ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("os.version") + " ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("os.arch") + "; java.vendor=");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("java.vendor")).append(")");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    engineHeader=sb.toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setEngineHeader( engineHeader );<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_DefaultCMSetter_1.24.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */<br/>
+<br/>
+<br/>
+package org.apache.tomcat.context;<br/>
+<br/>
+import org.apache.tomcat.core.*;<br/>
+import org.apache.tomcat.core.Constants;<br/>
+import org.apache.tomcat.request.*;<br/>
+import org.apache.tomcat.util.*;<br/>
+import java.io.*;<br/>
+import java.net.*;<br/>
+import java.util.*;<br/>
+import javax.servlet.http.*;<br/>
+<br/>
+import org.apache.tomcat.logging.*;<br/>
+<br/>
+/**<br/>
+ * Check ContextManager and set defaults for non-set properties<br/>
+ *<br/>
+ * @author costin@dnt.ro<br/>
+ */<br/>
+public class DefaultCMSetter extends BaseInterceptor {<br/>
+<br/>
+    public DefaultCMSetter() {<br/>
+    }<br/>
+<br/>
+    public void engineInit(ContextManager cm) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// check if we are in the right directory<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File f=new File( cm.getHome() + "/conf/web.xml");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! f.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new TomcatException( "Wrong home " + cm.getHome());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+    /** Called when a new context is added to the server.<br/>
+     *<br/>
+     *  - Check it and set defaults for WorkDir, EngineHeader and SessionManager.<br/>
+     *  If you don't like the defaults, set them in Context before adding it to the<br/>
+     *  engine.<br/>
+     *<br/>
+     *  - Set up defaults for context interceptors and session if nothing is set<br/>
+     */<br/>
+    public void addContext(ContextManager cm, Context ctx)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+    }<br/>
+<br/>
+    public void contextInit( Context ctx)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setEngineHeader( ctx );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ctx.getWorkDir() == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    setWorkDir(ctx);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (! ctx.getWorkDir().exists()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //log  System.out.println("Creating work dir " + ctx.getWorkDir() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.getWorkDir().mkdirs();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setAttribute(Constants.ATTRIB_WORKDIR1, ctx.getWorkDir());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setAttribute(Constants.ATTRIB_WORKDIR , ctx.getWorkDir());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set default session manager if none set<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ctx.getSessionManager() == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.setSessionManager(new org.apache.tomcat.session.StandardSessionManager());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//  Alternative: org.apache.tomcat.session.ServerSessionManager.getManager();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper authWrapper=new ServletWrapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;authWrapper.setContext( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;authWrapper.setServletClass( "org.apache.tomcat.servlets.AuthServlet" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;authWrapper.setServletName( "tomcat.authServlet");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServlet( authWrapper );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper errorWrapper=new ServletWrapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;errorWrapper.setContext( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;errorWrapper.setServletClass( "org.apache.tomcat.servlets.DefaultErrorPage" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;errorWrapper.setServletName( "tomcat.errorPage");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServlet( errorWrapper );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// XXX Loader properties - need to be set on loader!!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//ctx.setServletLoader( new org.apache.tomcat.loader.ServletClassLoaderImpl());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setServletLoader( new org.apache.tomcat.loader.AdaptiveServletLoader());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;initURLs( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Validation for error  servlet<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ServletWrapper errorWrapper1=ctx.getServletByName( "tomcat.errorPage");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    errorWrapper1.loadServlet();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    System.out.println("Error loading default servlet ");<br/>
+            ex.printStackTrace();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // XXX remove this context from CM<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new TomcatException( "Error loading default error servlet ", ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    private void initURLs(Context context) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletLoader loader=context.getServletLoader();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( loader==null) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add "WEB-INF/classes"<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String base = context.getDocBase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File dir = new File(base + "/WEB-INF/classes");<br/>
+<br/>
+        // GS, Fix for the jar@lib directory problem.<br/>
+        // Thanks for Kevin Jones for providing the fix.<br/>
+        dir = getAbsolute(dir, context);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( dir.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    loader.addRepository( dir );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File f =  new File(base + "/WEB-INF/lib");<br/>
+        f = getAbsolute(f, context);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Vector jars = new Vector();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;getJars(jars, f);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0; i &lt; jars.size(); ++i) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String jarfile = (String) jars.elementAt(i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    loader.addRepository( new File(<span class="mv"><span class="upd">f</span></span>, <span class="mv">jarfile</span> ));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+<br/>
+    private void getJars(Vector v, File f) {<br/>
+        FilenameFilter jarfilter = new FilenameFilter() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public boolean accept(File dir, String fname) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if(fname.endsWith(".jar"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    };<br/>
+        FilenameFilter dirfilter = new FilenameFilter() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public boolean accept(File dir, String fname) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    File f1 = new File(dir, fname);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if(f1.isDirectory())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    };<br/>
+<br/>
+        if(f.exists() &amp;&amp; f.isDirectory() &amp;&amp; f.isAbsolute()) {<br/>
+            String[] jarlist = f.list(jarfilter);<br/>
+<br/>
+            for(int i=0; (jarlist != null) &amp;&amp; (i &lt; jarlist.length); ++i) {<br/>
+                v.addElement(jarlist[i]);<br/>
+            }<br/>
+<br/>
+            String[] dirlist = f.list(dirfilter);<br/>
+<br/>
+            for(int i=0; (dirlist != null) &amp;&amp; (i &lt; dirlist.length); ++i) {<br/>
+                File dir = new File(f, dirlist[i]);<br/>
+                getJars(v, dir);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private File getAbsolute(File f, Context c) {<br/>
+        if (!f.isAbsolute()) {<br/>
+            // evaluate repository path relative to the context's home directory<br/>
+            ContextManager cm = c.getContextManager();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return new File(cm.getHome(), f.getPath());<br/>
+        }<br/>
+        return f;<br/>
+    }<br/>
+<br/>
+    // -------------------- implementation<br/>
+    /** Encoded ContextManager.getWorkDir() + host + port + path<br/>
+     */<br/>
+    private void setWorkDir(Context ctx ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ContextManager cm=ctx.getContextManager();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer sb=new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(cm.getWorkDir());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(File.separator);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(cm.getHostName() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append("_").append(cm.getPort());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(URLEncoder.encode( ctx.getPath() ));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setWorkDir( new File(sb.toString()));<br/>
+    }<br/>
+    <br/>
+    private void setEngineHeader(Context ctx) {<br/>
+        String engineHeader=ctx.getEngineHeader();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( engineHeader==null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * Whoever modifies this needs to check this modification is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * ok with the code in com.jsp.runtime.ServletEngine or talk<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * to akv before you check it in. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Default value for engine header<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // no longer use core.properties - the configuration comes from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // server.xml or web.xml - no more properties.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    StringBuffer sb=new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(Constants.TOMCAT_NAME).append("/").append(Constants.TOMCAT_VERSION);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(" (").append(Constants.JSP_NAME).append(" ").append(Constants.JSP_VERSION);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append("; ").append(Constants.SERVLET_NAME).append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(Constants.SERVLET_MAJOR).append(".").append(Constants.SERVLET_MINOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append( "; Java " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("java.version")).append("; ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("os.name") + " ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("os.version") + " ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("os.arch") + "; java.vendor=");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(System.getProperty("java.vendor")).append(")");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    engineHeader=sb.toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setEngineHeader( engineHeader );<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

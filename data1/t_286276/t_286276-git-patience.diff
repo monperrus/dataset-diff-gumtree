@@ -1,0 +1,14 @@
+diff --git a/t_286276/left_Assume_1.8.java b/t_286276/right_Assume_1.9.java
+index 5b9745b..7b6c21a 100644
+--- a/t_286276/left_Assume_1.8.java
++++ b/t_286276/right_Assume_1.9.java
+@@ -91,9 +91,4 @@ public class Assume {
+ 	public static void assumeNoException(Throwable t) {
+ 		assumeThat(t, nullValue());
+ 	}
+-
+-    // TODO: once the last (erroneous) reference is removed, remove this.
+-	public static void fail(String string) {
+-		throw new AssumptionViolatedException(string);
+-	}
+ }

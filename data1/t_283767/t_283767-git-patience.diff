@@ -1,0 +1,16 @@
+diff --git a/t_283767/left_LogUI_1.29.java b/t_283767/right_LogUI_1.30.java
+index 830c3b6..9e53b88 100644
+--- a/t_283767/left_LogUI_1.29.java
++++ b/t_283767/right_LogUI_1.30.java
+@@ -1133,11 +1133,6 @@ public class LogUI extends JFrame implements ChainsawViewer, SettingsListener {
+         }
+       }
+ 
+-      /**
+-       * notify the status bar we received an event
+-       */
+-      statusBar.receivedEvent();
+-
+       if (!getPanelMap().containsKey(ident)) {
+         final String eventType =
+           ((ChainsawEventBatchEntry) eventBatchEntrys.get(0)).getEventType();

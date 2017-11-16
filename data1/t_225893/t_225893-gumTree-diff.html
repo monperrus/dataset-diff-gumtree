@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_RQueryUser_1.1.java</h1>
+<div class="code">
+<div class="id">
+<span class="del"><span class="mv">package org.tigris.scarab.om;</span><br/>
+<br/>
+<br/>
+<span class="mv">import org.apache.torque.om.UnsecurePersistent;</span><br/>
+<br/>
+<span class="del"><span class="mv">/** <br/>
+ * You should add additional methods to this class to meet the<br/>
+ * application requirements.  This class will only be generated as<br/>
+ * long as it does not already exist in the output directory.<br/>
+ */</span><br/>
+<span class="mv">public</span>  class <span class="mv">RQueryUser</span> <br/>
+    extends <span class="mv">org.tigris.scarab.om.BaseRQueryUser</span><br/>
+    implements <span class="mv">UnsecurePersistent</span><br/>
+{<br/>
+}</span><br/>
+</span></div>
+</div>
+</div>
+<div class="right">
+<h1>right_RQueryUser_1.2.java</h1>
+<div class="code">
+<div class="id">
+<span class="add"><span class="mv">package org.tigris.scarab.om;</span><br/>
+<br/>
+<br/>
+<span class="mv">import org.apache.torque.om.UnsecurePersistent;</span><br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">apache</span></span>.<span class="add">torque</span></span>.<span class="add">util</span></span>.<span class="add">Criteria</span></span>;</span> <br/>
+<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">tigris</span></span>.<span class="add">scarab</span></span>.<span class="add">util</span></span>.<span class="add">ScarabException</span></span>;</span><br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">tigris</span></span>.<span class="add">scarab</span></span>.<span class="add">util</span></span>.<span class="add">ScarabConstants</span></span>;</span><br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">tigris</span></span>.<span class="add">scarab</span></span>.<span class="add">security</span></span>.<span class="add">ScarabSecurity</span></span>;</span><br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">tigris</span></span>.<span class="add">scarab</span></span>.<span class="add">security</span></span>.<span class="add">SecurityFactory</span></span>;</span><br/>
+<br/>
+<span class="add"><span class="mv">/** <br/>
+ * You should add additional methods to this class to meet the<br/>
+ * application requirements.  This class will only be generated as<br/>
+ * long as it does not already exist in the output directory.<br/>
+ */</span><br/>
+<span class="mv">public</span>  class <span class="mv">RQueryUser</span> <br/>
+    extends <span class="mv">org.tigris.scarab.om.BaseRQueryUser</span><br/>
+    implements <span class="mv">UnsecurePersistent</span><br/>
+{<br/>
+<br/>
+    <span class="add"><span class="add">/**<br/>
+     * Delete the subscription.<br/>
+     */</span><br/>
+    <span class="add">public</span> <span class="add">void</span> <span class="add">delete</span>(<span class="add"><span class="add"><span class="add">ScarabUser</span></span> <span class="add">user</span></span>, <span class="add"><span class="add"><span class="add">ScarabModule</span></span> <span class="add">module</span></span>) throws <span class="add">Exception</span><br/>
+                                                             <br/>
+    <span class="add">{ <br/>
+        <span class="add"><span class="add"><span class="add">ScarabSecurity</span></span> <span class="add"><span class="add">security</span> = <span class="add"><span class="add">SecurityFactory</span>.<span class="add">getInstance</span>()</span></span>;</span><br/>
+        <span class="add">if (<span class="add"><span class="add"><span class="add"><span class="add">user</span>.<span class="add">getUserId</span>()</span>.<span class="add">equals</span>(<span class="add"><span class="add">getUserId</span>()</span>)</span><br/>
+            || <span class="add"><span class="add">security</span>.<span class="add">hasPermission</span>(<span class="add"><span class="add">ScarabSecurity</span>.<span class="add">ITEM__APPROVE</span></span>, <span class="add">user</span>,<br/>
+                                      <span class="add">module</span>)</span></span>)<br/>
+        <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">Criteria</span></span> <span class="add"><span class="add">c</span> = <span class="add"><span class="add"><span class="add">new <span class="add"><span class="add">Criteria</span></span>()</span><br/>
+                .<span class="add">add</span>(<span class="add"><span class="add">RQueryUserPeer</span>.<span class="add">USER_ID</span></span>, <span class="add"><span class="add">getUserId</span>()</span>)</span><br/>
+                .<span class="add">add</span>(<span class="add"><span class="add">RQueryUserPeer</span>.<span class="add">QUERY_ID</span></span>, <span class="add"><span class="add">getQueryId</span>()</span>)</span></span>;</span><br/>
+            <span class="add"><span class="add"><span class="add">RQueryUserPeer</span>.<span class="add">doDelete</span>(<span class="add">c</span>)</span>;</span><br/>
+        }</span><br/>
+        else<br/>
+        <span class="add">{<br/>
+            <span class="add">throw <span class="add">new <span class="add"><span class="add">ScarabException</span></span>(<span class="add"><span class="add">ScarabConstants</span>.<span class="add">NO_PERMISSION_MESSAGE</span></span>)</span>;</span><br/>
+        }</span></span><br/>
+    }</span></span><br/>
+    <br/>
+}</span><br/>
+</span></div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

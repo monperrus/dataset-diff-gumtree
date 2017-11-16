@@ -1,0 +1,12 @@
+diff --git a/t_228643/left_ScopePeer_1.3.java b/t_228643/right_ScopePeer_1.4.java
+index 9196f7e..c2e9422 100644
+--- a/t_228643/left_ScopePeer_1.3.java
++++ b/t_228643/right_ScopePeer_1.4.java
+@@ -19,6 +19,6 @@ public class ScopePeer
+     public static List getAllScopes()
+         throws Exception
+     {
+-        return doSelect(new Criteria());
++        return doSelect(new Criteria(0));
+     }
+ }

@@ -1,0 +1,13 @@
+diff --git a/t_223454/left_EntityListFile_1.17.java b/t_223454/right_EntityListFile_1.18.java
+index 350c9a2..a7e561c 100644
+--- a/t_223454/left_EntityListFile_1.17.java
++++ b/t_223454/right_EntityListFile_1.18.java
+@@ -439,7 +439,7 @@ public class EntityListFile {
+ 
+         // Open up the file.
+         InputStream listStream = new FileInputStream
+-            ( new File(filePath, fileName), "UTF-8" );
++            ( new File(filePath, fileName) );
+ 
+         // Read a Vector from the file.
+         try {

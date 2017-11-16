@@ -1,0 +1,13 @@
+diff --git a/t_230124/left_MacrosMenu_1.5.java b/t_230124/right_MacrosMenu_1.6.java
+index ffe326d..fbb6e91 100644
+--- a/t_230124/left_MacrosMenu_1.5.java
++++ b/t_230124/right_MacrosMenu_1.6.java
+@@ -51,7 +51,7 @@ public class MacrosMenu extends EnhancedMenu implements EBComponent
+ 			updateMacrosMenu();
+ 	}
+ 
+-	protected void init()
++	public void init()
+ 	{
+ 		super.init();
+ 		updateMacrosMenu();

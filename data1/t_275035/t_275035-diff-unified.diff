@@ -1,0 +1,11 @@
+--- t_275035/left_SlaveContextService_1.4.java	2013-03-17 15:47:20.000000000 +0100
++++ t_275035/right_SlaveContextService_1.5.java	2013-03-17 15:47:22.000000000 +0100
+@@ -124,7 +124,7 @@
+ 			Expression expression, boolean global) {
+ 		if (global) {
+ 			IContextActivation activation = fParentService.activateContext(
+-					contextId, expression);
++					contextId, expression, global);
+ 			fParentActivations.add(activation);
+ 			return activation;
+ 		}

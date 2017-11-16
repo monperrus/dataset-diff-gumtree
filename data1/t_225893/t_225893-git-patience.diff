@@ -1,0 +1,45 @@
+diff --git a/t_225893/left_RQueryUser_1.1.java b/t_225893/right_RQueryUser_1.2.java
+index 85d56fe..25f8bef 100644
+--- a/t_225893/left_RQueryUser_1.1.java
++++ b/t_225893/right_RQueryUser_1.2.java
+@@ -2,6 +2,12 @@ package org.tigris.scarab.om;
+ 
+ 
+ import org.apache.torque.om.UnsecurePersistent;
++import org.apache.torque.util.Criteria; 
++
++import org.tigris.scarab.util.ScarabException;
++import org.tigris.scarab.util.ScarabConstants;
++import org.tigris.scarab.security.ScarabSecurity;
++import org.tigris.scarab.security.SecurityFactory;
+ 
+ /** 
+  * You should add additional methods to this class to meet the
+@@ -12,4 +18,27 @@ public  class RQueryUser
+     extends org.tigris.scarab.om.BaseRQueryUser
+     implements UnsecurePersistent
+ {
++
++    /**
++     * Delete the subscription.
++     */
++    public void delete(ScarabUser user, ScarabModule module) throws Exception
++                                                             
++    { 
++        ScarabSecurity security = SecurityFactory.getInstance();
++        if (user.getUserId().equals(getUserId())
++            || security.hasPermission(ScarabSecurity.ITEM__APPROVE, user,
++                                      module))
++        {
++            Criteria c = new Criteria()
++                .add(RQueryUserPeer.USER_ID, getUserId())
++                .add(RQueryUserPeer.QUERY_ID, getQueryId());
++            RQueryUserPeer.doDelete(c);
++        }
++        else
++        {
++            throw new ScarabException(ScarabConstants.NO_PERMISSION_MESSAGE);
++        }
++    }
++    
+ }

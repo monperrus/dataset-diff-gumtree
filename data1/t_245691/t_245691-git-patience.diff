@@ -1,0 +1,21 @@
+diff --git a/t_245691/left_Name_1.73.java b/t_245691/right_Name_1.74.java
+index ebcbbcc..15dec14 100644
+--- a/t_245691/left_Name_1.73.java
++++ b/t_245691/right_Name_1.74.java
+@@ -606,6 +606,16 @@ toWireCanonical(DataByteOutputStream out) throws IOException {
+ 	out.writeByte(0);
+ }
+ 
++/**
++ * Convert Name to canonical DNS wire format (all lowercase)
++ */
++public byte []
++toWireCanonical() throws IOException {
++	DataByteOutputStream out = new DataByteOutputStream();
++	toWireCanonical(out);
++	return out.toByteArray();
++}
++
+ /**
+  * Are these two Names equivalent?
+  */

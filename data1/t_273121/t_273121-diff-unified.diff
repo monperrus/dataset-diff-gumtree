@@ -1,0 +1,24 @@
+--- t_273121/left_DefaultPartPresentation_1.25.java	2013-03-17 15:47:20.000000000 +0100
++++ t_273121/right_DefaultPartPresentation_1.26.java	2013-03-17 15:47:20.000000000 +0100
+@@ -802,8 +802,10 @@
+ 	}
+ 	
+ 	private CTabItem createPartTab(IPresentablePart part, int tabIndex) {
+-    	Assert.isTrue(!isDisposed());
+-    	
++		Assert.isTrue(!isDisposed());
++		
++		tabIndex = Math.min(tabIndex, tabFolder.getItemCount());
++		
+ 		CTabItem tabItem;
+ 
+ 		int style = SWT.NONE;
+@@ -823,7 +825,7 @@
+ 		
+ 		part.addPropertyListener(childPropertyChangeListener);
+ 		tabItem.addDisposeListener(tabDisposeListener);
+-
++	
+ 		initTab(tabItem, part);
+ 		
+ 		return tabItem;

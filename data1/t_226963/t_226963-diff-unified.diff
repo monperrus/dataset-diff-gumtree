@@ -1,0 +1,11 @@
+--- t_226963/left_Issue_1.140.java	2013-03-17 15:47:22.000000000 +0100
++++ t_226963/right_Issue_1.141.java	2013-03-17 15:47:24.000000000 +0100
+@@ -1137,7 +1137,7 @@
+                          AttachmentPeer.ATTACHMENT_TYPE_ID)
+                 .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, 
+                      Attachment.COMMENT__PK)
+-                .addAscendingOrderByColumn(AttachmentPeer.CREATED_DATE);
++                .addDescendingOrderByColumn(AttachmentPeer.CREATED_DATE);
+             if (!full)
+             {
+                 crit.setLimit(getCommentsLimit());

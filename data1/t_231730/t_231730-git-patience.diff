@@ -1,0 +1,31 @@
+diff --git a/t_231730/left_Main_1.41.java b/t_231730/right_Main_1.42.java
+index a5058d2..907a060 100644
+--- a/t_231730/left_Main_1.41.java
++++ b/t_231730/right_Main_1.42.java
+@@ -113,8 +113,6 @@ public class Main {
+ 
+     MainInterface.clipboardManager = new ClipboardManager();
+ 
+-    //new ImageLoader();
+-
+     MainInterface.processor = new DefaultProcessor();
+     MainInterface.processor.start();
+ 
+@@ -148,6 +146,8 @@ public class Main {
+ 
+     new FrameModel();
+ 
++    frame.setVisible(false);
++
+     if (MailConfig.getAccountList().count() == 0) {
+       try {
+ 
+@@ -161,8 +161,6 @@ public class Main {
+     
+     new CmdLineArgumentHandler(args);
+ 
+-    frame.setVisible(false);
+-
+   } // main
+ 
+   private static void doGuiInits() {

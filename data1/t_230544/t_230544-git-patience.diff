@@ -1,0 +1,13 @@
+diff --git a/t_230544/left_MacOSPlugin_1.12.java b/t_230544/right_MacOSPlugin_1.13.java
+index f534ed5..331affc 100644
+--- a/t_230544/left_MacOSPlugin_1.12.java
++++ b/t_230544/right_MacOSPlugin_1.13.java
+@@ -99,7 +99,7 @@ public class MacOSPlugin extends EBPlugin
+ 			return false;
+ 		}
+ 		if (MiscUtilities.compareStrings(
+-			System.getProperty("mrj.version"),mrjversion) < 0)
++			System.getProperty("mrj.version"),mrjversion,false) < 0)
+ 		{
+ 			SwingUtilities.invokeLater( new Runnable() { public void run() {
+ 				GUIUtilities.error(null,"MacOSPlugin.dialog.mrjversion",new Object[] {mrjversion});

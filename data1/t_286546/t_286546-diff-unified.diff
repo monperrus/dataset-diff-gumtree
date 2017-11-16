@@ -1,0 +1,20 @@
+--- t_286546/left_TransportStruct_1.4.java	2013-03-17 15:47:30.000000000 +0100
++++ t_286546/right_TransportStruct_1.5.java	2013-03-17 15:47:30.000000000 +0100
+@@ -19,7 +19,7 @@
+  * USA
+  *
+  * --------------------------------------------------------------------------
+- * $Id: TransportStruct.java,v 1.4 2005-01-28 09:13:30 benoitf Exp $
++ * $Id: TransportStruct.java,v 1.5 2005-01-28 09:17:23 benoitf Exp $
+  * --------------------------------------------------------------------------
+  */
+ package org.objectweb.carol.util.csiv2.struct;
+@@ -45,7 +45,7 @@
+     /**
+      * Default ssl port
+      */
+-    private static final int DEFAULT_SSL_PORT = 2003;
++    public static final int DEFAULT_SSL_PORT = 2003;
+ 
+     /**
+      * TransportAddress

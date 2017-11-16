@@ -1,0 +1,258 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_MemberFilePersister_1.4.java</h1>
+<div class="code">
+<div class="id">
+// $Id: MemberFilePersister.java,v 1.4 2005-01-09 21:10:37 linus Exp $<br/>
+// Copyright (c) 1996-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.persistence;<br/>
+<br/>
+import java.io.BufferedReader;<br/>
+import java.io.File;<br/>
+import java.io.FileNotFoundException;<br/>
+import java.io.FileReader;<br/>
+import java.io.IOException;<br/>
+import java.io.InputStream;<br/>
+import java.io.PrintWriter;<br/>
+import java.io.Writer;<br/>
+<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectMember;<br/>
+<br/>
+/**<br/>
+ * A base class file persister for project members.<br/>
+ * @author Bob Tarling<br/>
+ */<br/>
+public abstract class MemberFilePersister {<br/>
+    /**<br/>
+     * Load the member based on instance variables<br/>
+     * which should have been setup in the constructor.<br/>
+     *<br/>
+     * @param project the project to persist<br/>
+     * @param inputStream the inputStream to parse to load the member.<br/>
+     * @throws OpenException on any parsing errors.<br/>
+     */<br/>
+    public abstract void load(Project project, InputStream inputStream)<br/>
+        throws OpenException;<br/>
+<br/>
+    /**<br/>
+     * Gets the tag name which is the root tag for this member.<br/>
+     * @return tag name.<br/>
+     */<br/>
+    public abstract String getMainTag();<br/>
+<br/>
+    /**<br/>
+     * Save the projectmember as XML to the given writer.<br/>
+     *<br/>
+     * @param member The project member to save.<br/>
+     * @param writer The Writer to which appen the save.<br/>
+     * @param indent The offset to which to indent the XML<br/>
+     * @throws SaveException if the save fails<br/>
+     */<br/>
+    public abstract void save(<br/>
+            ProjectMember member,<br/>
+            Writer writer,<br/>
+            Integer indent) throws SaveException;<br/>
+<br/>
+    /**<br/>
+     * Send an existing file of XML to the PrintWriter.<br/>
+     * @param writer the PrintWriter.<br/>
+     * @param file the File<br/>
+     * @param indent How far to indent in the writer.<br/>
+     * @throws SaveException on any errors.<br/>
+     */<br/>
+    protected void addXmlFileToWriter(PrintWriter writer, File file, int indent)<br/>
+        throws SaveException {<br/>
+        try {<br/>
+            String padding =<br/>
+                "                                          "<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;.substring(0, indent);<br/>
+            <span class="del"><span class="mv">BufferedReader</span> <span class="del"><span class="mv">reader</span> =<br/>
+                <span class="mv">new <span class="mv">BufferedReader</span>(new <span class="upd"><span class="upd">FileReader</span></span>(file))</span></span>;</span><br/>
+<br/>
+            // Skip the &lt;?xml... first line<br/>
+            String line = reader.readLine();<br/>
+            while (line != null &amp;&amp; (line.startsWith("&lt;?xml ")<br/>
+                    || line.startsWith("&lt;!DOCTYPE "))) {<br/>
+                line = reader.readLine();<br/>
+            }<br/>
+<br/>
+            while (line != null) {<br/>
+                (writer).print(padding);<br/>
+                (writer).println(line);<br/>
+                line = reader.readLine();<br/>
+            }<br/>
+            reader.close();<br/>
+        } catch (FileNotFoundException e) {<br/>
+            throw new SaveException(e);<br/>
+        } catch (IOException e) {<br/>
+            throw new SaveException(e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_MemberFilePersister_1.5.java</h1>
+<div class="code">
+<div class="id">
+// $Id: MemberFilePersister.java,v 1.5 2005-07-05 19:38:30 bobtarling Exp $<br/>
+// Copyright (c) 1996-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.persistence;<br/>
+<br/>
+import java.io.BufferedReader;<br/>
+import java.io.File;<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add">java</span>.<span class="add">io</span></span>.<span class="add">FileInputStream</span></span>;</span><br/>
+import java.io.FileNotFoundException;<br/>
+import java.io.FileReader;<br/>
+import java.io.IOException;<br/>
+import java.io.InputStream;<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add">java</span>.<span class="add">io</span></span>.<span class="add">InputStreamReader</span></span>;</span><br/>
+import java.io.PrintWriter;<br/>
+import java.io.Writer;<br/>
+<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectMember;<br/>
+<br/>
+/**<br/>
+ * A base class file persister for project members.<br/>
+ * @author Bob Tarling<br/>
+ */<br/>
+public abstract class MemberFilePersister {<br/>
+    /**<br/>
+     * Load the member based on instance variables<br/>
+     * which should have been setup in the constructor.<br/>
+     *<br/>
+     * @param project the project to persist<br/>
+     * @param inputStream the inputStream to parse to load the member.<br/>
+     * @throws OpenException on any parsing errors.<br/>
+     */<br/>
+    public abstract void load(Project project, InputStream inputStream)<br/>
+        throws OpenException;<br/>
+<br/>
+    /**<br/>
+     * Gets the tag name which is the root tag for this member.<br/>
+     * @return tag name.<br/>
+     */<br/>
+    public abstract String getMainTag();<br/>
+<br/>
+    /**<br/>
+     * Save the projectmember as XML to the given writer.<br/>
+     *<br/>
+     * @param member The project member to save.<br/>
+     * @param writer The Writer to which appen the save.<br/>
+     * @param indent The offset to which to indent the XML<br/>
+     * @throws SaveException if the save fails<br/>
+     */<br/>
+    public abstract void save(<br/>
+            ProjectMember member,<br/>
+            Writer writer,<br/>
+            Integer indent) throws SaveException;<br/>
+<br/>
+    /**<br/>
+     * Send an existing file of XML to the PrintWriter.<br/>
+     * @param writer the PrintWriter.<br/>
+     * @param file the File<br/>
+     * @param indent How far to indent in the writer.<br/>
+     * @throws SaveException on any errors.<br/>
+     */<br/>
+    protected void addXmlFileToWriter(PrintWriter writer, File file, int indent)<br/>
+        throws SaveException {<br/>
+        try {<br/>
+            String padding =<br/>
+                "                                          "<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;.substring(0, indent);<br/>
+            <span class="add"><span class="mv">BufferedReader</span> <span class="add"><span class="mv">reader</span> =<br/>
+                <span class="add">new <span class="mv">BufferedReader</span>(<span class="mv">new <span class="add"><span class="add">InputStreamReader</span></span>(new <span class="upd"><span class="upd">FileInputStream</span></span>(file), <span class="add">"UTF-8"</span>)</span>)</span></span>;</span><br/>
+<br/>
+            // Skip the &lt;?xml... first line<br/>
+            String line = reader.readLine();<br/>
+            while (line != null &amp;&amp; (line.startsWith("&lt;?xml ")<br/>
+                    || line.startsWith("&lt;!DOCTYPE "))) {<br/>
+                line = reader.readLine();<br/>
+            }<br/>
+<br/>
+            while (line != null) {<br/>
+                (writer).print(padding);<br/>
+                (writer).println(line);<br/>
+                line = reader.readLine();<br/>
+            }<br/>
+            reader.close();<br/>
+        } catch (FileNotFoundException e) {<br/>
+            throw new SaveException(e);<br/>
+        } catch (IOException e) {<br/>
+            throw new SaveException(e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

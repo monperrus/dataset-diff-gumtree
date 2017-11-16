@@ -1,0 +1,12 @@
+--- t_286276/left_Assume_1.8.java	2013-03-17 15:47:06.000000000 +0100
++++ t_286276/right_Assume_1.9.java	2013-03-17 15:47:06.000000000 +0100
+@@ -91,9 +91,4 @@
+ 	public static void assumeNoException(Throwable t) {
+ 		assumeThat(t, nullValue());
+ 	}
+-
+-    // TODO: once the last (erroneous) reference is removed, remove this.
+-	public static void fail(String string) {
+-		throw new AssumptionViolatedException(string);
+-	}
+ }

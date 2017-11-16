@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ActionAddSignalsToSignalEvent_1.2.java</h1>
+<div class="code">
+<div class="id">
+// $Id: ActionAddSignalsToSignalEvent.java,v 1.2 2005-11-13 11:01:20 linus Exp $<br/>
+// Copyright (c) 1996-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.ui.behavior.state_machines;<br/>
+<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.uml.ui.AbstractActionAddModelElement;<br/>
+<br/>
+/**<br/>
+ * Provide a dialog which helps the user to select one event out of an existing list,<br/>
+ * which will be used as the trigger of the transition.<br/>
+ * @author MarkusK<br/>
+ *<br/>
+ */<br/>
+class ActionAddSignalsToSignalEvent extends AbstractActionAddModelElement {<br/>
+<br/>
+    /**<br/>
+     * The one and only instance of this class.<br/>
+     */<br/>
+    public static final ActionAddSignalsToSignalEvent SINGLETON = new ActionAddSignalsToSignalEvent();<br/>
+<br/>
+    /**<br/>
+     * Constructor for ActionAddClassifierRoleBase.<br/>
+     */<br/>
+    protected ActionAddSignalsToSignalEvent() {<br/>
+        super();<br/>
+        setMultiSelect(false);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#getChoices()<br/>
+     */<br/>
+    protected Vector getChoices() {<br/>
+        Vector vec = new Vector();<br/>
+<br/>
+      vec.addAll(Model.getModelManagementHelper().getAllModelElementsOfKind(<br/>
+      Model.getFacade().getModel(getTarget()), Model.getMetaTypes().getSignal()));<br/>
+<br/>
+        return vec;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#getSelected()<br/>
+     */<br/>
+    protected Vector getSelected() {<br/>
+        Vector vec = new Vector();<br/>
+        Object signal = Model.getFacade().getSignal(getTarget());<br/>
+        if (signal != null)<br/>
+            <span class="mv">vec.add(signal);</span><br/>
+        return vec;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#getDialogTitle()<br/>
+     */<br/>
+    protected String getDialogTitle() {<br/>
+        return Translator.localize("dialog.title.add-signal");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#doIt(java.util.Vector)<br/>
+     */<br/>
+    protected void doIt(Vector selected) {<br/>
+        Object event = getTarget();<br/>
+        if (selected == null || selected.size() == 0) {<br/>
+            Model.getCommonBehaviorHelper().setSignal(event, null);<br/>
+        } else {<br/>
+            Model.getCommonBehaviorHelper().setSignal(event,<br/>
+                    selected.get(0));<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ActionAddSignalsToSignalEvent_1.3.java</h1>
+<div class="code">
+<div class="id">
+// $Id: ActionAddSignalsToSignalEvent.java,v 1.3 2006-03-26 05:22:09 linus Exp $<br/>
+// Copyright (c) 1996-2006 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.ui.behavior.state_machines;<br/>
+<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.uml.ui.AbstractActionAddModelElement;<br/>
+<br/>
+/**<br/>
+ * Provide a dialog which helps the user to select one event<br/>
+ * out of an existing list,<br/>
+ * which will be used as the trigger of the transition.<br/>
+ *<br/>
+ * @author MarkusK<br/>
+ *<br/>
+ */<br/>
+class ActionAddSignalsToSignalEvent extends AbstractActionAddModelElement {<br/>
+    /**<br/>
+     * The one and only instance of this class.<br/>
+     */<br/>
+    public static final ActionAddSignalsToSignalEvent SINGLETON =<br/>
+        new ActionAddSignalsToSignalEvent();<br/>
+<br/>
+    /**<br/>
+     * Constructor for ActionAddClassifierRoleBase.<br/>
+     */<br/>
+    protected ActionAddSignalsToSignalEvent() {<br/>
+        super();<br/>
+        setMultiSelect(false);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#getChoices()<br/>
+     */<br/>
+    protected Vector getChoices() {<br/>
+        Vector vec = new Vector();<br/>
+<br/>
+        vec.addAll(Model.getModelManagementHelper().getAllModelElementsOfKind(<br/>
+                Model.getFacade().getModel(getTarget()),<br/>
+                Model.getMetaTypes().getSignal()));<br/>
+<br/>
+        return vec;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#getSelected()<br/>
+     */<br/>
+    protected Vector getSelected() {<br/>
+        Vector vec = new Vector();<br/>
+        Object signal = Model.getFacade().getSignal(getTarget());<br/>
+        if (signal != null) <span class="add">{<br/>
+            <span class="mv">vec.add(signal);</span><br/>
+        }</span><br/>
+        return vec;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#getDialogTitle()<br/>
+     */<br/>
+    protected String getDialogTitle() {<br/>
+        return Translator.localize("dialog.title.add-signal");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.AbstractActionAddModelElement#doIt(java.util.Vector)<br/>
+     */<br/>
+    protected void doIt(Vector selected) {<br/>
+        Object event = getTarget();<br/>
+        if (selected == null || selected.size() == 0) {<br/>
+            Model.getCommonBehaviorHelper().setSignal(event, null);<br/>
+        } else {<br/>
+            Model.getCommonBehaviorHelper().setSignal(event,<br/>
+                    selected.get(0));<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <span class="add"><span class="add">/**<br/>
+     * The UID.<br/>
+     */</span><br/>
+    <span class="add">private</span> <span class="add">static</span> <span class="add">final</span> <span class="add">long</span> <span class="add"><span class="add">serialVersionUID</span> = <span class="add">6890869588365483936L</span></span>;</span><br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

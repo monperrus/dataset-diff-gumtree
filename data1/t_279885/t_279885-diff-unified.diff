@@ -1,0 +1,10 @@
+--- t_279885/left_ReloadInterceptor_1.6.java	2013-03-17 15:47:28.000000000 +0100
++++ t_279885/right_ReloadInterceptor_1.7.java	2013-03-17 15:47:28.000000000 +0100
+@@ -143,6 +143,7 @@
+ 	    dm.reset();
+ 	}
+ 	loaderHook(dm, context);
++	log( "Reloading context " + context );
+     }
+ 
+     

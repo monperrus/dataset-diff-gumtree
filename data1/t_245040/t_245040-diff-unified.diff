@@ -1,0 +1,10 @@
+--- t_245040/left_update_1.6.java	2013-03-17 15:47:00.000000000 +0100
++++ t_245040/right_update_1.7.java	2013-03-17 15:47:00.000000000 +0100
+@@ -123,6 +123,7 @@
+ 
+ 	query.addRecord(ZONE, soa);
+ 	query.addRecord(UPDATE, a);
++	query.addRecord(UPDATE, dela);
+ 
+ 	doUpdate(query, res);
+ }

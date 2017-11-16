@@ -1,0 +1,525 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_TurnOrdered_1.3.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * MegaMek - Copyright (C) 2003 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it <br/>
+ *  under the terms of the GNU General Public License as published by the Free <br/>
+ *  Software Foundation; either version 2 of the License, or (at your option) <br/>
+ *  any later version.<br/>
+ * <br/>
+ *  This program is distributed in the hope that it will be useful, but <br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY <br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License <br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.common;<br/>
+<br/>
+import java.util.*;<br/>
+import java.io.*;<br/>
+<br/>
+public abstract class TurnOrdered implements Serializable <br/>
+{<br/>
+<br/>
+    protected InitiativeRoll  initiative = new InitiativeRoll();    <br/>
+<br/>
+    protected int turns_mech   = 0;<br/>
+    protected int turns_tank   = 0;<br/>
+    protected int turns_infantry  = 0;<br/>
+<br/>
+    public int getMechCount() {  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns_mech;     <br/>
+    }                          <br/>
+<br/>
+    public int getTankCount() {   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns_tank;       <br/>
+    }                          <br/>
+<br/>
+    public int getInfantryCount() {   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns_infantry;      <br/>
+    }                             <br/>
+<br/>
+    public InitiativeRoll getInitiative() {<br/>
+        return initiative;<br/>
+    }<br/>
+<br/>
+    public static void rollInitiative(Vector v)<br/>
+    {<br/>
+        // Clear all rolls<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    item.getInitiative().clear();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;rollInitAndResolveTies(v, null);<br/>
+<br/>
+        //This is the *auto-reroll* code for the Tactical Genius (lvl 3)<br/>
+        // pilot ability.  It is NOT CURRENTLY IMPLEMENTED.  This code may<br/>
+        // be incomplete/buggy/just plain wrong.<br/>
+        /**<br/>
+        if (v.firstElement() instanceof Team) {<br/>
+            //find highest init roll<br/>
+            int highestInit = 2;<br/>
+            for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+                final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+                highestInit = Math.max(item.getInitiative().getRoll(item.getInitiative().size() - 1), highestInit);<br/>
+            }<br/>
+            System.out.println("\n\n---&gt;HIGH INIT ROLL: " + highestInit);<br/>
+            //loop through teams<br/>
+            for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+                final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+                //loop through players<br/>
+                for (Enumeration j = ((Team)item).getPlayers(); j.hasMoreElements();) {<br/>
+                    final Player player = (Player)j.nextElement();<br/>
+                    if (player.getGame().hasTacticalGenius(player) &amp;&amp;<br/>
+                        item.getInitiative().getRoll(item.getInitiative().size() - 1) &lt; highestInit &amp;&amp; v.size() &lt; 3) {<br/>
+                        System.out.println("--&gt;AUTO REROLL: " + player.getName());<br/>
+                        Vector rv = new Vector();<br/>
+                        rv.addElement(item);<br/>
+                        rollInitAndResolveTies(v, rv);<br/>
+                    }<br/>
+                }<br/>
+            } <br/>
+        }<br/>
+        */<br/>
+<br/>
+    }<br/>
+    <br/>
+    // This takes a vector of TurnOrdered (Teams or Players), rolls<br/>
+    //  initiative, and resolves ties.  The second argument is used<br/>
+    //  when a specific teams initiative should be re-rolled.<br/>
+    public static void rollInitAndResolveTies(Vector v, Vector rerollRequests) {<br/>
+        for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+            final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+            if (rerollRequests == null) { //normal init roll<br/>
+                item.getInitiative().addRoll(); // add a roll for all teams<br/>
+            } else {<br/>
+                //Resolve Tactical Genius (lvl 3) pilot ability<br/>
+                for (Enumeration j = rerollRequests.elements(); j.hasMoreElements();) {<br/>
+                    final TurnOrdered rerollItem = (TurnOrdered)j.nextElement();<br/>
+                    if (item == rerollItem) { // this is the team re-rolling<br/>
+                        item.getInitiative().replaceRoll();<br/>
+                        break; // each team only needs one reroll<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // check for ties<br/>
+        Vector ties = new Vector();<br/>
+        for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+            final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+            ties.removeAllElements();<br/>
+            ties.addElement(item);<br/>
+            for (Enumeration j = v.elements(); j.hasMoreElements();) {<br/>
+                final TurnOrdered other = (TurnOrdered)j.nextElement();<br/>
+                if (item != other &amp;&amp; item.getInitiative().equals(other.getInitiative())) {<br/>
+                    ties.addElement(other);<br/>
+                }<br/>
+            }<br/>
+            if (ties.size() &gt; 1) <span class="del">{<br/>
+                <span class="del"><span class="del"><span class="del"><span class="del">System</span>.<span class="del">out</span></span>.<span class="del">println</span>(<span class="del"><span class="del">"-&gt;TIE: "</span> + <span class="del"><span class="del">(<span class="del">(<span class="del"><span class="del">Team</span></span>)<span class="del">item</span></span>)</span>.<span class="del">getId</span>()</span></span>)</span>;</span><br/>
+                <span class="mv">rollInitAndResolveTies(ties, null);</span> // null should be reroll? debug<br/>
+            }</span><br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+<br/>
+    // This takes a vector of TurnOrdered, and generates a new vector. <br/>
+    public static TurnVectors generateTurnOrder(Vector v, boolean infLast)<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int[] num_inf_turns = new int[v.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int[] num_oth_turns = new int[v.size()];<br/>
+       <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int total_inf_turns = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int total_oth_turns = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int idx;<br/>
+        TurnOrdered[] order = new TurnOrdered[v.size()];<br/>
+        int oi = 0;<br/>
+<br/>
+        com.sun.java.util.collections.ArrayList plist = <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    new com.sun.java.util.collections.ArrayList(v.size());<br/>
+<br/>
+        for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+            Object item = i.nextElement();<br/>
+            plist.add(item);<br/>
+        }<br/>
+<br/>
+        com.sun.java.util.collections.Collections.sort(plist, new com.sun.java.util.collections.Comparator() {<br/>
+            public int compare(Object o1, Object o2) {<br/>
+                return ((TurnOrdered)o1).getInitiative().compareTo(((TurnOrdered)o2).getInitiative());<br/>
+            }<br/>
+        });<br/>
+<br/>
+        for (com.sun.java.util.collections.Iterator i = plist.iterator(); i.hasNext();) {<br/>
+            final TurnOrdered item = (TurnOrdered)i.next();<br/>
+            order[oi] = item;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // If infantry are last, separate them.  Otherwise, place all 'turns' in one pile <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (infLast) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_inf_turns[oi] = item.getInfantryCount();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_oth_turns[oi] = item.getTankCount() + item.getMechCount();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_inf_turns[oi] = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_oth_turns[oi] = item.getTankCount() + <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    item.getMechCount() + item.getInfantryCount();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    total_inf_turns += num_inf_turns[oi];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    total_oth_turns += num_oth_turns[oi];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    oi++;<br/>
+        }&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int min;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int turns_left;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;TurnVectors turns = new TurnVectors(total_oth_turns, total_inf_turns);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// We will do the 'other' units first (mechs and vehicles, and if infLast is false, <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// infantry )<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;min = Integer.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for(idx = 0; idx &lt; oi ; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ( num_oth_turns[idx] != 0 &amp;&amp; num_oth_turns[idx] &lt; min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min = num_oth_turns[idx];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;turns_left = total_oth_turns;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while(turns_left &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for(idx = 0; idx &lt; oi; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If you have no turns here, skip<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (num_oth_turns[idx] == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If you have less than twice the lowest, move 1.  Otherwise, move more. */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ntm = (int)Math.floor( ((double)num_oth_turns[idx]) / ((double)min) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int j = 0; j &lt; ntm; j++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    turns.non_infantry.addElement(order[idx]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    num_oth_turns[idx]--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    turns_left--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Since the smallest unit count had to place 1, reduce min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    min--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Now, we do the 'infantry' turns.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (infLast) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    min = Integer.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for(idx = 0; idx &lt; oi ; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ( num_inf_turns[idx] != 0 &amp;&amp; num_inf_turns[idx] &lt; min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    min = num_inf_turns[idx];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    turns_left = total_inf_turns;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while(turns_left &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(idx = 0; idx &lt; oi; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // If you have no turns here, skip<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (num_inf_turns[idx] == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    /* If you have less than twice the lowest, move 1.  Otherwise, move more. */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int ntm = (int)Math.floor( ((double)num_inf_turns[idx]) / ((double)min) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    for (int j = 0; j &lt; ntm; j++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;turns.infantry.addElement(order[idx]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_inf_turns[idx]--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;turns_left--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Since the smallest unit count had to place 1, reduce min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns;<br/>
+<br/>
+    }<br/>
+    <br/>
+    public abstract void updateTurnCount();<br/>
+<br/>
+}<br/>
+<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_TurnOrdered_1.4.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * MegaMek - Copyright (C) 2003 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it <br/>
+ *  under the terms of the GNU General Public License as published by the Free <br/>
+ *  Software Foundation; either version 2 of the License, or (at your option) <br/>
+ *  any later version.<br/>
+ * <br/>
+ *  This program is distributed in the hope that it will be useful, but <br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY <br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License <br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.common;<br/>
+<br/>
+import java.util.*;<br/>
+import java.io.*;<br/>
+<br/>
+public abstract class TurnOrdered implements Serializable <br/>
+{<br/>
+<br/>
+    protected InitiativeRoll  initiative = new InitiativeRoll();    <br/>
+<br/>
+    protected int turns_mech   = 0;<br/>
+    protected int turns_tank   = 0;<br/>
+    protected int turns_infantry  = 0;<br/>
+<br/>
+    public int getMechCount() {  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns_mech;     <br/>
+    }                          <br/>
+<br/>
+    public int getTankCount() {   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns_tank;       <br/>
+    }                          <br/>
+<br/>
+    public int getInfantryCount() {   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns_infantry;      <br/>
+    }                             <br/>
+<br/>
+    public InitiativeRoll getInitiative() {<br/>
+        return initiative;<br/>
+    }<br/>
+<br/>
+    public static void rollInitiative(Vector v)<br/>
+    {<br/>
+        // Clear all rolls<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    item.getInitiative().clear();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;rollInitAndResolveTies(v, null);<br/>
+<br/>
+        //This is the *auto-reroll* code for the Tactical Genius (lvl 3)<br/>
+        // pilot ability.  It is NOT CURRENTLY IMPLEMENTED.  This code may<br/>
+        // be incomplete/buggy/just plain wrong.<br/>
+        /**<br/>
+        if (v.firstElement() instanceof Team) {<br/>
+            //find highest init roll<br/>
+            int highestInit = 2;<br/>
+            for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+                final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+                highestInit = Math.max(item.getInitiative().getRoll(item.getInitiative().size() - 1), highestInit);<br/>
+            }<br/>
+            System.out.println("\n\n---&gt;HIGH INIT ROLL: " + highestInit);<br/>
+            //loop through teams<br/>
+            for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+                final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+                //loop through players<br/>
+                for (Enumeration j = ((Team)item).getPlayers(); j.hasMoreElements();) {<br/>
+                    final Player player = (Player)j.nextElement();<br/>
+                    if (player.getGame().hasTacticalGenius(player) &amp;&amp;<br/>
+                        item.getInitiative().getRoll(item.getInitiative().size() - 1) &lt; highestInit &amp;&amp; v.size() &lt; 3) {<br/>
+                        System.out.println("--&gt;AUTO REROLL: " + player.getName());<br/>
+                        Vector rv = new Vector();<br/>
+                        rv.addElement(item);<br/>
+                        rollInitAndResolveTies(v, rv);<br/>
+                    }<br/>
+                }<br/>
+            } <br/>
+        }<br/>
+        */<br/>
+<br/>
+    }<br/>
+    <br/>
+    // This takes a vector of TurnOrdered (Teams or Players), rolls<br/>
+    //  initiative, and resolves ties.  The second argument is used<br/>
+    //  when a specific teams initiative should be re-rolled.<br/>
+    public static void rollInitAndResolveTies(Vector v, Vector rerollRequests) {<br/>
+        for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+            final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+            if (rerollRequests == null) { //normal init roll<br/>
+                item.getInitiative().addRoll(); // add a roll for all teams<br/>
+            } else {<br/>
+                //Resolve Tactical Genius (lvl 3) pilot ability<br/>
+                for (Enumeration j = rerollRequests.elements(); j.hasMoreElements();) {<br/>
+                    final TurnOrdered rerollItem = (TurnOrdered)j.nextElement();<br/>
+                    if (item == rerollItem) { // this is the team re-rolling<br/>
+                        item.getInitiative().replaceRoll();<br/>
+                        break; // each team only needs one reroll<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // check for ties<br/>
+        Vector ties = new Vector();<br/>
+        for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+            final TurnOrdered item = (TurnOrdered)i.nextElement();<br/>
+            ties.removeAllElements();<br/>
+            ties.addElement(item);<br/>
+            for (Enumeration j = v.elements(); j.hasMoreElements();) {<br/>
+                final TurnOrdered other = (TurnOrdered)j.nextElement();<br/>
+                if (item != other &amp;&amp; item.getInitiative().equals(other.getInitiative())) {<br/>
+                    ties.addElement(other);<br/>
+                }<br/>
+            }<br/>
+            if (ties.size() &gt; 1) <span class="add">{<br/>
+                <span class="mv">rollInitAndResolveTies(ties, null);</span><br/>
+            }</span><br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+<br/>
+    // This takes a vector of TurnOrdered, and generates a new vector. <br/>
+    public static TurnVectors generateTurnOrder(Vector v, boolean infLast)<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int[] num_inf_turns = new int[v.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int[] num_oth_turns = new int[v.size()];<br/>
+       <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int total_inf_turns = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int total_oth_turns = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int idx;<br/>
+        TurnOrdered[] order = new TurnOrdered[v.size()];<br/>
+        int oi = 0;<br/>
+<br/>
+        com.sun.java.util.collections.ArrayList plist = <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    new com.sun.java.util.collections.ArrayList(v.size());<br/>
+<br/>
+        for (Enumeration i = v.elements(); i.hasMoreElements();) {<br/>
+            Object item = i.nextElement();<br/>
+            plist.add(item);<br/>
+        }<br/>
+<br/>
+        com.sun.java.util.collections.Collections.sort(plist, new com.sun.java.util.collections.Comparator() {<br/>
+            public int compare(Object o1, Object o2) {<br/>
+                return ((TurnOrdered)o1).getInitiative().compareTo(((TurnOrdered)o2).getInitiative());<br/>
+            }<br/>
+        });<br/>
+<br/>
+        for (com.sun.java.util.collections.Iterator i = plist.iterator(); i.hasNext();) {<br/>
+            final TurnOrdered item = (TurnOrdered)i.next();<br/>
+            order[oi] = item;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // If infantry are last, separate them.  Otherwise, place all 'turns' in one pile <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (infLast) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_inf_turns[oi] = item.getInfantryCount();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_oth_turns[oi] = item.getTankCount() + item.getMechCount();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_inf_turns[oi] = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_oth_turns[oi] = item.getTankCount() + <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    item.getMechCount() + item.getInfantryCount();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    total_inf_turns += num_inf_turns[oi];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    total_oth_turns += num_oth_turns[oi];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    oi++;<br/>
+        }&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int min;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int turns_left;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;TurnVectors turns = new TurnVectors(total_oth_turns, total_inf_turns);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// We will do the 'other' units first (mechs and vehicles, and if infLast is false, <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// infantry )<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;min = Integer.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for(idx = 0; idx &lt; oi ; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ( num_oth_turns[idx] != 0 &amp;&amp; num_oth_turns[idx] &lt; min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min = num_oth_turns[idx];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;turns_left = total_oth_turns;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while(turns_left &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for(idx = 0; idx &lt; oi; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If you have no turns here, skip<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (num_oth_turns[idx] == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If you have less than twice the lowest, move 1.  Otherwise, move more. */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ntm = (int)Math.floor( ((double)num_oth_turns[idx]) / ((double)min) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int j = 0; j &lt; ntm; j++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    turns.non_infantry.addElement(order[idx]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    num_oth_turns[idx]--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    turns_left--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Since the smallest unit count had to place 1, reduce min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    min--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Now, we do the 'infantry' turns.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (infLast) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    min = Integer.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for(idx = 0; idx &lt; oi ; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ( num_inf_turns[idx] != 0 &amp;&amp; num_inf_turns[idx] &lt; min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    min = num_inf_turns[idx];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    turns_left = total_inf_turns;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while(turns_left &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(idx = 0; idx &lt; oi; idx++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // If you have no turns here, skip<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (num_inf_turns[idx] == 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    /* If you have less than twice the lowest, move 1.  Otherwise, move more. */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    int ntm = (int)Math.floor( ((double)num_inf_turns[idx]) / ((double)min) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    for (int j = 0; j &lt; ntm; j++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;turns.infantry.addElement(order[idx]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;num_inf_turns[idx]--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;turns_left--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Since the smallest unit count had to place 1, reduce min)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return turns;<br/>
+<br/>
+    }<br/>
+    <br/>
+    public abstract void updateTurnCount();<br/>
+<br/>
+}<br/>
+<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

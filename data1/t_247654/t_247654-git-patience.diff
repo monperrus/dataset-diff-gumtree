@@ -1,0 +1,13 @@
+diff --git a/t_247654/left_BaseLocalContainerInvoker_1.5.java b/t_247654/right_BaseLocalContainerInvoker_1.6.java
+index 978b785..d9c1004 100644
+--- a/t_247654/left_BaseLocalContainerInvoker_1.5.java
++++ b/t_247654/right_BaseLocalContainerInvoker_1.6.java
+@@ -350,7 +350,7 @@ public class BaseLocalContainerInvoker implements LocalContainerInvoker
+        
+        protected Object getId()
+        {
+-           return cacheKey.id;
++           return cacheKey.getId();
+        }
+       
+       

@@ -1,0 +1,13 @@
+diff --git a/t_285451/left_AssertTest_1.6.java b/t_285451/right_AssertTest_1.7.java
+index f338103..eb3630a 100644
+--- a/t_285451/left_AssertTest_1.6.java
++++ b/t_285451/right_AssertTest_1.7.java
+@@ -178,7 +178,7 @@ public class AssertTest extends TestCase {
+ 
+ 	public void testComparisonErrorMessage() {
+ 		ComparisonFailure failure= new ComparisonFailure("a", "b", "c");
+-		assertEquals("a: expected:<b> but was:<c>", failure.getMessage());
++		assertEquals("a expected:<b> but was:<c>", failure.getMessage());
+ 	}
+ 
+ 	public void testComparisonErrorStartSame() {

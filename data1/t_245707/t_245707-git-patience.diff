@@ -1,0 +1,12 @@
+diff --git a/t_245707/left_Name_1.83.java b/t_245707/right_Name_1.84.java
+index 240068e..abfb07d 100644
+--- a/t_245707/left_Name_1.83.java
++++ b/t_245707/right_Name_1.84.java
+@@ -494,7 +494,6 @@ toWire(DataByteOutputStream out, Compression c) throws IOException {
+ 			out.writeString((byte []) name[i]);
+ 		}
+ 	}
+-	out.writeByte(0);
+ }
+ 
+ /**

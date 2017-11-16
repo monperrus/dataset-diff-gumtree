@@ -1,0 +1,13 @@
+diff --git a/t_230193/left_Install_1.9.java b/t_230193/right_Install_1.10.java
+index 8637100..740258f 100644
+--- a/t_230193/left_Install_1.9.java
++++ b/t_230193/right_Install_1.10.java
+@@ -58,7 +58,7 @@ public class Install
+ 		props = new Properties();
+ 		try
+ 		{
+-			InputStream in = getClass().getResourceAsStream("install.props");
++			InputStream in = getClass().getResourceAsStream("/installer/install.props");
+ 			props.load(in);
+ 			in.close();
+ 		}

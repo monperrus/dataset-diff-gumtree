@@ -1,0 +1,165 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_PriorityController_1.5.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.mail.gui.composer;<br/>
+<br/>
+import java.awt.event.ItemEvent;<br/>
+import java.awt.event.ItemListener;<br/>
+<br/>
+/**<br/>
+ * @author frd<br/>
+ *<br/>
+ * To change this generated comment edit the template variable "typecomment":<br/>
+ * Window&gt;Preferences&gt;Java&gt;Templates.<br/>
+ * To enable and disable the creation of type comments go to<br/>
+ * Window&gt;Preferences&gt;Java&gt;Code Generation.<br/>
+ */<br/>
+public class PriorityController implements ItemListener{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PriorityView view;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ComposerController controller;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public PriorityController(ComposerController controller)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.controller = controller;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view = new PriorityView( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void installListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view.installListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void updateComponents( boolean b )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ( <span class="del"><span class="mv">b</span> == <span class="del">true</span></span> )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//view.setSelectedItem( model.getHeaderField("X-Priority") );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller.getModel().setPriority( (String) view.getSelectedItem() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//model.setHeaderField("X-Priority",(String) view.getSelectedItem());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void itemStateChanged(ItemEvent e) {<br/>
+        if (e.getStateChange() == ItemEvent.SELECTED) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller.getModel().setPriority( (String) view.getSelectedItem() );<br/>
+<br/>
+        } <br/>
+    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_PriorityController_1.6.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.mail.gui.composer;<br/>
+<br/>
+import java.awt.event.ItemEvent;<br/>
+import java.awt.event.ItemListener;<br/>
+<br/>
+/**<br/>
+ * @author frd<br/>
+ *<br/>
+ * To change this generated comment edit the template variable "typecomment":<br/>
+ * Window&gt;Preferences&gt;Java&gt;Templates.<br/>
+ * To enable and disable the creation of type comments go to<br/>
+ * Window&gt;Preferences&gt;Java&gt;Code Generation.<br/>
+ */<br/>
+public class PriorityController implements ItemListener {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PriorityView view;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ComposerController controller;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public PriorityController(ComposerController controller) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.controller = controller;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view = new PriorityView( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void installListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view.installListener(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void updateComponents( boolean b ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (<span class="mv">b</span>) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//view.setSelectedItem( model.getHeaderField("X-Priority") );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller.getModel().setPriority( (String) view.getSelectedItem() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//model.setHeaderField("X-Priority",(String) view.getSelectedItem());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void itemStateChanged(ItemEvent e) {<br/>
+                if (e.getStateChange() == ItemEvent.SELECTED) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller.getModel().setPriority( (String) view.getSelectedItem() );<br/>
+<br/>
+                } <br/>
+        }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

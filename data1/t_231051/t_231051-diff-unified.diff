@@ -1,0 +1,11 @@
+--- t_231051/left_MimePartRenderer_1.1.java	2013-03-17 15:47:30.000000000 +0100
++++ t_231051/right_MimePartRenderer_1.2.java	2013-03-17 15:47:30.000000000 +0100
+@@ -119,7 +119,7 @@
+ 		random.nextBytes(bytes);
+ 		
+ 		try {
+-			return encoder.encode( new String( bytes ), null );	
++			return encoder.encode( new String( bytes ), "US-ASCII" );	
+ 		} catch (UnsupportedEncodingException e) {
+ 			// Can never be reached
+ 		}

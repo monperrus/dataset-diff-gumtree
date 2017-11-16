@@ -1,0 +1,572 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_BlockJUnit4ClassRunner_1.7.java</h1>
+<div class="code">
+<div class="id">
+package org.junit.runners;<br/>
+<br/>
+import java.util.List;<br/>
+<br/>
+import org.junit.After;<br/>
+import org.junit.Before;<br/>
+import org.junit.Test;<br/>
+import org.junit.Test.None;<br/>
+import org.junit.internal.AssumptionViolatedException;<br/>
+import org.junit.internal.runners.model.EachTestNotifier;<br/>
+import org.junit.internal.runners.model.MultipleFailureException;<br/>
+import org.junit.internal.runners.model.ReflectiveCallable;<br/>
+import org.junit.internal.runners.statements.ExpectException;<br/>
+import org.junit.internal.runners.statements.Fail;<br/>
+import org.junit.internal.runners.statements.FailOnTimeout;<br/>
+import org.junit.internal.runners.statements.InvokeMethod;<br/>
+import org.junit.internal.runners.statements.RunAfters;<br/>
+import org.junit.internal.runners.statements.RunBefores;<br/>
+import org.junit.runner.Description;<br/>
+import org.junit.runner.manipulation.Filterable;<br/>
+import org.junit.runner.manipulation.Sortable;<br/>
+import org.junit.runner.notification.RunNotifier;<br/>
+import org.junit.runners.model.FrameworkMethod;<br/>
+import org.junit.runners.model.InitializationError;<br/>
+import org.junit.runners.model.Statement;<br/>
+import org.junit.runners.model.TestClass;<br/>
+<br/>
+/**<br/>
+ * Implements the JUnit 4 standard test case class model, as defined by the<br/>
+ * annotations in the org.junit package. Many users will never notice this<br/>
+ * class: it is now the default test class runner, but it should have exactly<br/>
+ * the same behavior as the old test class runner ({@code JUnit4ClassRunner}).<br/>
+ * <br/>
+ * BlockJUnit4ClassRunner has advantages for writers of custom JUnit runners<br/>
+ * that are slight changes to the default behavior, however:<br/>
+ * <br/>
+ * &lt;ul&gt;<br/>
+ * &lt;li&gt;It has a much simpler implementation based on {@link Statement}s,<br/>
+ * allowing new operations to be inserted into the appropriate point in the<br/>
+ * execution flow.<br/>
+ * <br/>
+ * &lt;li&gt;It is published, and extension and reuse are encouraged, whereas {@code<br/>
+ * JUnit4ClassRunner} was in an internal package, and is now deprecated.<br/>
+ * &lt;/ul&gt;<br/>
+ */<br/>
+public class BlockJUnit4ClassRunner extends ParentRunner&lt;FrameworkMethod&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;implements Filterable, Sortable {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private final List&lt;FrameworkMethod&gt; fTestMethods;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Creates a BlockJUnit4ClassRunner to run {@code klass}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @throws InitializationError<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *             if the test class is malformed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public BlockJUnit4ClassRunner(Class&lt;?&gt; klass) throws InitializationError {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">super(<span class="del">new <span class="del"><span class="del">TestClass</span></span>(<span class="mv">klass</span>)</span>);</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fTestMethods= computeTestMethods();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;validate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Implementation of ParentRunner<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// <br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void runChild(FrameworkMethod method, RunNotifier notifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EachTestNotifier eachNotifier= makeNotifier(method, notifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (method.isIgnored()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.fireTestIgnored();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.fireTestStarted();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childBlock(method).evaluate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (AssumptionViolatedException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// do nothing: same as passing (for 4.5; may change in 4.6)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (Throwable e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.addFailure(e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} finally {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.fireTestFinished();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Description describeChild(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return Description.createTestDescription(getTestClass().getJavaClass(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;testName(method), method.getMethod().getAnnotations());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected List&lt;FrameworkMethod&gt; getChildren() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fTestMethods;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Override in subclasses<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the methods that run tests (this should be called just once per<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * class). Default implementation returns all methods annotated with {@code @Test} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * on this class and superclasses that are not overridden.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected List&lt;FrameworkMethod&gt; computeTestMethods() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getTestClass().getTestMethods();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void collectInitializationErrors(List&lt;Throwable&gt; errors) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getTestClass().validateMethodsForDefaultRunner(errors);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a new fixture for running a test. Default implementation executes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the test class's no-argument constructor (validation should have ensured<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * one exists).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Object createTest() throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getTestClass().getConstructor().newInstance();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the name that describes {@code method} for {@link Description}s.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Default implementation is the method's name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String testName(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return method.getName();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a Statement that, when executed, either returns normally if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * {@code method} passes, or throws an exception if {@code method} fails.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The default implementation has this rough description:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;ul&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;Invoke {@code method} on the result of {@code createTest()}, and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * throw any exceptions thrown by either operation.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;HOWEVER, if {@code method}'s {@code @Test} annotation has the {@code<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * expecting} attribute, return normally only if the previous step threw an<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * exception of the correct type, and throw an exception otherwise.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;HOWEVER, if {@code method}'s {@code @Test} annotation has the {@code<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * timeout} attribute, throw an exception if the previous step takes more<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * than the specified number of milliseconds.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;ALWAYS run all non-overridden {@code @Before} methods on this class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * and superclasses before any of the previous steps; if any throws an<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Exception, stop execution and pass the exception on.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;ALWAYS run all non-overridden {@code @After} methods on this class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * and superclasses before any of the previous steps; all After methods are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * always executed: exceptions thrown by previous steps are combined, if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * necessary, with exceptions from After methods into a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * {@link MultipleFailureException}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;/ul&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * This can be overridden in subclasses, either by overriding this method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or the implementations of each substep.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement childBlock(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object test;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;test= new ReflectiveCallable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected Object runReflectiveCall() throws Throwable {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return createTest();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.run();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (Throwable e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new Fail(e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Statement link= invoke(method, test);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= possiblyExpectingExceptions(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= withPotentialTimeout(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= withBefores(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= withAfters(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return link;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Statement builders<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement} that invokes {@code method} on {@code test}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement invoke(FrameworkMethod method, Object test) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new InvokeMethod(method, test);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: if {@code method}'s {@code @Test} annotation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * has the {@code expecting} attribute, return normally only if {@code next}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * throws an exception of the correct type, and throw an exception<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * otherwise.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement possiblyExpectingExceptions(FrameworkMethod method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object test, Statement next) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Test annotation= getAnnotation(method);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return expectsException(annotation) ? new ExpectException(next,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getExpectedException(annotation)) : next;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: if {@code method}'s {@code @Test} annotation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * has the {@code timeout} attribute, throw an exception if {@code next}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * takes more than the specified number of milliseconds.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement withPotentialTimeout(FrameworkMethod method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object test, Statement next) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long timeout= getTimeout(getAnnotation(method));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return timeout &gt; 0 ? new FailOnTimeout(next, timeout) : next;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: run all non-overridden {@code @Before}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * methods on this class and superclasses before running {@code next}; if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * any throws an Exception, stop execution and pass the exception on.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement withBefores(FrameworkMethod method, Object target,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Statement link) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&lt;FrameworkMethod&gt; befores= getTestClass().getAnnotatedMethods(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Before.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new RunBefores(link, befores, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: run all non-overridden {@code @After}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * methods on this class and superclasses before running {@code next}; all<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * After methods are always executed: exceptions thrown by previous steps<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * are combined, if necessary, with exceptions from After methods into a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * {@link MultipleFailureException}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement withAfters(FrameworkMethod method, Object target,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Statement link) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&lt;FrameworkMethod&gt; afters= getTestClass().getAnnotatedMethods(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;After.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new RunAfters(link, afters, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private EachTestNotifier makeNotifier(FrameworkMethod method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RunNotifier notifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Description description= describeChild(method);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new EachTestNotifier(notifier, description);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Class&lt;? extends Throwable&gt; getExpectedException(Test annotation) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (annotation == null || annotation.expected() == None.class)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return annotation.expected();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean expectsException(Test annotation) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getExpectedException(annotation) != null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private long getTimeout(Test annotation) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (annotation == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return annotation.timeout();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Test getAnnotation(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return method.getMethod().getAnnotation(Test.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_BlockJUnit4ClassRunner_1.8.java</h1>
+<div class="code">
+<div class="id">
+package org.junit.runners;<br/>
+<br/>
+import java.util.List;<br/>
+<br/>
+import org.junit.After;<br/>
+import org.junit.Before;<br/>
+import org.junit.Test;<br/>
+import org.junit.Test.None;<br/>
+import org.junit.internal.AssumptionViolatedException;<br/>
+import org.junit.internal.runners.model.EachTestNotifier;<br/>
+import org.junit.internal.runners.model.MultipleFailureException;<br/>
+import org.junit.internal.runners.model.ReflectiveCallable;<br/>
+import org.junit.internal.runners.statements.ExpectException;<br/>
+import org.junit.internal.runners.statements.Fail;<br/>
+import org.junit.internal.runners.statements.FailOnTimeout;<br/>
+import org.junit.internal.runners.statements.InvokeMethod;<br/>
+import org.junit.internal.runners.statements.RunAfters;<br/>
+import org.junit.internal.runners.statements.RunBefores;<br/>
+import org.junit.runner.Description;<br/>
+import org.junit.runner.manipulation.Filterable;<br/>
+import org.junit.runner.manipulation.Sortable;<br/>
+import org.junit.runner.notification.RunNotifier;<br/>
+import org.junit.runners.model.FrameworkMethod;<br/>
+import org.junit.runners.model.InitializationError;<br/>
+import org.junit.runners.model.Statement;<br/>
+import org.junit.runners.model.TestClass;<br/>
+<br/>
+/**<br/>
+ * Implements the JUnit 4 standard test case class model, as defined by the<br/>
+ * annotations in the org.junit package. Many users will never notice this<br/>
+ * class: it is now the default test class runner, but it should have exactly<br/>
+ * the same behavior as the old test class runner ({@code JUnit4ClassRunner}).<br/>
+ * <br/>
+ * BlockJUnit4ClassRunner has advantages for writers of custom JUnit runners<br/>
+ * that are slight changes to the default behavior, however:<br/>
+ * <br/>
+ * &lt;ul&gt;<br/>
+ * &lt;li&gt;It has a much simpler implementation based on {@link Statement}s,<br/>
+ * allowing new operations to be inserted into the appropriate point in the<br/>
+ * execution flow.<br/>
+ * <br/>
+ * &lt;li&gt;It is published, and extension and reuse are encouraged, whereas {@code<br/>
+ * JUnit4ClassRunner} was in an internal package, and is now deprecated.<br/>
+ * &lt;/ul&gt;<br/>
+ */<br/>
+public class BlockJUnit4ClassRunner extends ParentRunner&lt;FrameworkMethod&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;implements Filterable, Sortable {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private final List&lt;FrameworkMethod&gt; fTestMethods;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Creates a BlockJUnit4ClassRunner to run {@code klass}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @throws InitializationError<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *             if the test class is malformed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public BlockJUnit4ClassRunner(Class&lt;?&gt; klass) throws InitializationError {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">super(<span class="mv">klass</span>);</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fTestMethods= computeTestMethods();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;validate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Implementation of ParentRunner<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// <br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void runChild(FrameworkMethod method, RunNotifier notifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EachTestNotifier eachNotifier= makeNotifier(method, notifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (method.isIgnored()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.fireTestIgnored();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.fireTestStarted();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childBlock(method).evaluate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (AssumptionViolatedException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// do nothing: same as passing (for 4.5; may change in 4.6)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (Throwable e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.addFailure(e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} finally {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eachNotifier.fireTestFinished();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Description describeChild(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return Description.createTestDescription(getTestClass().getJavaClass(),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;testName(method), method.getMethod().getAnnotations());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected List&lt;FrameworkMethod&gt; getChildren() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fTestMethods;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Override in subclasses<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the methods that run tests (this should be called just once per<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * class). Default implementation returns all methods annotated with {@code @Test} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * on this class and superclasses that are not overridden.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected List&lt;FrameworkMethod&gt; computeTestMethods() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getTestClass().getTestMethods();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void collectInitializationErrors(List&lt;Throwable&gt; errors) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getTestClass().validateMethodsForDefaultRunner(errors);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a new fixture for running a test. Default implementation executes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the test class's no-argument constructor (validation should have ensured<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * one exists).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Object createTest() throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getTestClass().getConstructor().newInstance();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the name that describes {@code method} for {@link Description}s.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Default implementation is the method's name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String testName(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return method.getName();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a Statement that, when executed, either returns normally if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * {@code method} passes, or throws an exception if {@code method} fails.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The default implementation has this rough description:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;ul&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;Invoke {@code method} on the result of {@code createTest()}, and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * throw any exceptions thrown by either operation.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;HOWEVER, if {@code method}'s {@code @Test} annotation has the {@code<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * expecting} attribute, return normally only if the previous step threw an<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * exception of the correct type, and throw an exception otherwise.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;HOWEVER, if {@code method}'s {@code @Test} annotation has the {@code<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * timeout} attribute, throw an exception if the previous step takes more<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * than the specified number of milliseconds.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;ALWAYS run all non-overridden {@code @Before} methods on this class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * and superclasses before any of the previous steps; if any throws an<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Exception, stop execution and pass the exception on.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;li&gt;ALWAYS run all non-overridden {@code @After} methods on this class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * and superclasses before any of the previous steps; all After methods are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * always executed: exceptions thrown by previous steps are combined, if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * necessary, with exceptions from After methods into a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * {@link MultipleFailureException}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;/ul&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * This can be overridden in subclasses, either by overriding this method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or the implementations of each substep.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement childBlock(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object test;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;test= new ReflectiveCallable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Override<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;protected Object runReflectiveCall() throws Throwable {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return createTest();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.run();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch (Throwable e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new Fail(e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Statement link= invoke(method, test);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= possiblyExpectingExceptions(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= withPotentialTimeout(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= withBefores(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;link= withAfters(method, test, link);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return link;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Statement builders<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement} that invokes {@code method} on {@code test}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement invoke(FrameworkMethod method, Object test) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new InvokeMethod(method, test);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: if {@code method}'s {@code @Test} annotation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * has the {@code expecting} attribute, return normally only if {@code next}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * throws an exception of the correct type, and throw an exception<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * otherwise.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement possiblyExpectingExceptions(FrameworkMethod method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object test, Statement next) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Test annotation= getAnnotation(method);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return expectsException(annotation) ? new ExpectException(next,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getExpectedException(annotation)) : next;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: if {@code method}'s {@code @Test} annotation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * has the {@code timeout} attribute, throw an exception if {@code next}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * takes more than the specified number of milliseconds.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement withPotentialTimeout(FrameworkMethod method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object test, Statement next) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long timeout= getTimeout(getAnnotation(method));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return timeout &gt; 0 ? new FailOnTimeout(next, timeout) : next;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: run all non-overridden {@code @Before}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * methods on this class and superclasses before running {@code next}; if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * any throws an Exception, stop execution and pass the exception on.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement withBefores(FrameworkMethod method, Object target,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Statement link) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&lt;FrameworkMethod&gt; befores= getTestClass().getAnnotatedMethods(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Before.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new RunBefores(link, befores, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a {@link Statement}: run all non-overridden {@code @After}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * methods on this class and superclasses before running {@code next}; all<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * After methods are always executed: exceptions thrown by previous steps<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * are combined, if necessary, with exceptions from After methods into a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * {@link MultipleFailureException}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Statement withAfters(FrameworkMethod method, Object target,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Statement link) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&lt;FrameworkMethod&gt; afters= getTestClass().getAnnotatedMethods(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;After.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new RunAfters(link, afters, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private EachTestNotifier makeNotifier(FrameworkMethod method,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RunNotifier notifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Description description= describeChild(method);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new EachTestNotifier(notifier, description);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Class&lt;? extends Throwable&gt; getExpectedException(Test annotation) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (annotation == null || annotation.expected() == None.class)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return annotation.expected();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean expectsException(Test annotation) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return getExpectedException(annotation) != null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private long getTimeout(Test annotation) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (annotation == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return annotation.timeout();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Test getAnnotation(FrameworkMethod method) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return method.getMethod().getAnnotation(Test.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

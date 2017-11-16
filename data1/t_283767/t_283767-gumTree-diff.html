@@ -1,0 +1,2573 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_LogUI_1.29.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ============================================================================<br/>
+ *                   The Apache Software License, Version 1.1<br/>
+ * ============================================================================<br/>
+ *<br/>
+ *    Copyright (C) 1999 The Apache Software Foundation. All rights reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without modifica-<br/>
+ * tion, are permitted provided that the following conditions are met:<br/>
+ *<br/>
+ * 1. Redistributions of  source code must  retain the above copyright  notice,<br/>
+ *    this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright notice,<br/>
+ *    this list of conditions and the following disclaimer in the documentation<br/>
+ *    and/or other materials provided with the distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if any, must<br/>
+ *    include  the following  acknowledgment:  "This product includes  software<br/>
+ *    developed  by the  Apache Software Foundation  (http://www.apache.org/)."<br/>
+ *    Alternately, this  acknowledgment may  appear in the software itself,  if<br/>
+ *    and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "log4j" and  "Apache Software Foundation"  must not be used to<br/>
+ *    endorse  or promote  products derived  from this  software without  prior<br/>
+ *    written permission. For written permission, please contact<br/>
+ *    apache@apache.org.<br/>
+ *<br/>
+ * 5. Products  derived from this software may not  be called "Apache", nor may<br/>
+ *    "Apache" appear  in their name,  without prior written permission  of the<br/>
+ *    Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES,<br/>
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND<br/>
+ * FITNESS  FOR A PARTICULAR  PURPOSE ARE  DISCLAIMED.  IN NO  EVENT SHALL  THE<br/>
+ * APACHE SOFTWARE  FOUNDATION  OR ITS CONTRIBUTORS  BE LIABLE FOR  ANY DIRECT,<br/>
+ * INDIRECT, INCIDENTAL, SPECIAL,  EXEMPLARY, OR CONSEQUENTIAL  DAMAGES (INCLU-<br/>
+ * DING, BUT NOT LIMITED TO, PROCUREMENT  OF SUBSTITUTE GOODS OR SERVICES; LOSS<br/>
+ * OF USE, DATA, OR  PROFITS; OR BUSINESS  INTERRUPTION)  HOWEVER CAUSED AND ON<br/>
+ * ANY  THEORY OF LIABILITY,  WHETHER  IN CONTRACT,  STRICT LIABILITY,  OR TORT<br/>
+ * (INCLUDING  NEGLIGENCE OR  OTHERWISE) ARISING IN  ANY WAY OUT OF THE  USE OF<br/>
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * This software  consists of voluntary contributions made  by many individuals<br/>
+ * on  behalf of the Apache Software  Foundation.  For more  information on the<br/>
+ * Apache Software Foundation, please see &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.chainsaw;<br/>
+<br/>
+import org.apache.log4j.Level;<br/>
+import org.apache.log4j.LogManager;<br/>
+import org.apache.log4j.Priority;<br/>
+import org.apache.log4j.UtilLoggingLevel;<br/>
+import org.apache.log4j.chainsaw.icons.ChainsawIcons;<br/>
+import org.apache.log4j.chainsaw.prefs.LoadSettingsEvent;<br/>
+import org.apache.log4j.chainsaw.prefs.SaveSettingsEvent;<br/>
+import org.apache.log4j.chainsaw.prefs.SettingsListener;<br/>
+import org.apache.log4j.chainsaw.prefs.SettingsManager;<br/>
+import org.apache.log4j.helpers.LogLog;<br/>
+import org.apache.log4j.helpers.OptionConverter;<br/>
+import org.apache.log4j.net.SocketNodeEventListener;<br/>
+import org.apache.log4j.net.SocketReceiver;<br/>
+import org.apache.log4j.plugins.PluginRegistry;<br/>
+import org.apache.log4j.plugins.Receiver;<br/>
+<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Component;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.Event;<br/>
+import java.awt.Point;<br/>
+import java.awt.Toolkit;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.ActionListener;<br/>
+import java.awt.event.InputEvent;<br/>
+import java.awt.event.KeyEvent;<br/>
+import java.awt.event.MouseAdapter;<br/>
+import java.awt.event.MouseEvent;<br/>
+import java.awt.event.WindowAdapter;<br/>
+import java.awt.event.WindowEvent;<br/>
+<br/>
+import java.beans.PropertyChangeEvent;<br/>
+import java.beans.PropertyChangeListener;<br/>
+<br/>
+import java.io.BufferedInputStream;<br/>
+import java.io.File;<br/>
+import java.io.FileInputStream;<br/>
+import java.io.IOException;<br/>
+import java.io.ObjectInputStream;<br/>
+<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+import java.net.URL;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+import java.util.Map;<br/>
+import java.util.Set;<br/>
+import java.util.Vector;<br/>
+<br/>
+import javax.swing.AbstractAction;<br/>
+import javax.swing.Action;<br/>
+import javax.swing.ImageIcon;<br/>
+import javax.swing.JComponent;<br/>
+import javax.swing.JDialog;<br/>
+import javax.swing.JFrame;<br/>
+import javax.swing.JOptionPane;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JToolBar;<br/>
+import javax.swing.JWindow;<br/>
+import javax.swing.KeyStroke;<br/>
+import javax.swing.SwingUtilities;<br/>
+import javax.swing.UIManager;<br/>
+import javax.swing.event.ChangeEvent;<br/>
+import javax.swing.event.ChangeListener;<br/>
+import javax.swing.event.EventListenerList;<br/>
+<br/>
+<br/>
+/**<br/>
+ * The main entry point for Chainsaw, this class represents the first frame<br/>
+ * that is used to display a Welcome panel, and any other panels that<br/>
+ * are generated because Logging Events are streamed via a Receiver, or other<br/>
+ * mechanism.<br/>
+ *<br/>
+ * If a system property 'chainsaw.usecyclicbuffer' is set to 'true', each panel will use a cyclic<br/>
+ * buffer for displaying events and once events reach the buffer limit, the oldest events<br/>
+ * are removed from the table.<br/>
+ *<br/>
+ * If the property is not provided, there is no limit on the table's buffer size.<br/>
+ *<br/>
+ * If 'chainsaw.usecyclicbuffer' is set to 'true' and a system<br/>
+ * property 'chainsaw.cyclicbuffersize' is set to some integer value, that value will<br/>
+ * be used as the buffer size - if the buffersize is not provided, a default<br/>
+ * size of 500 is used.<br/>
+ *<br/>
+ *<br/>
+ * @author Scott Deboy &lt;sdeboy@apache.org&gt;<br/>
+ * @author Paul Smith &lt;psmith@apache.org&gt;<br/>
+ *<br/>
+ */<br/>
+public class LogUI extends JFrame implements ChainsawViewer, SettingsListener {<br/>
+  private static final String CONFIG_FILE_TO_USE = "config.file";<br/>
+  static final String USE_CYCLIC_BUFFER_PROP_NAME = "chainsaw.usecyclicbuffer";<br/>
+  static final String CYCLIC_BUFFER_SIZE_PROP_NAME =<br/>
+    "chainsaw.cyclicbuffersize";<br/>
+  private static final String MAIN_WINDOW_HEIGHT = "main.window.height";<br/>
+  private static final String MAIN_WINDOW_WIDTH = "main.window.width";<br/>
+  private static final String MAIN_WINDOW_Y = "main.window.y";<br/>
+  private static final String MAIN_WINDOW_X = "main.window.x";<br/>
+  static final String TABLE_COLUMN_ORDER = "table.columns.order";<br/>
+  static final String TABLE_COLUMN_WIDTHS = "table.columns.widths";<br/>
+  private static final String LOOK_AND_FEEL = "LookAndFeel";<br/>
+  private static final String STATUS_BAR = "StatusBar";<br/>
+  static final String COLUMNS_EXTENSION = ".columns";<br/>
+  private static ChainsawSplash splash;<br/>
+  private URL configURLToUse;<br/>
+  private boolean noReceiversDefined;<br/>
+  private ReceiversPanel receiversPanel;<br/>
+  private ChainsawTabbedPane tabbedPane;<br/>
+  private JToolBar toolbar;<br/>
+  private ChainsawStatusBar statusBar;<br/>
+  private final Map tableModelMap = new HashMap();<br/>
+  private final Map tableMap = new HashMap();<br/>
+  private final List filterableColumns = new ArrayList();<br/>
+  private final Map panelMap = new HashMap();<br/>
+  ChainsawAppenderHandler handler;<br/>
+  private ChainsawToolBarAndMenus tbms;<br/>
+  private ChainsawAbout aboutBox;<br/>
+  private final SettingsManager sm = SettingsManager.getInstance();<br/>
+  private String lookAndFeelClassName;<br/>
+<br/>
+  /**<br/>
+   * Set to true, if and only if the GUI has completed<br/>
+   * it's full initialization.  Any logging events<br/>
+   * that come in must wait until this is true, and<br/>
+   * if it is false, should wait on the initializationLock<br/>
+   * object until notified.<br/>
+   */<br/>
+  private boolean isGUIFullyInitialized = false;<br/>
+  private Object initializationLock = new Object();<br/>
+<br/>
+  /**<br/>
+   * The shutdownAction is called when the user requests to exit<br/>
+   * Chainsaw, and by default this exits the VM, but<br/>
+   * a developer may replace this action with something that better suits<br/>
+   * their needs<br/>
+   */<br/>
+  private Action shutdownAction =<br/>
+    new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        System.exit(0);<br/>
+      }<br/>
+    };<br/>
+<br/>
+  /**<br/>
+   * Clients can register a ShutdownListener to be notified<br/>
+   * when the user has requested Chainsaw to exit.<br/>
+   */<br/>
+  private EventListenerList shutdownListenerList = new EventListenerList();<br/>
+<br/>
+  /**<br/>
+   * Constructor which builds up all the visual elements of the frame<br/>
+   * including the Menu bar<br/>
+   */<br/>
+  public LogUI() {<br/>
+    super("Chainsaw v2 - Log Viewer");<br/>
+<br/>
+    if (ChainsawIcons.WINDOW_ICON != null) {<br/>
+      setIconImage(new ImageIcon(ChainsawIcons.WINDOW_ICON).getImage());<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private static final void showSplash() {<br/>
+    splash = new ChainsawSplash();<br/>
+<br/>
+    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+    splash.setLocation(<br/>
+      (screenSize.width / 2) - (splash.getWidth() / 2),<br/>
+      (screenSize.height / 2) - (splash.getHeight() / 2));<br/>
+<br/>
+    splash.setVisible(true);<br/>
+  }<br/>
+<br/>
+  private static final void removeSplash() {<br/>
+    if (splash != null) {<br/>
+      splash.setVisible(false);<br/>
+      splash.dispose();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Registers a ShutdownListener with this calss so that<br/>
+   * it can be notified when the user has requested<br/>
+   * that Chainsaw exit.<br/>
+   *<br/>
+   * @param l<br/>
+   */<br/>
+  public void addShutdownListener(ShutdownListener l) {<br/>
+    shutdownListenerList.add(ShutdownListener.class, l);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Removes the registered ShutdownListener so<br/>
+   * that the listener will not be notified on a shutdown.<br/>
+   *<br/>
+   * @param l<br/>
+   */<br/>
+  public void removeShutdownListener(ShutdownListener l) {<br/>
+    shutdownListenerList.remove(ShutdownListener.class, l);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Starts Chainsaw by attaching a new instance to the Log4J<br/>
+   * main root Logger via a ChainsawAppender, and activates itself<br/>
+   * @param args<br/>
+   */<br/>
+  public static void main(String[] args) {<br/>
+    //    TODO remove this when ready<br/>
+    JOptionPane.showMessageDialog(<br/>
+      null,<br/>
+      "Chainsaw v2 is currently going through some refactoring work at present.\n\n"<br/>
+      + "Some features, most notably filtering and colouring, may be inoperable at this time.\n\n"<br/>
+      + "The Log4J Dev team apologises for this inconvenience, but be assured this functionality will be back very shortly.",<br/>
+      "Apologise", JOptionPane.WARNING_MESSAGE);<br/>
+<br/>
+    showSplash();<br/>
+<br/>
+    LogUI logUI = new LogUI();<br/>
+<br/>
+    logUI.handler = new ChainsawAppenderHandler();<br/>
+    logUI.handler.addEventBatchListener(logUI.new NewTabEventBatchReceiver());<br/>
+    LogManager.getRootLogger().addAppender(logUI.handler);<br/>
+    logUI.activateViewer();<br/>
+  }<br/>
+<br/>
+  public void activateViewer(ChainsawAppender appender) {<br/>
+    handler = new ChainsawAppenderHandler(appender);<br/>
+    handler.addEventBatchListener(new NewTabEventBatchReceiver());<br/>
+    activateViewer();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Initialises the menu's and toolbars, but does not actually<br/>
+   * create any of the main panel components.<br/>
+   *<br/>
+   */<br/>
+  private void initGUI() {<br/>
+    statusBar = new ChainsawStatusBar();<br/>
+    receiversPanel = new ReceiversPanel(this);<br/>
+    setToolBarAndMenus(new ChainsawToolBarAndMenus(this));<br/>
+    toolbar = getToolBarAndMenus().getToolbar();<br/>
+    setJMenuBar(getToolBarAndMenus().getMenubar());<br/>
+    setTabbedPane(new ChainsawTabbedPane());<br/>
+    getTabbedPane().addChangeListener(getToolBarAndMenus().getPanelListener());<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Given the load event, configures the size/location of the main window<br/>
+   * etc etc.<br/>
+   */<br/>
+  public void loadSettings(LoadSettingsEvent event) {<br/>
+    if (event.asBoolean(LogUI.STATUS_BAR)) {<br/>
+      addStatusBar();<br/>
+    } else {<br/>
+      removeStatusBar();<br/>
+    }<br/>
+<br/>
+    setLocation(<br/>
+      event.asInt(LogUI.MAIN_WINDOW_X), event.asInt(LogUI.MAIN_WINDOW_Y));<br/>
+    setSize(<br/>
+      event.asInt(LogUI.MAIN_WINDOW_WIDTH),<br/>
+      event.asInt(LogUI.MAIN_WINDOW_HEIGHT));<br/>
+<br/>
+    getToolBarAndMenus().stateChange();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Ensures the location/size of the main window is stored with the settings<br/>
+   */<br/>
+  public void saveSettings(SaveSettingsEvent event) {<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_X, (int) getLocation().getX());<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_Y, (int) getLocation().getY());<br/>
+<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_WIDTH, getWidth());<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_HEIGHT, getHeight());<br/>
+<br/>
+    if (lookAndFeelClassName != null) {<br/>
+      event.saveSetting(LogUI.LOOK_AND_FEEL, lookAndFeelClassName);<br/>
+    }<br/>
+<br/>
+    event.saveSetting(<br/>
+      LogUI.STATUS_BAR, isStatusBarVisible() ? Boolean.TRUE : Boolean.FALSE);<br/>
+<br/>
+    if (configURLToUse != null) {<br/>
+      event.saveSetting(LogUI.CONFIG_FILE_TO_USE, configURLToUse.toString());<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Activates itself as a viewer by configuring Size, and location of<br/>
+   * itself, and configures the default Tabbed Pane elements with the correct<br/>
+   * layout, table columns, and sets itself viewable.<br/>
+   */<br/>
+  public void activateViewer() {<br/>
+    getSettingsManager().configure(<br/>
+      new SettingsListener() {<br/>
+        public void loadSettings(LoadSettingsEvent event) {<br/>
+          lookAndFeelClassName = event.getSetting(LogUI.LOOK_AND_FEEL);<br/>
+<br/>
+          if (lookAndFeelClassName != null) {<br/>
+            applyLookAndFeel(lookAndFeelClassName);<br/>
+          }<br/>
+        }<br/>
+<br/>
+        public void saveSettings(SaveSettingsEvent event) {<br/>
+          //required because of SettingsListener interface..not used during load<br/>
+        }<br/>
+      });<br/>
+<br/>
+    getSettingsManager().configure(<br/>
+      new SettingsListener() {<br/>
+        public void loadSettings(LoadSettingsEvent event) {<br/>
+          String configFile = event.getSetting(LogUI.CONFIG_FILE_TO_USE);<br/>
+<br/>
+          //if both a config file are defined and a log4j.configuration property are set,  <br/>
+          //don't use configFile's configuration<br/>
+          if (<br/>
+            (configFile != null) &amp;&amp; !configFile.trim().equals("")<br/>
+              &amp;&amp; (System.getProperty("log4j.configuration") == null)) {<br/>
+            try {<br/>
+              URL url = new URL(configFile);<br/>
+              OptionConverter.selectAndConfigure(<br/>
+                url, null, LogManager.getLoggerRepository());<br/>
+<br/>
+              if (LogUI.this.getStatusBar() != null) {<br/>
+                LogUI.this.getStatusBar().setMessage(<br/>
+                  "Configured Log4j using remembered URL :: " + url);<br/>
+              }<br/>
+<br/>
+              LogUI.this.configURLToUse = url;<br/>
+            } catch (Exception e) {<br/>
+              LogLog.error("error occurred initializing log4j", e);<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+<br/>
+        public void saveSettings(SaveSettingsEvent event) {<br/>
+          //required because of SettingsListener interface..not used during load<br/>
+        }<br/>
+      });<br/>
+<br/>
+    if (<br/>
+      PluginRegistry.getPlugins(<br/>
+          LogManager.getLoggerRepository(), Receiver.class).size() == 0) {<br/>
+      noReceiversDefined = true;<br/>
+    }<br/>
+<br/>
+    initGUI();<br/>
+<br/>
+    /**<br/>
+     * Get all the SocketReceivers and configure a new SocketNodeEventListener<br/>
+     * so we can get notified of new Sockets<br/>
+     */<br/>
+    List list =<br/>
+      PluginRegistry.getPlugins(<br/>
+        LogManager.getLoggerRepository(), SocketReceiver.class);<br/>
+    final SocketNodeEventListener socketListener =<br/>
+      new SocketNodeEventListener() {<br/>
+        public void socketOpened(String remoteInfo) {<br/>
+          statusBar.remoteConnectionReceived(remoteInfo);<br/>
+        }<br/>
+<br/>
+        public void socketClosedEvent(Exception e) {<br/>
+          statusBar.setMessage("Collection lost! :: " + e.getMessage());<br/>
+        }<br/>
+      };<br/>
+<br/>
+    for (Iterator iter = list.iterator(); iter.hasNext();) {<br/>
+      SocketReceiver item = (SocketReceiver) iter.next();<br/>
+      LogLog.debug("Adding listener for " + item.getName());<br/>
+      item.addSocketNodeEventListener(socketListener);<br/>
+    }<br/>
+<br/>
+    List utilList = UtilLoggingLevel.getAllPossibleLevels();<br/>
+<br/>
+    // TODO: Replace the array list creating with the standard way of retreiving the Level set. (TBD)<br/>
+    Priority[] priorities =<br/>
+      new Level[] { Level.FATAL, Level.ERROR, Level.WARN, Level.INFO, Level.DEBUG };<br/>
+    List priorityLevels = new ArrayList();<br/>
+<br/>
+    for (int i = 0; i &lt; priorities.length; i++) {<br/>
+      priorityLevels.add(priorities[i].toString());<br/>
+    }<br/>
+<br/>
+    List utilLevels = new ArrayList();<br/>
+<br/>
+    for (Iterator iterator = utilLevels.iterator(); iterator.hasNext();) {<br/>
+      utilLevels.add(iterator.next().toString());<br/>
+    }<br/>
+<br/>
+    //    getLevelMap().put(ChainsawConstants.UTIL_LOGGING_EVENT_TYPE, utilLevels);<br/>
+    //    getLevelMap().put(ChainsawConstants.LOG4J_EVENT_TYPE, priorityLevels);<br/>
+    getFilterableColumns().add(ChainsawConstants.LEVEL_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.LOGGER_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.THREAD_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.NDC_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.MDC_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.CLASS_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.METHOD_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.FILE_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.NONE_COL_NAME);<br/>
+<br/>
+    JPanel panePanel = new JPanel();<br/>
+    panePanel.setLayout(new BorderLayout(2, 2));<br/>
+<br/>
+    getContentPane().setLayout(new BorderLayout());<br/>
+<br/>
+    getTabbedPane().addChangeListener(getToolBarAndMenus());<br/>
+    getTabbedPane().addChangeListener(<br/>
+      new ChangeListener() {<br/>
+        //received a statechange event - selection changed - remove icon from selected index<br/>
+        public void stateChanged(ChangeEvent e) {<br/>
+          if (<br/>
+            getTabbedPane().getSelectedComponent() instanceof ChainsawTabbedPane) {<br/>
+            if (getTabbedPane().getSelectedIndex() &gt; -1) {<br/>
+              getTabbedPane().setIconAt(<br/>
+                getTabbedPane().getSelectedIndex(), null);<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      });<br/>
+<br/>
+    KeyStroke ksRight =<br/>
+      KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, Event.CTRL_MASK);<br/>
+    KeyStroke ksLeft =<br/>
+      KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, Event.CTRL_MASK);<br/>
+<br/>
+    getTabbedPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(<br/>
+      ksRight, "MoveRight");<br/>
+    getTabbedPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(<br/>
+      ksLeft, "MoveLeft");<br/>
+<br/>
+    Action moveRight =<br/>
+      new AbstractAction() {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+          int temp = getTabbedPane().getSelectedIndex();<br/>
+          ++temp;<br/>
+<br/>
+          if (temp != getTabbedPane().getTabCount()) {<br/>
+            getTabbedPane().setSelectedTab(temp);<br/>
+          }<br/>
+        }<br/>
+      };<br/>
+<br/>
+    Action moveLeft =<br/>
+      new AbstractAction() {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+          int temp = getTabbedPane().getSelectedIndex();<br/>
+          --temp;<br/>
+<br/>
+          if (temp &gt; -1) {<br/>
+            getTabbedPane().setSelectedTab(temp);<br/>
+          }<br/>
+        }<br/>
+      };<br/>
+<br/>
+    getTabbedPane().getActionMap().put("MoveRight", moveRight);<br/>
+    getTabbedPane().getActionMap().put("MoveLeft", moveLeft);<br/>
+<br/>
+    /**<br/>
+     * We listen for double clicks, and auto-undock currently<br/>
+     * selected Tab if the mouse event location matches the currently selected<br/>
+     * tab<br/>
+     */<br/>
+    getTabbedPane().addMouseListener(<br/>
+      new MouseAdapter() {<br/>
+        public void mouseClicked(MouseEvent e) {<br/>
+          super.mouseClicked(e);<br/>
+<br/>
+          if (<br/>
+            (e.getClickCount() &gt; 1)<br/>
+              &amp;&amp; ((e.getModifiers() &amp; InputEvent.BUTTON1_MASK) &gt; 0)) {<br/>
+            int tabIndex = getTabbedPane().getSelectedIndex();<br/>
+<br/>
+            if (<br/>
+              (tabIndex != -1)<br/>
+                &amp;&amp; (tabIndex == getTabbedPane().getSelectedIndex())) {<br/>
+              LogPanel logPanel = getCurrentLogPanel();<br/>
+<br/>
+              if (logPanel != null) {<br/>
+                logPanel.undock();<br/>
+              }<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      });<br/>
+<br/>
+    addWelcomePanel();<br/>
+    panePanel.add(getTabbedPane());<br/>
+<br/>
+    getContentPane().add(toolbar, BorderLayout.NORTH);<br/>
+    getContentPane().add(panePanel, BorderLayout.CENTER);<br/>
+    getContentPane().add(statusBar, BorderLayout.SOUTH);<br/>
+<br/>
+    addWindowListener(<br/>
+      new WindowAdapter() {<br/>
+        public void windowClosing(WindowEvent event) {<br/>
+          exit();<br/>
+        }<br/>
+      });<br/>
+<br/>
+    pack();<br/>
+    <br/>
+    this.handler.addPropertyChangeListener("dataRate", new PropertyChangeListener(){<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void propertyChange(PropertyChangeEvent evt) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double dataRate = ((Double)evt.getNewValue()).doubleValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;statusBar.setDataRate(dataRate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}});<br/>
+<br/>
+    getSettingsManager().addSettingsListener(this);<br/>
+    getSettingsManager().addSettingsListener(getToolBarAndMenus());<br/>
+    getSettingsManager().loadSettings();<br/>
+<br/>
+    setVisible(true);<br/>
+<br/>
+    removeSplash();<br/>
+<br/>
+    synchronized (initializationLock) {<br/>
+      isGUIFullyInitialized = true;<br/>
+      initializationLock.notifyAll();<br/>
+    }<br/>
+<br/>
+    if (noReceiversDefined) {<br/>
+      showNoReceiversWarningPanel();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Displays a warning dialog about having no Receivers defined<br/>
+   * and allows the user to choose some options for configuration<br/>
+   */<br/>
+  private void showNoReceiversWarningPanel() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;final NoReceiversWarningPanel noReceiversWarningPanel =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; new NoReceiversWarningPanel();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;final SettingsListener sl = new SettingsListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  public void loadSettings(LoadSettingsEvent event) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int size = event.asInt("SavedConfigs.Size");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object[] configs = new Object[size];<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  configs[i] = event.getSetting("SavedConfigs." + i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noReceiversWarningPanel.getModel().setRememberedConfigs(configs);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  public void saveSettings(SaveSettingsEvent event) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object[] configs =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  noReceiversWarningPanel.getModel().getRememberedConfigs();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;event.saveSetting("SavedConfigs.Size", configs.length);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; configs.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  event.saveSetting("SavedConfigs." + i, configs[i].toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;};<br/>
+   /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;* This listener sets up the NoReciversWarningPanel and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;* loads saves the configs/logfiles<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;*/<br/>
+   getSettingsManager().addSettingsListener(sl);<br/>
+   getSettingsManager().configure(sl);<br/>
+<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          final JDialog dialog = new JDialog(LogUI.this, true);<br/>
+          dialog.setTitle("Warning: You have no Receivers defined...");<br/>
+          dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);<br/>
+<br/>
+          dialog.setResizable(false);<br/>
+<br/>
+          noReceiversWarningPanel.setOkActionListener(<br/>
+            new ActionListener() {<br/>
+              public void actionPerformed(ActionEvent e) {<br/>
+                dialog.setVisible(false);<br/>
+              }<br/>
+            });<br/>
+<br/>
+          dialog.getContentPane().add(noReceiversWarningPanel);<br/>
+<br/>
+          dialog.pack();<br/>
+<br/>
+          Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+          dialog.setLocation(<br/>
+            (screenSize.width / 2) - (dialog.getWidth() / 2),<br/>
+            (screenSize.height / 2) - (dialog.getHeight() / 2));<br/>
+          dialog.show();<br/>
+<br/>
+          dialog.dispose();<br/>
+<br/>
+          if (noReceiversWarningPanel.getModel().isManualMode()) {<br/>
+            toggleReceiversPanel();<br/>
+          } else if (noReceiversWarningPanel.getModel().isSimpleReceiverMode()) {<br/>
+            int port = noReceiversWarningPanel.getModel().getSimplePort();<br/>
+            Class receiverClass =<br/>
+              noReceiversWarningPanel.getModel().getSimpleReceiverClass();<br/>
+<br/>
+            try {<br/>
+              Receiver simpleReceiver = (Receiver) receiverClass.newInstance();<br/>
+              simpleReceiver.setName("Simple Receiver");<br/>
+<br/>
+              Method portMethod =<br/>
+                simpleReceiver.getClass().getMethod(<br/>
+                  "setPort", new Class[] { int.class });<br/>
+              portMethod.invoke(<br/>
+                simpleReceiver, new Object[] { new Integer(port) });<br/>
+<br/>
+              simpleReceiver.setThreshold(Level.DEBUG);<br/>
+<br/>
+              PluginRegistry.startPlugin(simpleReceiver);<br/>
+              receiversPanel.updateReceiverTreeInDispatchThread();<br/>
+              getStatusBar().setMessage(<br/>
+                "Simple Receiver created, started, and listening on port  "<br/>
+                + port + " (using " + receiverClass.getName() + ")");<br/>
+            } catch (Exception e) {<br/>
+              LogLog.error("Error creating Receiver", e);<br/>
+              getStatusBar().setMessage(<br/>
+                "An error occurred creating your Receiver");<br/>
+            }<br/>
+          } else if (noReceiversWarningPanel.getModel().isLoadConfig()) {<br/>
+            final URL url =<br/>
+              noReceiversWarningPanel.getModel().getConfigToLoad();<br/>
+<br/>
+            if (url != null) {<br/>
+              LogLog.debug("Initialiazing Log4j with " + url.toExternalForm());<br/>
+<br/>
+              new Thread(<br/>
+                new Runnable() {<br/>
+                  public void run() {<br/>
+                    try {<br/>
+                      OptionConverter.selectAndConfigure(<br/>
+                        url, null, LogManager.getLoggerRepository());<br/>
+                    } catch (Exception e) {<br/>
+                      LogLog.error("Error initializing Log4j", e);<br/>
+                    }<br/>
+                    LogManager.getLoggerRepository().getRootLogger().addAppender(handler);<br/>
+<br/>
+                    receiversPanel.updateReceiverTreeInDispatchThread();<br/>
+                  }<br/>
+                }).start();<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Exits the application, ensuring Settings are saved.<br/>
+   *<br/>
+   */<br/>
+  void exit() {<br/>
+    //    TODO Ask the user if they want to save the settings via a dialog.<br/>
+    getSettingsManager().saveSettings();<br/>
+<br/>
+    int tabCount = getTabbedPane().getTabCount();<br/>
+<br/>
+    for (int i = 0; i &lt; tabCount; i++) {<br/>
+      Component c = getTabbedPane().getComponentAt(i);<br/>
+<br/>
+      if (c instanceof LogPanel) {<br/>
+        ((LogPanel) c).saveSettings();<br/>
+      }<br/>
+    }<br/>
+<br/>
+    shutdown();<br/>
+  }<br/>
+<br/>
+  void addWelcomePanel() {<br/>
+    getTabbedPane().addANewTab(<br/>
+      "Welcome", WelcomePanel.getInstance(), new ImageIcon(<br/>
+        ChainsawIcons.ABOUT), "Welcome/Help");<br/>
+  }<br/>
+<br/>
+  void removeWelcomePanel() {<br/>
+    if (getTabbedPane().containsWelcomePanel()) {<br/>
+      getTabbedPane().remove(<br/>
+        getTabbedPane().getComponentAt(getTabbedPane().indexOfTab("Welcome")));<br/>
+    }<br/>
+  }<br/>
+<br/>
+  void toggleReceiversPanel() {<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          if (getContentPane().isAncestorOf(receiversPanel)) {<br/>
+            getContentPane().remove(receiversPanel);<br/>
+          } else {<br/>
+            getContentPane().add(receiversPanel, BorderLayout.EAST);<br/>
+          }<br/>
+<br/>
+          getContentPane().invalidate();<br/>
+          getContentPane().validate();<br/>
+<br/>
+          getToolBarAndMenus().stateChange();<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  boolean isReceiverPanelVisible() {<br/>
+    return getContentPane().isAncestorOf(receiversPanel);<br/>
+  }<br/>
+<br/>
+  public ChainsawStatusBar getStatusBar() {<br/>
+    return statusBar;<br/>
+  }<br/>
+<br/>
+  void showAboutBox() {<br/>
+    if (aboutBox == null) {<br/>
+      aboutBox = new ChainsawAbout(this);<br/>
+    }<br/>
+<br/>
+    aboutBox.setVisible(true);<br/>
+  }<br/>
+<br/>
+  Map getPanels() {<br/>
+    Map m = new HashMap();<br/>
+    Set panelSet = getPanelMap().entrySet();<br/>
+    Iterator iter = panelSet.iterator();<br/>
+<br/>
+    while (iter.hasNext()) {<br/>
+      Map.Entry entry = (Map.Entry) iter.next();<br/>
+      m.put(<br/>
+        entry.getKey(),<br/>
+        Boolean.valueOf(((DockablePanel) entry.getValue()).isDocked()));<br/>
+    }<br/>
+<br/>
+    return m;<br/>
+  }<br/>
+<br/>
+  void displayPanel(String panelName, boolean display) {<br/>
+    Object o = getPanelMap().get(panelName);<br/>
+<br/>
+    if (o instanceof LogPanel) {<br/>
+      LogPanel p = (LogPanel) o;<br/>
+<br/>
+      int index = getTabbedPane().indexOfTab(panelName);<br/>
+<br/>
+      if ((index == -1) &amp;&amp; display) {<br/>
+        getTabbedPane().addTab(panelName, p);<br/>
+      }<br/>
+<br/>
+      if ((index &gt; -1) &amp;&amp; !display) {<br/>
+        getTabbedPane().removeTabAt(index);<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Shutsdown by ensuring the Appender gets a chance to close.<br/>
+   */<br/>
+  private void shutdown() {<br/>
+    JWindow progress = new JWindow();<br/>
+    final ProgressPanel panel = new ProgressPanel(1, 3, "Shutting down");<br/>
+    progress.getContentPane().add(panel);<br/>
+    progress.pack();<br/>
+<br/>
+    Point p = new Point(getLocation());<br/>
+    p.move((int) getSize().getWidth() &gt;&gt; 1, (int) getSize().getHeight() &gt;&gt; 1);<br/>
+    progress.setLocation(p);<br/>
+    progress.setVisible(true);<br/>
+<br/>
+    Runnable runnable =<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          try {<br/>
+            int progress = 1;<br/>
+            final int delay = 25;<br/>
+<br/>
+            handler.close();<br/>
+            panel.setProgress(progress++);<br/>
+<br/>
+            Thread.sleep(delay);<br/>
+<br/>
+            PluginRegistry.stopAllPlugins();<br/>
+            panel.setProgress(progress++);<br/>
+<br/>
+            Thread.sleep(delay);<br/>
+<br/>
+            panel.setProgress(progress++);<br/>
+            Thread.sleep(delay);<br/>
+          } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+          }<br/>
+<br/>
+          fireShutdownEvent();<br/>
+          performShutdownAction();<br/>
+        }<br/>
+      };<br/>
+<br/>
+    new Thread(runnable).start();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Ensures all the registered ShutdownListeners are notified.<br/>
+   */<br/>
+  private void fireShutdownEvent() {<br/>
+    ShutdownListener[] listeners =<br/>
+      (ShutdownListener[]) shutdownListenerList.getListeners(<br/>
+        ShutdownListener.class);<br/>
+<br/>
+    for (int i = 0; i &lt; listeners.length; i++) {<br/>
+      listeners[i].shuttingDown();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Configures LogUI's with an action to execute when the user<br/>
+   * requests to exit the application, the default action<br/>
+   * is to exit the VM.<br/>
+   * This Action is called AFTER all the ShutdownListeners have been notified<br/>
+   *<br/>
+   * @param shutdownAction<br/>
+   */<br/>
+  public final void setShutdownAction(Action shutdownAction) {<br/>
+    this.shutdownAction = shutdownAction;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Using the current thread, calls the registed Shutdown action's<br/>
+   * actionPerformed(...) method.<br/>
+   *<br/>
+   */<br/>
+  private void performShutdownAction() {<br/>
+    LogLog.debug("Calling the shutdown Action. Goodbye!");<br/>
+    shutdownAction.actionPerformed(<br/>
+      new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "Shutting Down"));<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Returns the currently selected LogPanel, if there is one, otherwise null<br/>
+   * @return<br/>
+   */<br/>
+  LogPanel getCurrentLogPanel() {<br/>
+    Component selectedTab = getTabbedPane().getSelectedComponent();<br/>
+<br/>
+    if (selectedTab instanceof LogPanel) {<br/>
+      return (LogPanel) selectedTab;<br/>
+    } else {<br/>
+      //      System.out.println(selectedTab);<br/>
+    }<br/>
+<br/>
+    return null;<br/>
+  }<br/>
+<br/>
+  void removeStatusBar() {<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          getContentPane().remove(statusBar);<br/>
+          getContentPane().validate();<br/>
+          getContentPane().repaint();<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  boolean isStatusBarVisible() {<br/>
+    return getContentPane().isAncestorOf(statusBar);<br/>
+  }<br/>
+<br/>
+  void addStatusBar() {<br/>
+    removeStatusBar();<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          getContentPane().add(statusBar, BorderLayout.SOUTH);<br/>
+          getContentPane().validate();<br/>
+          getContentPane().repaint();<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  public String getActiveTabName() {<br/>
+    int index = getTabbedPane().getSelectedIndex();<br/>
+<br/>
+    if (index == -1) {<br/>
+      return null;<br/>
+    } else {<br/>
+      return getTabbedPane().getTitleAt(index);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Formats the individual elements of an LoggingEvent by ensuring that<br/>
+   * there are no null bits, replacing them with EMPTY_STRING<br/>
+   * @param v<br/>
+   * @return<br/>
+   */<br/>
+  private Vector formatFields(Vector v) {<br/>
+    for (int i = 0; i &lt; v.size(); i++) {<br/>
+      if (v.get(i) == null) {<br/>
+        v.set(i, ChainsawConstants.EMPTY_STRING);<br/>
+      }<br/>
+    }<br/>
+<br/>
+    return v;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Regurgitates a DisplayFilter for a specific machine identifier<br/>
+   * by deserializing the settings from a file.<br/>
+   * DisplayFilter serializes tool tip fields and enabled flag.<br/>
+   * @param ident<br/>
+   * @return<br/>
+   */<br/>
+  private DisplayFilter loadDisplayFilter(String ident) {<br/>
+    DisplayFilter d = null;<br/>
+    ObjectInputStream s = null;<br/>
+    File f =<br/>
+      new File(<br/>
+        SettingsManager.getInstance().getSettingsDirectory() + File.separator<br/>
+        + ident + ChainsawConstants.SETTINGS_EXTENSION);<br/>
+<br/>
+    if (f.exists()) {<br/>
+      try {<br/>
+        s = new ObjectInputStream(<br/>
+            new BufferedInputStream(new FileInputStream(f)));<br/>
+        d = (DisplayFilter) s.readObject();<br/>
+      } catch (IOException ioe) {<br/>
+        ioe.printStackTrace();<br/>
+      } catch (ClassNotFoundException cnfe) {<br/>
+        cnfe.printStackTrace();<br/>
+      } finally {<br/>
+        if (s != null) {<br/>
+          try {<br/>
+            s.close();<br/>
+          } catch (IOException ioe) {<br/>
+            ioe.printStackTrace();<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+    }<br/>
+<br/>
+    if (d == null) {<br/>
+      d = new DisplayFilter(ident);<br/>
+    }<br/>
+<br/>
+    return d;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Modify the saved Look And Feel - does not update the currently used Look And Feel<br/>
+   * @param string The FQN of the LookAndFeel<br/>
+   */<br/>
+  public void setLookAndFeel(String lookAndFeelClassName) {<br/>
+    this.lookAndFeelClassName = lookAndFeelClassName;<br/>
+    JOptionPane.showMessageDialog(<br/>
+      getContentPane(),<br/>
+      "Restart application for the new Look and Feel to take effect.",<br/>
+      "Look and Feel Updated", JOptionPane.INFORMATION_MESSAGE);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Changes the currently used Look And Feel of the App<br/>
+   * @param string The FQN of the LookANdFeel<br/>
+   */<br/>
+  private void applyLookAndFeel(String lookAndFeelClassName) {<br/>
+    LogLog.debug("Setting L&amp;F -&gt; " + lookAndFeelClassName);<br/>
+<br/>
+    try {<br/>
+      UIManager.setLookAndFeel(lookAndFeelClassName);<br/>
+      SwingUtilities.updateComponentTreeUI(this);<br/>
+    } catch (Exception e) {<br/>
+      LogLog.error("Failed to change L&amp;F", e);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Causes the Welcome Panel to become visible, and shows the URL<br/>
+   * specified as it's contents<br/>
+   * @param url for content to show<br/>
+   */<br/>
+  void showHelp(URL url) {<br/>
+    removeWelcomePanel();<br/>
+    addWelcomePanel();<br/>
+<br/>
+    //    TODO ensure the Welcome Panel is the selected tab<br/>
+    WelcomePanel.getInstance().setURL(url);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * @return<br/>
+   */<br/>
+  public boolean isLogTreePanelVisible() {<br/>
+    if (getCurrentLogPanel() == null) {<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    return getCurrentLogPanel().isLogTreePanelVisible();<br/>
+  }<br/>
+<br/>
+  /* (non-Javadoc)<br/>
+   * @see org.apache.log4j.chainsaw.EventBatchListener#getInterestedIdentifier()<br/>
+   */<br/>
+  public String getInterestedIdentifier() {<br/>
+    //    this instance is interested in ALL event batches, as we determine how to route things<br/>
+    return null;<br/>
+  }<br/>
+<br/>
+  //  public Map getEntryMap() {<br/>
+  //    return entryMap;<br/>
+  //  }<br/>
+  //  public Map getScrollMap() {<br/>
+  //    return scrollMap;<br/>
+  //  }<br/>
+  public Map getPanelMap() {<br/>
+    return panelMap;<br/>
+  }<br/>
+<br/>
+  //  public Map getLevelMap() {<br/>
+  //    return levelMap;<br/>
+  //  }<br/>
+  public SettingsManager getSettingsManager() {<br/>
+    return sm;<br/>
+  }<br/>
+<br/>
+  public List getFilterableColumns() {<br/>
+    return filterableColumns;<br/>
+  }<br/>
+<br/>
+  public void setToolBarAndMenus(ChainsawToolBarAndMenus tbms) {<br/>
+    this.tbms = tbms;<br/>
+  }<br/>
+<br/>
+  public ChainsawToolBarAndMenus getToolBarAndMenus() {<br/>
+    return tbms;<br/>
+  }<br/>
+<br/>
+  public Map getTableMap() {<br/>
+    return tableMap;<br/>
+  }<br/>
+<br/>
+  public Map getTableModelMap() {<br/>
+    return tableModelMap;<br/>
+  }<br/>
+<br/>
+  public void setTabbedPane(ChainsawTabbedPane tabbedPane) {<br/>
+    this.tabbedPane = tabbedPane;<br/>
+  }<br/>
+<br/>
+  public ChainsawTabbedPane getTabbedPane() {<br/>
+    return tabbedPane;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * This class handles the recption of the Event batches<br/>
+   * and creates new LogPanels if the identifier is not in use<br/>
+   * otherwise it ignores the event batch.<br/>
+   * @author Paul Smith &lt;psmith@apache.org&gt;<br/>
+   *<br/>
+   */<br/>
+  private class NewTabEventBatchReceiver implements EventBatchListener {<br/>
+    public void receiveEventBatch(<br/>
+      final String ident, final List eventBatchEntrys) {<br/>
+      if (eventBatchEntrys.size() == 0) {<br/>
+        return;<br/>
+      }<br/>
+<br/>
+      EventContainer tableModel;<br/>
+      JSortTable table;<br/>
+      HashMap map = null;<br/>
+<br/>
+      if (!isGUIFullyInitialized) {<br/>
+        synchronized (initializationLock) {<br/>
+          while (!isGUIFullyInitialized) {<br/>
+            System.out.println(<br/>
+              "Wanting to add a row, but GUI not initialized, waiting...");<br/>
+<br/>
+            /**<br/>
+             * Lets wait 1 seconds and recheck.<br/>
+             */<br/>
+            try {<br/>
+              initializationLock.wait(1000);<br/>
+            } catch (InterruptedException e) {<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+<br/>
+      /**<br/>
+       * notify the status bar we received an event<br/>
+       */<br/>
+      <span class="del"><span class="del"><span class="del">statusBar</span>.<span class="del">receivedEvent</span>()</span>;</span><br/>
+<br/>
+      if (!getPanelMap().containsKey(ident)) {<br/>
+        final String eventType =<br/>
+          ((ChainsawEventBatchEntry) eventBatchEntrys.get(0)).getEventType();<br/>
+<br/>
+        final LogPanel thisPanel =<br/>
+          new LogPanel(getStatusBar(), ident, eventType);<br/>
+<br/>
+        thisPanel.addEventCountListener(new TabIconHandler(ident));<br/>
+<br/>
+        thisPanel.addPropertyChangeListener(<br/>
+          new PropertyChangeListener() {<br/>
+            public void propertyChange(PropertyChangeEvent evt) {<br/>
+              tbms.stateChange();<br/>
+            }<br/>
+          });<br/>
+        thisPanel.addPropertyChangeListener(<br/>
+          "docked",<br/>
+          new PropertyChangeListener() {<br/>
+            public void propertyChange(PropertyChangeEvent evt) {<br/>
+              LogPanel logPanel = (LogPanel) evt.getSource();<br/>
+<br/>
+              if (logPanel.isDocked()) {<br/>
+                getPanelMap().put(logPanel.getIdentifier(), logPanel);<br/>
+                getTabbedPane().addANewTab(<br/>
+                  logPanel.getIdentifier(), logPanel, null);<br/>
+              } else {<br/>
+                getTabbedPane().remove(logPanel);<br/>
+              }<br/>
+            }<br/>
+          });<br/>
+<br/>
+        getTabbedPane().add(ident, thisPanel);<br/>
+        getPanelMap().put(ident, thisPanel);<br/>
+<br/>
+        getSettingsManager().configure(thisPanel);<br/>
+<br/>
+        /**<br/>
+         * Let the new LogPanel receive this batch<br/>
+         */<br/>
+        thisPanel.receiveEventBatch(ident, eventBatchEntrys);<br/>
+<br/>
+        /**<br/>
+         * Now add the panel as a batch listener so it can handle it's own batchs<br/>
+         */<br/>
+        handler.addEventBatchListener(thisPanel);<br/>
+<br/>
+        SwingUtilities.invokeLater(<br/>
+          new Runnable() {<br/>
+            public void run() {<br/>
+              getTabbedPane().addANewTab(<br/>
+                ident, thisPanel, new ImageIcon(ChainsawIcons.TOOL_TIP));<br/>
+            }<br/>
+          });<br/>
+<br/>
+        String msg = "added tab " + ident;<br/>
+        LogLog.debug(msg);<br/>
+        statusBar.setMessage(msg);<br/>
+      }<br/>
+    }<br/>
+<br/>
+    /* (non-Javadoc)<br/>
+     * @see org.apache.log4j.chainsaw.EventBatchListener#getInterestedIdentifier()<br/>
+     */<br/>
+    public String getInterestedIdentifier() {<br/>
+      // we are interested in all batches so we can detect new identifiers<br/>
+      return null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  class TabIconHandler implements EventCountListener {<br/>
+    private final String ident;<br/>
+    private int lastCount;<br/>
+    private int currentCount;<br/>
+<br/>
+    //the tabIconHandler is associated with a new tab, and a new tab always<br/>
+    //has new events<br/>
+    private boolean hasNewEvents = true;<br/>
+    ImageIcon NEW_EVENTS = new ImageIcon(ChainsawIcons.TOOL_TIP);<br/>
+    ImageIcon HAS_EVENTS = new ImageIcon(ChainsawIcons.INFO);<br/>
+<br/>
+    public TabIconHandler(final String ident) {<br/>
+      this.ident = ident;<br/>
+<br/>
+      new Thread(<br/>
+        new Runnable() {<br/>
+          public void run() {<br/>
+            while (true) {<br/>
+              //if this tab is active, remove the icon<br/>
+              if (<br/>
+                (getTabbedPane().getSelectedIndex() &gt; -1)<br/>
+                  &amp;&amp; (getTabbedPane().getSelectedIndex() == getTabbedPane()<br/>
+                                                                .indexOfTab(<br/>
+                    ident))) {<br/>
+                getTabbedPane().setIconAt(<br/>
+                  getTabbedPane().indexOfTab(ident), null);<br/>
+<br/>
+                //reset fields so no icon will display <br/>
+                lastCount = currentCount;<br/>
+                hasNewEvents = false;<br/>
+              } else {<br/>
+                //don't process undocked tabs<br/>
+                if (getTabbedPane().indexOfTab(ident) &gt; -1) {<br/>
+                  //if the tab is not active and the counts don't match, set the new events icon<br/>
+                  if (lastCount != currentCount) {<br/>
+                    getTabbedPane().setIconAt(<br/>
+                      getTabbedPane().indexOfTab(ident), NEW_EVENTS);<br/>
+                    lastCount = currentCount;<br/>
+                    hasNewEvents = true;<br/>
+                  } else {<br/>
+                    if (hasNewEvents) {<br/>
+                      getTabbedPane().setIconAt(<br/>
+                        getTabbedPane().indexOfTab(ident), HAS_EVENTS);<br/>
+                    }<br/>
+                  }<br/>
+                }<br/>
+              }<br/>
+<br/>
+              try {<br/>
+                Thread.sleep(handler.getQueueInterval() + 1000);<br/>
+              } catch (InterruptedException ie) {<br/>
+              }<br/>
+            }<br/>
+          }<br/>
+        }).start();<br/>
+    }<br/>
+<br/>
+    public void eventCountChanged(int currentCount, int totalCount) {<br/>
+      this.currentCount = currentCount;<br/>
+    }<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_LogUI_1.30.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ============================================================================<br/>
+ *                   The Apache Software License, Version 1.1<br/>
+ * ============================================================================<br/>
+ *<br/>
+ *    Copyright (C) 1999 The Apache Software Foundation. All rights reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without modifica-<br/>
+ * tion, are permitted provided that the following conditions are met:<br/>
+ *<br/>
+ * 1. Redistributions of  source code must  retain the above copyright  notice,<br/>
+ *    this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright notice,<br/>
+ *    this list of conditions and the following disclaimer in the documentation<br/>
+ *    and/or other materials provided with the distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if any, must<br/>
+ *    include  the following  acknowledgment:  "This product includes  software<br/>
+ *    developed  by the  Apache Software Foundation  (http://www.apache.org/)."<br/>
+ *    Alternately, this  acknowledgment may  appear in the software itself,  if<br/>
+ *    and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "log4j" and  "Apache Software Foundation"  must not be used to<br/>
+ *    endorse  or promote  products derived  from this  software without  prior<br/>
+ *    written permission. For written permission, please contact<br/>
+ *    apache@apache.org.<br/>
+ *<br/>
+ * 5. Products  derived from this software may not  be called "Apache", nor may<br/>
+ *    "Apache" appear  in their name,  without prior written permission  of the<br/>
+ *    Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES,<br/>
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND<br/>
+ * FITNESS  FOR A PARTICULAR  PURPOSE ARE  DISCLAIMED.  IN NO  EVENT SHALL  THE<br/>
+ * APACHE SOFTWARE  FOUNDATION  OR ITS CONTRIBUTORS  BE LIABLE FOR  ANY DIRECT,<br/>
+ * INDIRECT, INCIDENTAL, SPECIAL,  EXEMPLARY, OR CONSEQUENTIAL  DAMAGES (INCLU-<br/>
+ * DING, BUT NOT LIMITED TO, PROCUREMENT  OF SUBSTITUTE GOODS OR SERVICES; LOSS<br/>
+ * OF USE, DATA, OR  PROFITS; OR BUSINESS  INTERRUPTION)  HOWEVER CAUSED AND ON<br/>
+ * ANY  THEORY OF LIABILITY,  WHETHER  IN CONTRACT,  STRICT LIABILITY,  OR TORT<br/>
+ * (INCLUDING  NEGLIGENCE OR  OTHERWISE) ARISING IN  ANY WAY OUT OF THE  USE OF<br/>
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * This software  consists of voluntary contributions made  by many individuals<br/>
+ * on  behalf of the Apache Software  Foundation.  For more  information on the<br/>
+ * Apache Software Foundation, please see &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.chainsaw;<br/>
+<br/>
+import org.apache.log4j.Level;<br/>
+import org.apache.log4j.LogManager;<br/>
+import org.apache.log4j.Priority;<br/>
+import org.apache.log4j.UtilLoggingLevel;<br/>
+import org.apache.log4j.chainsaw.icons.ChainsawIcons;<br/>
+import org.apache.log4j.chainsaw.prefs.LoadSettingsEvent;<br/>
+import org.apache.log4j.chainsaw.prefs.SaveSettingsEvent;<br/>
+import org.apache.log4j.chainsaw.prefs.SettingsListener;<br/>
+import org.apache.log4j.chainsaw.prefs.SettingsManager;<br/>
+import org.apache.log4j.helpers.LogLog;<br/>
+import org.apache.log4j.helpers.OptionConverter;<br/>
+import org.apache.log4j.net.SocketNodeEventListener;<br/>
+import org.apache.log4j.net.SocketReceiver;<br/>
+import org.apache.log4j.plugins.PluginRegistry;<br/>
+import org.apache.log4j.plugins.Receiver;<br/>
+<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Component;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.Event;<br/>
+import java.awt.Point;<br/>
+import java.awt.Toolkit;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.ActionListener;<br/>
+import java.awt.event.InputEvent;<br/>
+import java.awt.event.KeyEvent;<br/>
+import java.awt.event.MouseAdapter;<br/>
+import java.awt.event.MouseEvent;<br/>
+import java.awt.event.WindowAdapter;<br/>
+import java.awt.event.WindowEvent;<br/>
+<br/>
+import java.beans.PropertyChangeEvent;<br/>
+import java.beans.PropertyChangeListener;<br/>
+<br/>
+import java.io.BufferedInputStream;<br/>
+import java.io.File;<br/>
+import java.io.FileInputStream;<br/>
+import java.io.IOException;<br/>
+import java.io.ObjectInputStream;<br/>
+<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+import java.net.URL;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+import java.util.Map;<br/>
+import java.util.Set;<br/>
+import java.util.Vector;<br/>
+<br/>
+import javax.swing.AbstractAction;<br/>
+import javax.swing.Action;<br/>
+import javax.swing.ImageIcon;<br/>
+import javax.swing.JComponent;<br/>
+import javax.swing.JDialog;<br/>
+import javax.swing.JFrame;<br/>
+import javax.swing.JOptionPane;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JToolBar;<br/>
+import javax.swing.JWindow;<br/>
+import javax.swing.KeyStroke;<br/>
+import javax.swing.SwingUtilities;<br/>
+import javax.swing.UIManager;<br/>
+import javax.swing.event.ChangeEvent;<br/>
+import javax.swing.event.ChangeListener;<br/>
+import javax.swing.event.EventListenerList;<br/>
+<br/>
+<br/>
+/**<br/>
+ * The main entry point for Chainsaw, this class represents the first frame<br/>
+ * that is used to display a Welcome panel, and any other panels that<br/>
+ * are generated because Logging Events are streamed via a Receiver, or other<br/>
+ * mechanism.<br/>
+ *<br/>
+ * If a system property 'chainsaw.usecyclicbuffer' is set to 'true', each panel will use a cyclic<br/>
+ * buffer for displaying events and once events reach the buffer limit, the oldest events<br/>
+ * are removed from the table.<br/>
+ *<br/>
+ * If the property is not provided, there is no limit on the table's buffer size.<br/>
+ *<br/>
+ * If 'chainsaw.usecyclicbuffer' is set to 'true' and a system<br/>
+ * property 'chainsaw.cyclicbuffersize' is set to some integer value, that value will<br/>
+ * be used as the buffer size - if the buffersize is not provided, a default<br/>
+ * size of 500 is used.<br/>
+ *<br/>
+ *<br/>
+ * @author Scott Deboy &lt;sdeboy@apache.org&gt;<br/>
+ * @author Paul Smith &lt;psmith@apache.org&gt;<br/>
+ *<br/>
+ */<br/>
+public class LogUI extends JFrame implements ChainsawViewer, SettingsListener {<br/>
+  private static final String CONFIG_FILE_TO_USE = "config.file";<br/>
+  static final String USE_CYCLIC_BUFFER_PROP_NAME = "chainsaw.usecyclicbuffer";<br/>
+  static final String CYCLIC_BUFFER_SIZE_PROP_NAME =<br/>
+    "chainsaw.cyclicbuffersize";<br/>
+  private static final String MAIN_WINDOW_HEIGHT = "main.window.height";<br/>
+  private static final String MAIN_WINDOW_WIDTH = "main.window.width";<br/>
+  private static final String MAIN_WINDOW_Y = "main.window.y";<br/>
+  private static final String MAIN_WINDOW_X = "main.window.x";<br/>
+  static final String TABLE_COLUMN_ORDER = "table.columns.order";<br/>
+  static final String TABLE_COLUMN_WIDTHS = "table.columns.widths";<br/>
+  private static final String LOOK_AND_FEEL = "LookAndFeel";<br/>
+  private static final String STATUS_BAR = "StatusBar";<br/>
+  static final String COLUMNS_EXTENSION = ".columns";<br/>
+  private static ChainsawSplash splash;<br/>
+  private URL configURLToUse;<br/>
+  private boolean noReceiversDefined;<br/>
+  private ReceiversPanel receiversPanel;<br/>
+  private ChainsawTabbedPane tabbedPane;<br/>
+  private JToolBar toolbar;<br/>
+  private ChainsawStatusBar statusBar;<br/>
+  private final Map tableModelMap = new HashMap();<br/>
+  private final Map tableMap = new HashMap();<br/>
+  private final List filterableColumns = new ArrayList();<br/>
+  private final Map panelMap = new HashMap();<br/>
+  ChainsawAppenderHandler handler;<br/>
+  private ChainsawToolBarAndMenus tbms;<br/>
+  private ChainsawAbout aboutBox;<br/>
+  private final SettingsManager sm = SettingsManager.getInstance();<br/>
+  private String lookAndFeelClassName;<br/>
+<br/>
+  /**<br/>
+   * Set to true, if and only if the GUI has completed<br/>
+   * it's full initialization.  Any logging events<br/>
+   * that come in must wait until this is true, and<br/>
+   * if it is false, should wait on the initializationLock<br/>
+   * object until notified.<br/>
+   */<br/>
+  private boolean isGUIFullyInitialized = false;<br/>
+  private Object initializationLock = new Object();<br/>
+<br/>
+  /**<br/>
+   * The shutdownAction is called when the user requests to exit<br/>
+   * Chainsaw, and by default this exits the VM, but<br/>
+   * a developer may replace this action with something that better suits<br/>
+   * their needs<br/>
+   */<br/>
+  private Action shutdownAction =<br/>
+    new AbstractAction() {<br/>
+      public void actionPerformed(ActionEvent e) {<br/>
+        System.exit(0);<br/>
+      }<br/>
+    };<br/>
+<br/>
+  /**<br/>
+   * Clients can register a ShutdownListener to be notified<br/>
+   * when the user has requested Chainsaw to exit.<br/>
+   */<br/>
+  private EventListenerList shutdownListenerList = new EventListenerList();<br/>
+<br/>
+  /**<br/>
+   * Constructor which builds up all the visual elements of the frame<br/>
+   * including the Menu bar<br/>
+   */<br/>
+  public LogUI() {<br/>
+    super("Chainsaw v2 - Log Viewer");<br/>
+<br/>
+    if (ChainsawIcons.WINDOW_ICON != null) {<br/>
+      setIconImage(new ImageIcon(ChainsawIcons.WINDOW_ICON).getImage());<br/>
+    }<br/>
+  }<br/>
+<br/>
+  private static final void showSplash() {<br/>
+    splash = new ChainsawSplash();<br/>
+<br/>
+    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+    splash.setLocation(<br/>
+      (screenSize.width / 2) - (splash.getWidth() / 2),<br/>
+      (screenSize.height / 2) - (splash.getHeight() / 2));<br/>
+<br/>
+    splash.setVisible(true);<br/>
+  }<br/>
+<br/>
+  private static final void removeSplash() {<br/>
+    if (splash != null) {<br/>
+      splash.setVisible(false);<br/>
+      splash.dispose();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Registers a ShutdownListener with this calss so that<br/>
+   * it can be notified when the user has requested<br/>
+   * that Chainsaw exit.<br/>
+   *<br/>
+   * @param l<br/>
+   */<br/>
+  public void addShutdownListener(ShutdownListener l) {<br/>
+    shutdownListenerList.add(ShutdownListener.class, l);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Removes the registered ShutdownListener so<br/>
+   * that the listener will not be notified on a shutdown.<br/>
+   *<br/>
+   * @param l<br/>
+   */<br/>
+  public void removeShutdownListener(ShutdownListener l) {<br/>
+    shutdownListenerList.remove(ShutdownListener.class, l);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Starts Chainsaw by attaching a new instance to the Log4J<br/>
+   * main root Logger via a ChainsawAppender, and activates itself<br/>
+   * @param args<br/>
+   */<br/>
+  public static void main(String[] args) {<br/>
+    //    TODO remove this when ready<br/>
+    JOptionPane.showMessageDialog(<br/>
+      null,<br/>
+      "Chainsaw v2 is currently going through some refactoring work at present.\n\n"<br/>
+      + "Some features, most notably filtering and colouring, may be inoperable at this time.\n\n"<br/>
+      + "The Log4J Dev team apologises for this inconvenience, but be assured this functionality will be back very shortly.",<br/>
+      "Apologise", JOptionPane.WARNING_MESSAGE);<br/>
+<br/>
+    showSplash();<br/>
+<br/>
+    LogUI logUI = new LogUI();<br/>
+<br/>
+    logUI.handler = new ChainsawAppenderHandler();<br/>
+    logUI.handler.addEventBatchListener(logUI.new NewTabEventBatchReceiver());<br/>
+    LogManager.getRootLogger().addAppender(logUI.handler);<br/>
+    logUI.activateViewer();<br/>
+  }<br/>
+<br/>
+  public void activateViewer(ChainsawAppender appender) {<br/>
+    handler = new ChainsawAppenderHandler(appender);<br/>
+    handler.addEventBatchListener(new NewTabEventBatchReceiver());<br/>
+    activateViewer();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Initialises the menu's and toolbars, but does not actually<br/>
+   * create any of the main panel components.<br/>
+   *<br/>
+   */<br/>
+  private void initGUI() {<br/>
+    statusBar = new ChainsawStatusBar();<br/>
+    receiversPanel = new ReceiversPanel(this);<br/>
+    setToolBarAndMenus(new ChainsawToolBarAndMenus(this));<br/>
+    toolbar = getToolBarAndMenus().getToolbar();<br/>
+    setJMenuBar(getToolBarAndMenus().getMenubar());<br/>
+    setTabbedPane(new ChainsawTabbedPane());<br/>
+    getTabbedPane().addChangeListener(getToolBarAndMenus().getPanelListener());<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Given the load event, configures the size/location of the main window<br/>
+   * etc etc.<br/>
+   */<br/>
+  public void loadSettings(LoadSettingsEvent event) {<br/>
+    if (event.asBoolean(LogUI.STATUS_BAR)) {<br/>
+      addStatusBar();<br/>
+    } else {<br/>
+      removeStatusBar();<br/>
+    }<br/>
+<br/>
+    setLocation(<br/>
+      event.asInt(LogUI.MAIN_WINDOW_X), event.asInt(LogUI.MAIN_WINDOW_Y));<br/>
+    setSize(<br/>
+      event.asInt(LogUI.MAIN_WINDOW_WIDTH),<br/>
+      event.asInt(LogUI.MAIN_WINDOW_HEIGHT));<br/>
+<br/>
+    getToolBarAndMenus().stateChange();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Ensures the location/size of the main window is stored with the settings<br/>
+   */<br/>
+  public void saveSettings(SaveSettingsEvent event) {<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_X, (int) getLocation().getX());<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_Y, (int) getLocation().getY());<br/>
+<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_WIDTH, getWidth());<br/>
+    event.saveSetting(LogUI.MAIN_WINDOW_HEIGHT, getHeight());<br/>
+<br/>
+    if (lookAndFeelClassName != null) {<br/>
+      event.saveSetting(LogUI.LOOK_AND_FEEL, lookAndFeelClassName);<br/>
+    }<br/>
+<br/>
+    event.saveSetting(<br/>
+      LogUI.STATUS_BAR, isStatusBarVisible() ? Boolean.TRUE : Boolean.FALSE);<br/>
+<br/>
+    if (configURLToUse != null) {<br/>
+      event.saveSetting(LogUI.CONFIG_FILE_TO_USE, configURLToUse.toString());<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Activates itself as a viewer by configuring Size, and location of<br/>
+   * itself, and configures the default Tabbed Pane elements with the correct<br/>
+   * layout, table columns, and sets itself viewable.<br/>
+   */<br/>
+  public void activateViewer() {<br/>
+    getSettingsManager().configure(<br/>
+      new SettingsListener() {<br/>
+        public void loadSettings(LoadSettingsEvent event) {<br/>
+          lookAndFeelClassName = event.getSetting(LogUI.LOOK_AND_FEEL);<br/>
+<br/>
+          if (lookAndFeelClassName != null) {<br/>
+            applyLookAndFeel(lookAndFeelClassName);<br/>
+          }<br/>
+        }<br/>
+<br/>
+        public void saveSettings(SaveSettingsEvent event) {<br/>
+          //required because of SettingsListener interface..not used during load<br/>
+        }<br/>
+      });<br/>
+<br/>
+    getSettingsManager().configure(<br/>
+      new SettingsListener() {<br/>
+        public void loadSettings(LoadSettingsEvent event) {<br/>
+          String configFile = event.getSetting(LogUI.CONFIG_FILE_TO_USE);<br/>
+<br/>
+          //if both a config file are defined and a log4j.configuration property are set,  <br/>
+          //don't use configFile's configuration<br/>
+          if (<br/>
+            (configFile != null) &amp;&amp; !configFile.trim().equals("")<br/>
+              &amp;&amp; (System.getProperty("log4j.configuration") == null)) {<br/>
+            try {<br/>
+              URL url = new URL(configFile);<br/>
+              OptionConverter.selectAndConfigure(<br/>
+                url, null, LogManager.getLoggerRepository());<br/>
+<br/>
+              if (LogUI.this.getStatusBar() != null) {<br/>
+                LogUI.this.getStatusBar().setMessage(<br/>
+                  "Configured Log4j using remembered URL :: " + url);<br/>
+              }<br/>
+<br/>
+              LogUI.this.configURLToUse = url;<br/>
+            } catch (Exception e) {<br/>
+              LogLog.error("error occurred initializing log4j", e);<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+<br/>
+        public void saveSettings(SaveSettingsEvent event) {<br/>
+          //required because of SettingsListener interface..not used during load<br/>
+        }<br/>
+      });<br/>
+<br/>
+    if (<br/>
+      PluginRegistry.getPlugins(<br/>
+          LogManager.getLoggerRepository(), Receiver.class).size() == 0) {<br/>
+      noReceiversDefined = true;<br/>
+    }<br/>
+<br/>
+    initGUI();<br/>
+<br/>
+    /**<br/>
+     * Get all the SocketReceivers and configure a new SocketNodeEventListener<br/>
+     * so we can get notified of new Sockets<br/>
+     */<br/>
+    List list =<br/>
+      PluginRegistry.getPlugins(<br/>
+        LogManager.getLoggerRepository(), SocketReceiver.class);<br/>
+    final SocketNodeEventListener socketListener =<br/>
+      new SocketNodeEventListener() {<br/>
+        public void socketOpened(String remoteInfo) {<br/>
+          statusBar.remoteConnectionReceived(remoteInfo);<br/>
+        }<br/>
+<br/>
+        public void socketClosedEvent(Exception e) {<br/>
+          statusBar.setMessage("Collection lost! :: " + e.getMessage());<br/>
+        }<br/>
+      };<br/>
+<br/>
+    for (Iterator iter = list.iterator(); iter.hasNext();) {<br/>
+      SocketReceiver item = (SocketReceiver) iter.next();<br/>
+      LogLog.debug("Adding listener for " + item.getName());<br/>
+      item.addSocketNodeEventListener(socketListener);<br/>
+    }<br/>
+<br/>
+    List utilList = UtilLoggingLevel.getAllPossibleLevels();<br/>
+<br/>
+    // TODO: Replace the array list creating with the standard way of retreiving the Level set. (TBD)<br/>
+    Priority[] priorities =<br/>
+      new Level[] { Level.FATAL, Level.ERROR, Level.WARN, Level.INFO, Level.DEBUG };<br/>
+    List priorityLevels = new ArrayList();<br/>
+<br/>
+    for (int i = 0; i &lt; priorities.length; i++) {<br/>
+      priorityLevels.add(priorities[i].toString());<br/>
+    }<br/>
+<br/>
+    List utilLevels = new ArrayList();<br/>
+<br/>
+    for (Iterator iterator = utilLevels.iterator(); iterator.hasNext();) {<br/>
+      utilLevels.add(iterator.next().toString());<br/>
+    }<br/>
+<br/>
+    //    getLevelMap().put(ChainsawConstants.UTIL_LOGGING_EVENT_TYPE, utilLevels);<br/>
+    //    getLevelMap().put(ChainsawConstants.LOG4J_EVENT_TYPE, priorityLevels);<br/>
+    getFilterableColumns().add(ChainsawConstants.LEVEL_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.LOGGER_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.THREAD_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.NDC_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.MDC_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.CLASS_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.METHOD_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.FILE_COL_NAME);<br/>
+    getFilterableColumns().add(ChainsawConstants.NONE_COL_NAME);<br/>
+<br/>
+    JPanel panePanel = new JPanel();<br/>
+    panePanel.setLayout(new BorderLayout(2, 2));<br/>
+<br/>
+    getContentPane().setLayout(new BorderLayout());<br/>
+<br/>
+    getTabbedPane().addChangeListener(getToolBarAndMenus());<br/>
+    getTabbedPane().addChangeListener(<br/>
+      new ChangeListener() {<br/>
+        //received a statechange event - selection changed - remove icon from selected index<br/>
+        public void stateChanged(ChangeEvent e) {<br/>
+          if (<br/>
+            getTabbedPane().getSelectedComponent() instanceof ChainsawTabbedPane) {<br/>
+            if (getTabbedPane().getSelectedIndex() &gt; -1) {<br/>
+              getTabbedPane().setIconAt(<br/>
+                getTabbedPane().getSelectedIndex(), null);<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      });<br/>
+<br/>
+    KeyStroke ksRight =<br/>
+      KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, Event.CTRL_MASK);<br/>
+    KeyStroke ksLeft =<br/>
+      KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, Event.CTRL_MASK);<br/>
+<br/>
+    getTabbedPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(<br/>
+      ksRight, "MoveRight");<br/>
+    getTabbedPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(<br/>
+      ksLeft, "MoveLeft");<br/>
+<br/>
+    Action moveRight =<br/>
+      new AbstractAction() {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+          int temp = getTabbedPane().getSelectedIndex();<br/>
+          ++temp;<br/>
+<br/>
+          if (temp != getTabbedPane().getTabCount()) {<br/>
+            getTabbedPane().setSelectedTab(temp);<br/>
+          }<br/>
+        }<br/>
+      };<br/>
+<br/>
+    Action moveLeft =<br/>
+      new AbstractAction() {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+          int temp = getTabbedPane().getSelectedIndex();<br/>
+          --temp;<br/>
+<br/>
+          if (temp &gt; -1) {<br/>
+            getTabbedPane().setSelectedTab(temp);<br/>
+          }<br/>
+        }<br/>
+      };<br/>
+<br/>
+    getTabbedPane().getActionMap().put("MoveRight", moveRight);<br/>
+    getTabbedPane().getActionMap().put("MoveLeft", moveLeft);<br/>
+<br/>
+    /**<br/>
+     * We listen for double clicks, and auto-undock currently<br/>
+     * selected Tab if the mouse event location matches the currently selected<br/>
+     * tab<br/>
+     */<br/>
+    getTabbedPane().addMouseListener(<br/>
+      new MouseAdapter() {<br/>
+        public void mouseClicked(MouseEvent e) {<br/>
+          super.mouseClicked(e);<br/>
+<br/>
+          if (<br/>
+            (e.getClickCount() &gt; 1)<br/>
+              &amp;&amp; ((e.getModifiers() &amp; InputEvent.BUTTON1_MASK) &gt; 0)) {<br/>
+            int tabIndex = getTabbedPane().getSelectedIndex();<br/>
+<br/>
+            if (<br/>
+              (tabIndex != -1)<br/>
+                &amp;&amp; (tabIndex == getTabbedPane().getSelectedIndex())) {<br/>
+              LogPanel logPanel = getCurrentLogPanel();<br/>
+<br/>
+              if (logPanel != null) {<br/>
+                logPanel.undock();<br/>
+              }<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      });<br/>
+<br/>
+    addWelcomePanel();<br/>
+    panePanel.add(getTabbedPane());<br/>
+<br/>
+    getContentPane().add(toolbar, BorderLayout.NORTH);<br/>
+    getContentPane().add(panePanel, BorderLayout.CENTER);<br/>
+    getContentPane().add(statusBar, BorderLayout.SOUTH);<br/>
+<br/>
+    addWindowListener(<br/>
+      new WindowAdapter() {<br/>
+        public void windowClosing(WindowEvent event) {<br/>
+          exit();<br/>
+        }<br/>
+      });<br/>
+<br/>
+    pack();<br/>
+    <br/>
+    this.handler.addPropertyChangeListener("dataRate", new PropertyChangeListener(){<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void propertyChange(PropertyChangeEvent evt) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double dataRate = ((Double)evt.getNewValue()).doubleValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;statusBar.setDataRate(dataRate);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}});<br/>
+<br/>
+    getSettingsManager().addSettingsListener(this);<br/>
+    getSettingsManager().addSettingsListener(getToolBarAndMenus());<br/>
+    getSettingsManager().loadSettings();<br/>
+<br/>
+    setVisible(true);<br/>
+<br/>
+    removeSplash();<br/>
+<br/>
+    synchronized (initializationLock) {<br/>
+      isGUIFullyInitialized = true;<br/>
+      initializationLock.notifyAll();<br/>
+    }<br/>
+<br/>
+    if (noReceiversDefined) {<br/>
+      showNoReceiversWarningPanel();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Displays a warning dialog about having no Receivers defined<br/>
+   * and allows the user to choose some options for configuration<br/>
+   */<br/>
+  private void showNoReceiversWarningPanel() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;final NoReceiversWarningPanel noReceiversWarningPanel =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; new NoReceiversWarningPanel();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;final SettingsListener sl = new SettingsListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  public void loadSettings(LoadSettingsEvent event) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int size = event.asInt("SavedConfigs.Size");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object[] configs = new Object[size];<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  configs[i] = event.getSetting("SavedConfigs." + i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noReceiversWarningPanel.getModel().setRememberedConfigs(configs);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  public void saveSettings(SaveSettingsEvent event) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object[] configs =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  noReceiversWarningPanel.getModel().getRememberedConfigs();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;event.saveSetting("SavedConfigs.Size", configs.length);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; configs.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  event.saveSetting("SavedConfigs." + i, configs[i].toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;};<br/>
+   /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;* This listener sets up the NoReciversWarningPanel and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;* loads saves the configs/logfiles<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;*/<br/>
+   getSettingsManager().addSettingsListener(sl);<br/>
+   getSettingsManager().configure(sl);<br/>
+<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          final JDialog dialog = new JDialog(LogUI.this, true);<br/>
+          dialog.setTitle("Warning: You have no Receivers defined...");<br/>
+          dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);<br/>
+<br/>
+          dialog.setResizable(false);<br/>
+<br/>
+          noReceiversWarningPanel.setOkActionListener(<br/>
+            new ActionListener() {<br/>
+              public void actionPerformed(ActionEvent e) {<br/>
+                dialog.setVisible(false);<br/>
+              }<br/>
+            });<br/>
+<br/>
+          dialog.getContentPane().add(noReceiversWarningPanel);<br/>
+<br/>
+          dialog.pack();<br/>
+<br/>
+          Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+          dialog.setLocation(<br/>
+            (screenSize.width / 2) - (dialog.getWidth() / 2),<br/>
+            (screenSize.height / 2) - (dialog.getHeight() / 2));<br/>
+          dialog.show();<br/>
+<br/>
+          dialog.dispose();<br/>
+<br/>
+          if (noReceiversWarningPanel.getModel().isManualMode()) {<br/>
+            toggleReceiversPanel();<br/>
+          } else if (noReceiversWarningPanel.getModel().isSimpleReceiverMode()) {<br/>
+            int port = noReceiversWarningPanel.getModel().getSimplePort();<br/>
+            Class receiverClass =<br/>
+              noReceiversWarningPanel.getModel().getSimpleReceiverClass();<br/>
+<br/>
+            try {<br/>
+              Receiver simpleReceiver = (Receiver) receiverClass.newInstance();<br/>
+              simpleReceiver.setName("Simple Receiver");<br/>
+<br/>
+              Method portMethod =<br/>
+                simpleReceiver.getClass().getMethod(<br/>
+                  "setPort", new Class[] { int.class });<br/>
+              portMethod.invoke(<br/>
+                simpleReceiver, new Object[] { new Integer(port) });<br/>
+<br/>
+              simpleReceiver.setThreshold(Level.DEBUG);<br/>
+<br/>
+              PluginRegistry.startPlugin(simpleReceiver);<br/>
+              receiversPanel.updateReceiverTreeInDispatchThread();<br/>
+              getStatusBar().setMessage(<br/>
+                "Simple Receiver created, started, and listening on port  "<br/>
+                + port + " (using " + receiverClass.getName() + ")");<br/>
+            } catch (Exception e) {<br/>
+              LogLog.error("Error creating Receiver", e);<br/>
+              getStatusBar().setMessage(<br/>
+                "An error occurred creating your Receiver");<br/>
+            }<br/>
+          } else if (noReceiversWarningPanel.getModel().isLoadConfig()) {<br/>
+            final URL url =<br/>
+              noReceiversWarningPanel.getModel().getConfigToLoad();<br/>
+<br/>
+            if (url != null) {<br/>
+              LogLog.debug("Initialiazing Log4j with " + url.toExternalForm());<br/>
+<br/>
+              new Thread(<br/>
+                new Runnable() {<br/>
+                  public void run() {<br/>
+                    try {<br/>
+                      OptionConverter.selectAndConfigure(<br/>
+                        url, null, LogManager.getLoggerRepository());<br/>
+                    } catch (Exception e) {<br/>
+                      LogLog.error("Error initializing Log4j", e);<br/>
+                    }<br/>
+                    LogManager.getLoggerRepository().getRootLogger().addAppender(handler);<br/>
+<br/>
+                    receiversPanel.updateReceiverTreeInDispatchThread();<br/>
+                  }<br/>
+                }).start();<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Exits the application, ensuring Settings are saved.<br/>
+   *<br/>
+   */<br/>
+  void exit() {<br/>
+    //    TODO Ask the user if they want to save the settings via a dialog.<br/>
+    getSettingsManager().saveSettings();<br/>
+<br/>
+    int tabCount = getTabbedPane().getTabCount();<br/>
+<br/>
+    for (int i = 0; i &lt; tabCount; i++) {<br/>
+      Component c = getTabbedPane().getComponentAt(i);<br/>
+<br/>
+      if (c instanceof LogPanel) {<br/>
+        ((LogPanel) c).saveSettings();<br/>
+      }<br/>
+    }<br/>
+<br/>
+    shutdown();<br/>
+  }<br/>
+<br/>
+  void addWelcomePanel() {<br/>
+    getTabbedPane().addANewTab(<br/>
+      "Welcome", WelcomePanel.getInstance(), new ImageIcon(<br/>
+        ChainsawIcons.ABOUT), "Welcome/Help");<br/>
+  }<br/>
+<br/>
+  void removeWelcomePanel() {<br/>
+    if (getTabbedPane().containsWelcomePanel()) {<br/>
+      getTabbedPane().remove(<br/>
+        getTabbedPane().getComponentAt(getTabbedPane().indexOfTab("Welcome")));<br/>
+    }<br/>
+  }<br/>
+<br/>
+  void toggleReceiversPanel() {<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          if (getContentPane().isAncestorOf(receiversPanel)) {<br/>
+            getContentPane().remove(receiversPanel);<br/>
+          } else {<br/>
+            getContentPane().add(receiversPanel, BorderLayout.EAST);<br/>
+          }<br/>
+<br/>
+          getContentPane().invalidate();<br/>
+          getContentPane().validate();<br/>
+<br/>
+          getToolBarAndMenus().stateChange();<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  boolean isReceiverPanelVisible() {<br/>
+    return getContentPane().isAncestorOf(receiversPanel);<br/>
+  }<br/>
+<br/>
+  public ChainsawStatusBar getStatusBar() {<br/>
+    return statusBar;<br/>
+  }<br/>
+<br/>
+  void showAboutBox() {<br/>
+    if (aboutBox == null) {<br/>
+      aboutBox = new ChainsawAbout(this);<br/>
+    }<br/>
+<br/>
+    aboutBox.setVisible(true);<br/>
+  }<br/>
+<br/>
+  Map getPanels() {<br/>
+    Map m = new HashMap();<br/>
+    Set panelSet = getPanelMap().entrySet();<br/>
+    Iterator iter = panelSet.iterator();<br/>
+<br/>
+    while (iter.hasNext()) {<br/>
+      Map.Entry entry = (Map.Entry) iter.next();<br/>
+      m.put(<br/>
+        entry.getKey(),<br/>
+        Boolean.valueOf(((DockablePanel) entry.getValue()).isDocked()));<br/>
+    }<br/>
+<br/>
+    return m;<br/>
+  }<br/>
+<br/>
+  void displayPanel(String panelName, boolean display) {<br/>
+    Object o = getPanelMap().get(panelName);<br/>
+<br/>
+    if (o instanceof LogPanel) {<br/>
+      LogPanel p = (LogPanel) o;<br/>
+<br/>
+      int index = getTabbedPane().indexOfTab(panelName);<br/>
+<br/>
+      if ((index == -1) &amp;&amp; display) {<br/>
+        getTabbedPane().addTab(panelName, p);<br/>
+      }<br/>
+<br/>
+      if ((index &gt; -1) &amp;&amp; !display) {<br/>
+        getTabbedPane().removeTabAt(index);<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Shutsdown by ensuring the Appender gets a chance to close.<br/>
+   */<br/>
+  private void shutdown() {<br/>
+    JWindow progress = new JWindow();<br/>
+    final ProgressPanel panel = new ProgressPanel(1, 3, "Shutting down");<br/>
+    progress.getContentPane().add(panel);<br/>
+    progress.pack();<br/>
+<br/>
+    Point p = new Point(getLocation());<br/>
+    p.move((int) getSize().getWidth() &gt;&gt; 1, (int) getSize().getHeight() &gt;&gt; 1);<br/>
+    progress.setLocation(p);<br/>
+    progress.setVisible(true);<br/>
+<br/>
+    Runnable runnable =<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          try {<br/>
+            int progress = 1;<br/>
+            final int delay = 25;<br/>
+<br/>
+            handler.close();<br/>
+            panel.setProgress(progress++);<br/>
+<br/>
+            Thread.sleep(delay);<br/>
+<br/>
+            PluginRegistry.stopAllPlugins();<br/>
+            panel.setProgress(progress++);<br/>
+<br/>
+            Thread.sleep(delay);<br/>
+<br/>
+            panel.setProgress(progress++);<br/>
+            Thread.sleep(delay);<br/>
+          } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+          }<br/>
+<br/>
+          fireShutdownEvent();<br/>
+          performShutdownAction();<br/>
+        }<br/>
+      };<br/>
+<br/>
+    new Thread(runnable).start();<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Ensures all the registered ShutdownListeners are notified.<br/>
+   */<br/>
+  private void fireShutdownEvent() {<br/>
+    ShutdownListener[] listeners =<br/>
+      (ShutdownListener[]) shutdownListenerList.getListeners(<br/>
+        ShutdownListener.class);<br/>
+<br/>
+    for (int i = 0; i &lt; listeners.length; i++) {<br/>
+      listeners[i].shuttingDown();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Configures LogUI's with an action to execute when the user<br/>
+   * requests to exit the application, the default action<br/>
+   * is to exit the VM.<br/>
+   * This Action is called AFTER all the ShutdownListeners have been notified<br/>
+   *<br/>
+   * @param shutdownAction<br/>
+   */<br/>
+  public final void setShutdownAction(Action shutdownAction) {<br/>
+    this.shutdownAction = shutdownAction;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Using the current thread, calls the registed Shutdown action's<br/>
+   * actionPerformed(...) method.<br/>
+   *<br/>
+   */<br/>
+  private void performShutdownAction() {<br/>
+    LogLog.debug("Calling the shutdown Action. Goodbye!");<br/>
+    shutdownAction.actionPerformed(<br/>
+      new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "Shutting Down"));<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Returns the currently selected LogPanel, if there is one, otherwise null<br/>
+   * @return<br/>
+   */<br/>
+  LogPanel getCurrentLogPanel() {<br/>
+    Component selectedTab = getTabbedPane().getSelectedComponent();<br/>
+<br/>
+    if (selectedTab instanceof LogPanel) {<br/>
+      return (LogPanel) selectedTab;<br/>
+    } else {<br/>
+      //      System.out.println(selectedTab);<br/>
+    }<br/>
+<br/>
+    return null;<br/>
+  }<br/>
+<br/>
+  void removeStatusBar() {<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          getContentPane().remove(statusBar);<br/>
+          getContentPane().validate();<br/>
+          getContentPane().repaint();<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  boolean isStatusBarVisible() {<br/>
+    return getContentPane().isAncestorOf(statusBar);<br/>
+  }<br/>
+<br/>
+  void addStatusBar() {<br/>
+    removeStatusBar();<br/>
+    SwingUtilities.invokeLater(<br/>
+      new Runnable() {<br/>
+        public void run() {<br/>
+          getContentPane().add(statusBar, BorderLayout.SOUTH);<br/>
+          getContentPane().validate();<br/>
+          getContentPane().repaint();<br/>
+        }<br/>
+      });<br/>
+  }<br/>
+<br/>
+  public String getActiveTabName() {<br/>
+    int index = getTabbedPane().getSelectedIndex();<br/>
+<br/>
+    if (index == -1) {<br/>
+      return null;<br/>
+    } else {<br/>
+      return getTabbedPane().getTitleAt(index);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Formats the individual elements of an LoggingEvent by ensuring that<br/>
+   * there are no null bits, replacing them with EMPTY_STRING<br/>
+   * @param v<br/>
+   * @return<br/>
+   */<br/>
+  private Vector formatFields(Vector v) {<br/>
+    for (int i = 0; i &lt; v.size(); i++) {<br/>
+      if (v.get(i) == null) {<br/>
+        v.set(i, ChainsawConstants.EMPTY_STRING);<br/>
+      }<br/>
+    }<br/>
+<br/>
+    return v;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Regurgitates a DisplayFilter for a specific machine identifier<br/>
+   * by deserializing the settings from a file.<br/>
+   * DisplayFilter serializes tool tip fields and enabled flag.<br/>
+   * @param ident<br/>
+   * @return<br/>
+   */<br/>
+  private DisplayFilter loadDisplayFilter(String ident) {<br/>
+    DisplayFilter d = null;<br/>
+    ObjectInputStream s = null;<br/>
+    File f =<br/>
+      new File(<br/>
+        SettingsManager.getInstance().getSettingsDirectory() + File.separator<br/>
+        + ident + ChainsawConstants.SETTINGS_EXTENSION);<br/>
+<br/>
+    if (f.exists()) {<br/>
+      try {<br/>
+        s = new ObjectInputStream(<br/>
+            new BufferedInputStream(new FileInputStream(f)));<br/>
+        d = (DisplayFilter) s.readObject();<br/>
+      } catch (IOException ioe) {<br/>
+        ioe.printStackTrace();<br/>
+      } catch (ClassNotFoundException cnfe) {<br/>
+        cnfe.printStackTrace();<br/>
+      } finally {<br/>
+        if (s != null) {<br/>
+          try {<br/>
+            s.close();<br/>
+          } catch (IOException ioe) {<br/>
+            ioe.printStackTrace();<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+    }<br/>
+<br/>
+    if (d == null) {<br/>
+      d = new DisplayFilter(ident);<br/>
+    }<br/>
+<br/>
+    return d;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Modify the saved Look And Feel - does not update the currently used Look And Feel<br/>
+   * @param string The FQN of the LookAndFeel<br/>
+   */<br/>
+  public void setLookAndFeel(String lookAndFeelClassName) {<br/>
+    this.lookAndFeelClassName = lookAndFeelClassName;<br/>
+    JOptionPane.showMessageDialog(<br/>
+      getContentPane(),<br/>
+      "Restart application for the new Look and Feel to take effect.",<br/>
+      "Look and Feel Updated", JOptionPane.INFORMATION_MESSAGE);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Changes the currently used Look And Feel of the App<br/>
+   * @param string The FQN of the LookANdFeel<br/>
+   */<br/>
+  private void applyLookAndFeel(String lookAndFeelClassName) {<br/>
+    LogLog.debug("Setting L&amp;F -&gt; " + lookAndFeelClassName);<br/>
+<br/>
+    try {<br/>
+      UIManager.setLookAndFeel(lookAndFeelClassName);<br/>
+      SwingUtilities.updateComponentTreeUI(this);<br/>
+    } catch (Exception e) {<br/>
+      LogLog.error("Failed to change L&amp;F", e);<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Causes the Welcome Panel to become visible, and shows the URL<br/>
+   * specified as it's contents<br/>
+   * @param url for content to show<br/>
+   */<br/>
+  void showHelp(URL url) {<br/>
+    removeWelcomePanel();<br/>
+    addWelcomePanel();<br/>
+<br/>
+    //    TODO ensure the Welcome Panel is the selected tab<br/>
+    WelcomePanel.getInstance().setURL(url);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * @return<br/>
+   */<br/>
+  public boolean isLogTreePanelVisible() {<br/>
+    if (getCurrentLogPanel() == null) {<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    return getCurrentLogPanel().isLogTreePanelVisible();<br/>
+  }<br/>
+<br/>
+  /* (non-Javadoc)<br/>
+   * @see org.apache.log4j.chainsaw.EventBatchListener#getInterestedIdentifier()<br/>
+   */<br/>
+  public String getInterestedIdentifier() {<br/>
+    //    this instance is interested in ALL event batches, as we determine how to route things<br/>
+    return null;<br/>
+  }<br/>
+<br/>
+  //  public Map getEntryMap() {<br/>
+  //    return entryMap;<br/>
+  //  }<br/>
+  //  public Map getScrollMap() {<br/>
+  //    return scrollMap;<br/>
+  //  }<br/>
+  public Map getPanelMap() {<br/>
+    return panelMap;<br/>
+  }<br/>
+<br/>
+  //  public Map getLevelMap() {<br/>
+  //    return levelMap;<br/>
+  //  }<br/>
+  public SettingsManager getSettingsManager() {<br/>
+    return sm;<br/>
+  }<br/>
+<br/>
+  public List getFilterableColumns() {<br/>
+    return filterableColumns;<br/>
+  }<br/>
+<br/>
+  public void setToolBarAndMenus(ChainsawToolBarAndMenus tbms) {<br/>
+    this.tbms = tbms;<br/>
+  }<br/>
+<br/>
+  public ChainsawToolBarAndMenus getToolBarAndMenus() {<br/>
+    return tbms;<br/>
+  }<br/>
+<br/>
+  public Map getTableMap() {<br/>
+    return tableMap;<br/>
+  }<br/>
+<br/>
+  public Map getTableModelMap() {<br/>
+    return tableModelMap;<br/>
+  }<br/>
+<br/>
+  public void setTabbedPane(ChainsawTabbedPane tabbedPane) {<br/>
+    this.tabbedPane = tabbedPane;<br/>
+  }<br/>
+<br/>
+  public ChainsawTabbedPane getTabbedPane() {<br/>
+    return tabbedPane;<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * This class handles the recption of the Event batches<br/>
+   * and creates new LogPanels if the identifier is not in use<br/>
+   * otherwise it ignores the event batch.<br/>
+   * @author Paul Smith &lt;psmith@apache.org&gt;<br/>
+   *<br/>
+   */<br/>
+  private class NewTabEventBatchReceiver implements EventBatchListener {<br/>
+    public void receiveEventBatch(<br/>
+      final String ident, final List eventBatchEntrys) {<br/>
+      if (eventBatchEntrys.size() == 0) {<br/>
+        return;<br/>
+      }<br/>
+<br/>
+      EventContainer tableModel;<br/>
+      JSortTable table;<br/>
+      HashMap map = null;<br/>
+<br/>
+      if (!isGUIFullyInitialized) {<br/>
+        synchronized (initializationLock) {<br/>
+          while (!isGUIFullyInitialized) {<br/>
+            System.out.println(<br/>
+              "Wanting to add a row, but GUI not initialized, waiting...");<br/>
+<br/>
+            /**<br/>
+             * Lets wait 1 seconds and recheck.<br/>
+             */<br/>
+            try {<br/>
+              initializationLock.wait(1000);<br/>
+            } catch (InterruptedException e) {<br/>
+            }<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+<br/>
+      if (!getPanelMap().containsKey(ident)) {<br/>
+        final String eventType =<br/>
+          ((ChainsawEventBatchEntry) eventBatchEntrys.get(0)).getEventType();<br/>
+<br/>
+        final LogPanel thisPanel =<br/>
+          new LogPanel(getStatusBar(), ident, eventType);<br/>
+<br/>
+        thisPanel.addEventCountListener(new TabIconHandler(ident));<br/>
+<br/>
+        thisPanel.addPropertyChangeListener(<br/>
+          new PropertyChangeListener() {<br/>
+            public void propertyChange(PropertyChangeEvent evt) {<br/>
+              tbms.stateChange();<br/>
+            }<br/>
+          });<br/>
+        thisPanel.addPropertyChangeListener(<br/>
+          "docked",<br/>
+          new PropertyChangeListener() {<br/>
+            public void propertyChange(PropertyChangeEvent evt) {<br/>
+              LogPanel logPanel = (LogPanel) evt.getSource();<br/>
+<br/>
+              if (logPanel.isDocked()) {<br/>
+                getPanelMap().put(logPanel.getIdentifier(), logPanel);<br/>
+                getTabbedPane().addANewTab(<br/>
+                  logPanel.getIdentifier(), logPanel, null);<br/>
+              } else {<br/>
+                getTabbedPane().remove(logPanel);<br/>
+              }<br/>
+            }<br/>
+          });<br/>
+<br/>
+        getTabbedPane().add(ident, thisPanel);<br/>
+        getPanelMap().put(ident, thisPanel);<br/>
+<br/>
+        getSettingsManager().configure(thisPanel);<br/>
+<br/>
+        /**<br/>
+         * Let the new LogPanel receive this batch<br/>
+         */<br/>
+        thisPanel.receiveEventBatch(ident, eventBatchEntrys);<br/>
+<br/>
+        /**<br/>
+         * Now add the panel as a batch listener so it can handle it's own batchs<br/>
+         */<br/>
+        handler.addEventBatchListener(thisPanel);<br/>
+<br/>
+        SwingUtilities.invokeLater(<br/>
+          new Runnable() {<br/>
+            public void run() {<br/>
+              getTabbedPane().addANewTab(<br/>
+                ident, thisPanel, new ImageIcon(ChainsawIcons.TOOL_TIP));<br/>
+            }<br/>
+          });<br/>
+<br/>
+        String msg = "added tab " + ident;<br/>
+        LogLog.debug(msg);<br/>
+        statusBar.setMessage(msg);<br/>
+      }<br/>
+    }<br/>
+<br/>
+    /* (non-Javadoc)<br/>
+     * @see org.apache.log4j.chainsaw.EventBatchListener#getInterestedIdentifier()<br/>
+     */<br/>
+    public String getInterestedIdentifier() {<br/>
+      // we are interested in all batches so we can detect new identifiers<br/>
+      return null;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  class TabIconHandler implements EventCountListener {<br/>
+    private final String ident;<br/>
+    private int lastCount;<br/>
+    private int currentCount;<br/>
+<br/>
+    //the tabIconHandler is associated with a new tab, and a new tab always<br/>
+    //has new events<br/>
+    private boolean hasNewEvents = true;<br/>
+    ImageIcon NEW_EVENTS = new ImageIcon(ChainsawIcons.TOOL_TIP);<br/>
+    ImageIcon HAS_EVENTS = new ImageIcon(ChainsawIcons.INFO);<br/>
+<br/>
+    public TabIconHandler(final String ident) {<br/>
+      this.ident = ident;<br/>
+<br/>
+      new Thread(<br/>
+        new Runnable() {<br/>
+          public void run() {<br/>
+            while (true) {<br/>
+              //if this tab is active, remove the icon<br/>
+              if (<br/>
+                (getTabbedPane().getSelectedIndex() &gt; -1)<br/>
+                  &amp;&amp; (getTabbedPane().getSelectedIndex() == getTabbedPane()<br/>
+                                                                .indexOfTab(<br/>
+                    ident))) {<br/>
+                getTabbedPane().setIconAt(<br/>
+                  getTabbedPane().indexOfTab(ident), null);<br/>
+<br/>
+                //reset fields so no icon will display <br/>
+                lastCount = currentCount;<br/>
+                hasNewEvents = false;<br/>
+              } else {<br/>
+                //don't process undocked tabs<br/>
+                if (getTabbedPane().indexOfTab(ident) &gt; -1) {<br/>
+                  //if the tab is not active and the counts don't match, set the new events icon<br/>
+                  if (lastCount != currentCount) {<br/>
+                    getTabbedPane().setIconAt(<br/>
+                      getTabbedPane().indexOfTab(ident), NEW_EVENTS);<br/>
+                    lastCount = currentCount;<br/>
+                    hasNewEvents = true;<br/>
+                  } else {<br/>
+                    if (hasNewEvents) {<br/>
+                      getTabbedPane().setIconAt(<br/>
+                        getTabbedPane().indexOfTab(ident), HAS_EVENTS);<br/>
+                    }<br/>
+                  }<br/>
+                }<br/>
+              }<br/>
+<br/>
+              try {<br/>
+                Thread.sleep(handler.getQueueInterval() + 1000);<br/>
+              } catch (InterruptedException ie) {<br/>
+              }<br/>
+            }<br/>
+          }<br/>
+        }).start();<br/>
+    }<br/>
+<br/>
+    public void eventCountChanged(int currentCount, int totalCount) {<br/>
+      this.currentCount = currentCount;<br/>
+    }<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+--- t_278476/left_DefaultCMSetter_1.23.java	2013-03-17 15:47:26.000000000 +0100
++++ t_278476/right_DefaultCMSetter_1.24.java	2013-03-17 15:47:26.000000000 +0100
+@@ -173,7 +173,7 @@
+ 
+ 	for(int i=0; i < jars.size(); ++i) {
+ 	    String jarfile = (String) jars.elementAt(i);
+-	    loader.addRepository( new File( base + "/WEB-INF/lib/" +jarfile ));
++	    loader.addRepository( new File(f, jarfile ));
+ 	}
+     }
+ 

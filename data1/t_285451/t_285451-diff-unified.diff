@@ -1,0 +1,11 @@
+--- t_285451/left_AssertTest_1.6.java	2013-03-17 15:47:06.000000000 +0100
++++ t_285451/right_AssertTest_1.7.java	2013-03-17 15:47:06.000000000 +0100
+@@ -178,7 +178,7 @@
+ 
+ 	public void testComparisonErrorMessage() {
+ 		ComparisonFailure failure= new ComparisonFailure("a", "b", "c");
+-		assertEquals("a: expected:<b> but was:<c>", failure.getMessage());
++		assertEquals("a expected:<b> but was:<c>", failure.getMessage());
+ 	}
+ 
+ 	public void testComparisonErrorStartSame() {

@@ -1,0 +1,11 @@
+--- t_247191/left_EJBSecurityManagerDefaultImpl_1.1.java	2013-03-17 15:47:00.000000000 +0100
++++ t_247191/right_EJBSecurityManagerDefaultImpl_1.2.java	2013-03-17 15:47:00.000000000 +0100
+@@ -46,7 +46,7 @@
+ {
+ 	public boolean isValid( Principal principal, Object credential )
+ 	{
+-		return principal.getName().equals( credential.toString() );
++		return credential != null && principal.getName().equals( credential.toString() );
+ 	}
+ }
+ 

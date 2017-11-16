@@ -1,0 +1,290 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_TestPriorityQueue_1.2.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.util;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.util.Date;<br/>
+import java.util.Random;<br/>
+import <span class="mv">junit.framework</span>.*;<br/>
+<br/>
+public class TestPriorityQueue extends TestCase {<br/>
+   public TestPriorityQueue(String name) {<br/>
+     super(name);<br/>
+   }<br/>
+<br/>
+  private static class IntegerQueue extends PriorityQueue {<br/>
+    public IntegerQueue(int count) { <br/>
+      super();<br/>
+      initialize(count);<br/>
+    }<br/>
+<br/>
+    protected boolean lessThan(Object a, Object b) {<br/>
+      return ((Integer) a).intValue() &lt; ((Integer) b).intValue();<br/>
+    }<br/>
+  }<br/>
+<br/>
+  public void testPQ() throws Exception {<br/>
+    testPQ(10000);<br/>
+  }<br/>
+<br/>
+  public static void testPQ(int count) {<br/>
+    PriorityQueue pq = new IntegerQueue(count);<br/>
+    Random gen = new Random();<br/>
+    int sum = 0, sum2 = 0;<br/>
+    <br/>
+    Date start = new Date();<br/>
+<br/>
+    for (int i = 0; i &lt; count; i++) {<br/>
+      int next = gen.nextInt();<br/>
+      sum += next;<br/>
+      pq.put(new Integer(next));<br/>
+    }<br/>
+<br/>
+//      Date end = new Date();<br/>
+<br/>
+//      System.out.print(((float)(end.getTime()-start.getTime()) / count) * 1000);<br/>
+//      System.out.println(" microseconds/put");<br/>
+<br/>
+//      start = new Date();<br/>
+<br/>
+    int last = Integer.MIN_VALUE;<br/>
+    for (int i = 0; i &lt; count; i++) {<br/>
+      Integer next = (Integer)pq.pop();<br/>
+      assertTrue(next.intValue() &gt;= last);<br/>
+      last = next.intValue();<br/>
+      sum2 += last;<br/>
+    }<br/>
+<br/>
+    assertEquals(sum, sum2); <br/>
+//      end = new Date();<br/>
+<br/>
+//      System.out.print(((float)(end.getTime()-start.getTime()) / count) * 1000);<br/>
+//      System.out.println(" microseconds/pop");<br/>
+<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_TestPriorityQueue_1.3.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.util;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.util.Date;<br/>
+import java.util.Random;<br/>
+import <span class="add"><span class="mv">junit.framework</span>.<span class="add">TestCase</span></span>;<br/>
+<br/>
+public class TestPriorityQueue<br/>
+    extends TestCase<br/>
+{<br/>
+    public TestPriorityQueue(String name)<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(name);<br/>
+    }<br/>
+<br/>
+    private static class IntegerQueue<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;extends PriorityQueue<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public IntegerQueue(int count)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    super();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    initialize(count);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected boolean lessThan(Object a, Object b)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return ((Integer) a).intValue() &lt; ((Integer) b).intValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    public void testPQ()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws Exception<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;testPQ(10000);<br/>
+    }<br/>
+<br/>
+    public static void testPQ(int count)<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PriorityQueue pq = new IntegerQueue(count);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Random gen = new Random();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int sum = 0, sum2 = 0;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Date start = new Date();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; count; i++)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int next = gen.nextInt();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sum += next;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    pq.put(new Integer(next));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//      Date end = new Date();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//      System.out.print(((float)(end.getTime()-start.getTime()) / count) * 1000);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//      System.out.println(" microseconds/put");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//      start = new Date();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int last = Integer.MIN_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; count; i++)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Integer next = (Integer)pq.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertTrue(next.intValue() &gt;= last);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    last = next.intValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sum2 += last;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(sum, sum2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//      end = new Date();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//      System.out.print(((float)(end.getTime()-start.getTime()) / count) * 1000);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//      System.out.println(" microseconds/pop");<br/>
+    }<br/>
+<br/>
+    <span class="add"><span class="add">public</span> <span class="add">void</span> <span class="add">testClear</span>()<br/>
+    <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">PriorityQueue</span></span> <span class="add"><span class="add">pq</span> = <span class="add">new <span class="add"><span class="add">IntegerQueue</span></span>(<span class="add">3</span>)</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">pq</span>.<span class="add">put</span>(<span class="add">new <span class="add"><span class="add">Integer</span></span>(<span class="add">2</span>)</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">pq</span>.<span class="add">put</span>(<span class="add">new <span class="add"><span class="add">Integer</span></span>(<span class="add">3</span>)</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">pq</span>.<span class="add">put</span>(<span class="add">new <span class="add"><span class="add">Integer</span></span>(<span class="add">1</span>)</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">assertEquals</span>(<span class="add">3</span>, <span class="add"><span class="add">pq</span>.<span class="add">size</span>()</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">pq</span>.<span class="add">clear</span>()</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">assertEquals</span>(<span class="add">0</span>, <span class="add"><span class="add">pq</span>.<span class="add">size</span>()</span>)</span>;</span><br/>
+    }</span></span><br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

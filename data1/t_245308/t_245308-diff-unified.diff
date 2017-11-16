@@ -1,0 +1,11 @@
+--- t_245308/left_update_1.45.java	2013-03-17 15:47:00.000000000 +0100
++++ t_245308/right_update_1.46.java	2013-03-17 15:47:00.000000000 +0100
+@@ -388,7 +388,7 @@
+ 	Name name = null;
+ 	short type = Type.A, dclass = defaultClass;
+ 
+-	name = new Name(st.nextToken());
++	name = new Name(st.nextToken(), origin);
+ 	if (st.hasMoreTokens()) {
+ 		type = Type.value(st.nextToken());
+ 		if (type < 0)

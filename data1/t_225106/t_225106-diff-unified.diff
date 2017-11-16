@@ -1,0 +1,11 @@
+--- t_225106/left_SegmentTermDocs_1.6.java	2013-03-17 15:47:10.000000000 +0100
++++ t_225106/right_SegmentTermDocs_1.7.java	2013-03-17 15:47:10.000000000 +0100
+@@ -199,7 +199,7 @@
+         if (skipDoc != 0 && skipDoc >= doc)
+           numSkipped += skipInterval;
+ 
+-        if ((count + numSkipped + skipInterval) > df)
++        if ((count + numSkipped + skipInterval) >= df)
+           break;                                  // no more skips
+ 
+         skipDoc += skipStream.readVInt();

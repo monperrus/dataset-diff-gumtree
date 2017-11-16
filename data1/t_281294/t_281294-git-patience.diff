@@ -1,0 +1,13 @@
+diff --git a/t_281294/left_ValidatorResources_1.2.java b/t_281294/right_ValidatorResources_1.3.java
+index 2bffad8..a0b1e13 100644
+--- a/t_281294/left_ValidatorResources_1.2.java
++++ b/t_281294/right_ValidatorResources_1.3.java
+@@ -360,7 +360,7 @@ public class ValidatorResources implements Serializable {
+ 
+              for (Iterator defaultFields = defaultForm.getFields().iterator(); defaultFields.hasNext(); ) {
+                 Field defaultField = (Field)defaultFields.next();
+-                String fieldKey = defaultField.getProperty();
++                String fieldKey = defaultField.getKey();
+ 
+                 if (form.getFieldMap().containsKey(fieldKey)) {
+                    newForm.addField((Field)form.getFieldMap().get(fieldKey));

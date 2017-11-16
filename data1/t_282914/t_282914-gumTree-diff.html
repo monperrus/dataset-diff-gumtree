@@ -1,0 +1,482 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ComponentDefinitionsFactoryWrapper_1.13.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/src/share/org/apache/struts/tiles/definition/ComponentDefinitionsFactoryWrapper.java,v 1.13 2004-08-07 04:17:52 martinc Exp $<br/>
+ * $Revision: 1.13 $<br/>
+ * $Date: 2004-08-07 04:17:52 $<br/>
+ *<br/>
+ * Copyright 1999-2004 The Apache Software Foundation.<br/>
+ * <br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ * <br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ * <br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.struts.tiles.definition;<br/>
+<br/>
+import java.util.HashMap;<br/>
+import java.util.Map;<br/>
+<br/>
+import javax.servlet.ServletContext;<br/>
+import javax.servlet.ServletRequest;<br/>
+<br/>
+import org.apache.struts.tiles.ComponentDefinition;<br/>
+import org.apache.struts.tiles.ComponentDefinitionsFactory;<br/>
+import org.apache.struts.tiles.DefinitionsFactory;<br/>
+import org.apache.struts.tiles.DefinitionsFactoryConfig;<br/>
+import org.apache.struts.tiles.DefinitionsFactoryException;<br/>
+import org.apache.struts.tiles.NoSuchDefinitionException;<br/>
+import org.apache.struts.util.RequestUtils;<br/>
+<br/>
+/**<br/>
+ * Wrapper from new definition factory interface to old interface.<br/>
+ * This class provides mapping from the old interface's life cycle to the new life cycle.<br/>
+ * @since 20020708<br/>
+ */<br/>
+public class ComponentDefinitionsFactoryWrapper implements DefinitionsFactory {<br/>
+<br/>
+    /** <br/>
+     * The underlying factory. <br/>
+     */<br/>
+    private ComponentDefinitionsFactory factory = null;<br/>
+<br/>
+    /** <br/>
+     * Factory configuration,<br/>
+     */<br/>
+    private DefinitionsFactoryConfig config = null;<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     * Create new wrapper for specified factory.<br/>
+     * @param factory The factory to create a wrapper for.<br/>
+     */<br/>
+    public ComponentDefinitionsFactoryWrapper(ComponentDefinitionsFactory factory) {<br/>
+        this.factory = factory;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     * Create new wrapper.<br/>
+     * The config object passed to init method should reference a factory implementing<br/>
+     * {@link ComponentDefinitionsFactory}.<br/>
+     */<br/>
+    public ComponentDefinitionsFactoryWrapper() {<br/>
+        super();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get requested definition.<br/>
+     * @param name Name of the definition.<br/>
+     * @param request The request we are processing.<br/>
+     * @param servletContext Our servlet context.<br/>
+     * @return ComponentDefition<br/>
+     */<br/>
+    public ComponentDefinition getDefinition(<br/>
+        String name,<br/>
+        ServletRequest request,<br/>
+        ServletContext servletContext)<br/>
+        throws NoSuchDefinitionException, DefinitionsFactoryException {<br/>
+<br/>
+        return factory.getDefinition(name, request, servletContext);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Call underlying factory init method.<br/>
+     * @param config DefinitionsFactoryConfig.<br/>
+     * @param servletContext Our servlet context.<br/>
+     */<br/>
+    public void init(DefinitionsFactoryConfig config, ServletContext servletContext)<br/>
+        throws DefinitionsFactoryException {<br/>
+<br/>
+        this.config = config;<br/>
+<br/>
+        // create factory and initialize it<br/>
+        if (factory == null) {<br/>
+            factory = createFactoryInstance(config.getFactoryClassname());<br/>
+        }<br/>
+<br/>
+        factory.initFactory(servletContext, createConfigMap(config));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Do nothing because old life cycle has no equivalent.<br/>
+     */<br/>
+    public void destroy() {<br/>
+        factory = null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set underlying factory configuration.<br/>
+     * @param config DefinitionsFactoryConfig to use.<br/>
+     * @param servletContext Our servlet context.<br/>
+     *<br/>
+     */<br/>
+    public void setConfig(<br/>
+        DefinitionsFactoryConfig config,<br/>
+        ServletContext servletContext)<br/>
+        throws DefinitionsFactoryException {<br/>
+<br/>
+        ComponentDefinitionsFactory newFactory =<br/>
+            createFactoryInstance(config.getFactoryClassname());<br/>
+<br/>
+        newFactory.initFactory(servletContext, createConfigMap(config));<br/>
+        factory = newFactory;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get underlying factory configuration.<br/>
+     * @return DefinitionsFactoryConfig.<br/>
+     */<br/>
+    public DefinitionsFactoryConfig getConfig() {<br/>
+        return config;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get internal factory.<br/>
+     * @return The internal ComponentDefitionsFactory.<br/>
+     */<br/>
+    public ComponentDefinitionsFactory getInternalFactory() {<br/>
+        return factory;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Create Definition factory from provided classname which must implement {@link ComponentDefinitionsFactory}.<br/>
+     * Factory class must extend {@link DefinitionsFactory}.<br/>
+     * @param classname Class name of the factory to create.<br/>
+     * @return newly created factory.<br/>
+     * @throws DefinitionsFactoryException If an error occur while initializing factory<br/>
+     */<br/>
+    protected ComponentDefinitionsFactory createFactoryInstance(String classname)<br/>
+        throws DefinitionsFactoryException {<br/>
+<br/>
+        try {<br/>
+            Class factoryClass = RequestUtils.applicationClass(classname);<br/>
+            Object factory = factoryClass.newInstance();<br/>
+            return (ComponentDefinitionsFactory) factory;<br/>
+<br/>
+        } catch (ClassCastException ex) { // Bad classname<br/>
+            throw new DefinitionsFactoryException(<br/>
+                "Error - createDefinitionsFactory : Factory class '"<br/>
+                    + classname<br/>
+                    + " must implement 'DefinitionsFactory'.",<br/>
+                ex);<br/>
+<br/>
+        } catch (ClassNotFoundException ex) { // Bad classname<br/>
+            throw new DefinitionsFactoryException(<br/>
+                "Error - createDefinitionsFactory : Bad class name '"<br/>
+                    + classname<br/>
+                    + "'.",<br/>
+                ex);<br/>
+<br/>
+        } catch (InstantiationException ex) { // Bad constructor or error<br/>
+            throw new DefinitionsFactoryException(ex);<br/>
+<br/>
+        } catch (IllegalAccessException ex) {<br/>
+            throw new DefinitionsFactoryException(ex);<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return String representation.<br/>
+     * Calls toString() on underlying factory.<br/>
+     * @return String representation.<br/>
+     */<br/>
+    public String toString() {<br/>
+        return getInternalFactory().toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Create map of configuration attributes from configuration object.<br/>
+     * Mapping is done between old names and new names.<br/>
+     * @param config The DefinitionsFactoryConfig to use.<br/>
+     * @return Map Map of name/value pairs.<br/>
+     */<br/>
+    public static Map createConfigMap(DefinitionsFactoryConfig config) {<br/>
+        Map map = new HashMap(config.getAttributes());<br/>
+        // Add property attributes using old names<br/>
+        map.put(<br/>
+            DefinitionsFactoryConfig.DEFINITIONS_CONFIG_PARAMETER_NAME,<br/>
+            config.getDefinitionConfigFiles());<br/>
+<br/>
+        map.put(<br/>
+            DefinitionsFactoryConfig.PARSER_VALIDATE_PARAMETER_NAME,<br/>
+            <span class="del"><span class="mv"><span class="mv">Boolean</span>.<span class="mv"><span class="upd">valueOf</span></span>(<span class="mv">config.getParserValidate()</span>)</span>.<span class="mv">toString</span>()</span>);<br/>
+<br/>
+        if (!"org.apache.struts.tiles.xmlDefinition.I18nFactorySet"<br/>
+            .equals(config.getFactoryClassname())) {<br/>
+<br/>
+            map.put(<br/>
+                DefinitionsFactoryConfig.FACTORY_CLASSNAME_PARAMETER_NAME,<br/>
+                config.getFactoryClassname());<br/>
+        }<br/>
+<br/>
+        return map;<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ComponentDefinitionsFactoryWrapper_1.14.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/src/share/org/apache/struts/tiles/definition/ComponentDefinitionsFactoryWrapper.java,v 1.14 2004-08-31 20:41:29 jmitchell Exp $<br/>
+ * $Revision: 1.14 $<br/>
+ * $Date: 2004-08-31 20:41:29 $<br/>
+ *<br/>
+ * Copyright 1999-2004 The Apache Software Foundation.<br/>
+ * <br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ * <br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ * <br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.struts.tiles.definition;<br/>
+<br/>
+import java.util.HashMap;<br/>
+import java.util.Map;<br/>
+<br/>
+import javax.servlet.ServletContext;<br/>
+import javax.servlet.ServletRequest;<br/>
+<br/>
+import org.apache.struts.tiles.ComponentDefinition;<br/>
+import org.apache.struts.tiles.ComponentDefinitionsFactory;<br/>
+import org.apache.struts.tiles.DefinitionsFactory;<br/>
+import org.apache.struts.tiles.DefinitionsFactoryConfig;<br/>
+import org.apache.struts.tiles.DefinitionsFactoryException;<br/>
+import org.apache.struts.tiles.NoSuchDefinitionException;<br/>
+import org.apache.struts.util.RequestUtils;<br/>
+<br/>
+/**<br/>
+ * Wrapper from new definition factory interface to old interface.<br/>
+ * This class provides mapping from the old interface's life cycle to the new life cycle.<br/>
+ * @since 20020708<br/>
+ */<br/>
+public class ComponentDefinitionsFactoryWrapper implements DefinitionsFactory {<br/>
+<br/>
+    /** <br/>
+     * The underlying factory. <br/>
+     */<br/>
+    private ComponentDefinitionsFactory factory = null;<br/>
+<br/>
+    /** <br/>
+     * Factory configuration,<br/>
+     */<br/>
+    private DefinitionsFactoryConfig config = null;<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     * Create new wrapper for specified factory.<br/>
+     * @param factory The factory to create a wrapper for.<br/>
+     */<br/>
+    public ComponentDefinitionsFactoryWrapper(ComponentDefinitionsFactory factory) {<br/>
+        this.factory = factory;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     * Create new wrapper.<br/>
+     * The config object passed to init method should reference a factory implementing<br/>
+     * {@link ComponentDefinitionsFactory}.<br/>
+     */<br/>
+    public ComponentDefinitionsFactoryWrapper() {<br/>
+        super();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get requested definition.<br/>
+     * @param name Name of the definition.<br/>
+     * @param request The request we are processing.<br/>
+     * @param servletContext Our servlet context.<br/>
+     * @return ComponentDefition<br/>
+     */<br/>
+    public ComponentDefinition getDefinition(<br/>
+        String name,<br/>
+        ServletRequest request,<br/>
+        ServletContext servletContext)<br/>
+        throws NoSuchDefinitionException, DefinitionsFactoryException {<br/>
+<br/>
+        return factory.getDefinition(name, request, servletContext);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Call underlying factory init method.<br/>
+     * @param config DefinitionsFactoryConfig.<br/>
+     * @param servletContext Our servlet context.<br/>
+     */<br/>
+    public void init(DefinitionsFactoryConfig config, ServletContext servletContext)<br/>
+        throws DefinitionsFactoryException {<br/>
+<br/>
+        this.config = config;<br/>
+<br/>
+        // create factory and initialize it<br/>
+        if (factory == null) {<br/>
+            factory = createFactoryInstance(config.getFactoryClassname());<br/>
+        }<br/>
+<br/>
+        factory.initFactory(servletContext, createConfigMap(config));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Do nothing because old life cycle has no equivalent.<br/>
+     */<br/>
+    public void destroy() {<br/>
+        factory = null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set underlying factory configuration.<br/>
+     * @param config DefinitionsFactoryConfig to use.<br/>
+     * @param servletContext Our servlet context.<br/>
+     *<br/>
+     */<br/>
+    public void setConfig(<br/>
+        DefinitionsFactoryConfig config,<br/>
+        ServletContext servletContext)<br/>
+        throws DefinitionsFactoryException {<br/>
+<br/>
+        ComponentDefinitionsFactory newFactory =<br/>
+            createFactoryInstance(config.getFactoryClassname());<br/>
+<br/>
+        newFactory.initFactory(servletContext, createConfigMap(config));<br/>
+        factory = newFactory;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get underlying factory configuration.<br/>
+     * @return DefinitionsFactoryConfig.<br/>
+     */<br/>
+    public DefinitionsFactoryConfig getConfig() {<br/>
+        return config;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get internal factory.<br/>
+     * @return The internal ComponentDefitionsFactory.<br/>
+     */<br/>
+    public ComponentDefinitionsFactory getInternalFactory() {<br/>
+        return factory;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Create Definition factory from provided classname which must implement {@link ComponentDefinitionsFactory}.<br/>
+     * Factory class must extend {@link DefinitionsFactory}.<br/>
+     * @param classname Class name of the factory to create.<br/>
+     * @return newly created factory.<br/>
+     * @throws DefinitionsFactoryException If an error occur while initializing factory<br/>
+     */<br/>
+    protected ComponentDefinitionsFactory createFactoryInstance(String classname)<br/>
+        throws DefinitionsFactoryException {<br/>
+<br/>
+        try {<br/>
+            Class factoryClass = RequestUtils.applicationClass(classname);<br/>
+            Object factory = factoryClass.newInstance();<br/>
+            return (ComponentDefinitionsFactory) factory;<br/>
+<br/>
+        } catch (ClassCastException ex) { // Bad classname<br/>
+            throw new DefinitionsFactoryException(<br/>
+                "Error - createDefinitionsFactory : Factory class '"<br/>
+                    + classname<br/>
+                    + " must implement 'DefinitionsFactory'.",<br/>
+                ex);<br/>
+<br/>
+        } catch (ClassNotFoundException ex) { // Bad classname<br/>
+            throw new DefinitionsFactoryException(<br/>
+                "Error - createDefinitionsFactory : Bad class name '"<br/>
+                    + classname<br/>
+                    + "'.",<br/>
+                ex);<br/>
+<br/>
+        } catch (InstantiationException ex) { // Bad constructor or error<br/>
+            throw new DefinitionsFactoryException(ex);<br/>
+<br/>
+        } catch (IllegalAccessException ex) {<br/>
+            throw new DefinitionsFactoryException(ex);<br/>
+        }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return String representation.<br/>
+     * Calls toString() on underlying factory.<br/>
+     * @return String representation.<br/>
+     */<br/>
+    public String toString() {<br/>
+        return getInternalFactory().toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Create map of configuration attributes from configuration object.<br/>
+     * Mapping is done between old names and new names.<br/>
+     * @param config The DefinitionsFactoryConfig to use.<br/>
+     * @return Map Map of name/value pairs.<br/>
+     */<br/>
+    public static Map createConfigMap(DefinitionsFactoryConfig config) {<br/>
+        Map map = new HashMap(config.getAttributes());<br/>
+        // Add property attributes using old names<br/>
+        map.put(<br/>
+            DefinitionsFactoryConfig.DEFINITIONS_CONFIG_PARAMETER_NAME,<br/>
+            config.getDefinitionConfigFiles());<br/>
+<br/>
+        map.put(<br/>
+            DefinitionsFactoryConfig.PARSER_VALIDATE_PARAMETER_NAME,<br/>
+            <span class="add">(<span class="add"><span class="mv">config.getParserValidate()</span> ? <span class="mv"><span class="add"><span class="mv">Boolean</span>.<span class="mv"><span class="upd">TRUE</span></span></span>.<span class="mv">toString</span>()</span> : <span class="add"><span class="add"><span class="add">Boolean</span>.<span class="add">FALSE</span></span>.<span class="add">toString</span>()</span></span>)</span>);<br/>
+<br/>
+        if (!"org.apache.struts.tiles.xmlDefinition.I18nFactorySet"<br/>
+            .equals(config.getFactoryClassname())) {<br/>
+<br/>
+            map.put(<br/>
+                DefinitionsFactoryConfig.FACTORY_CLASSNAME_PARAMETER_NAME,<br/>
+                config.getFactoryClassname());<br/>
+        }<br/>
+<br/>
+        return map;<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

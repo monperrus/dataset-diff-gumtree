@@ -1,0 +1,10 @@
+--- t_264036/left_ASTConverter_1.232.java	2013-03-17 15:47:18.000000000 +0100
++++ t_264036/right_ASTConverter_1.233.java	2013-03-17 15:47:20.000000000 +0100
+@@ -3262,6 +3262,7 @@
+ 				simpleType.setName(qualifiedName);
+ 				type = simpleType;
+ 				type.setSourceRange(sourceStart, length);
++				length = typeReference.sourceEnd - sourceStart + 1;
+ 			}
+ 
+ 			if (dimensions != 0) {

@@ -1,0 +1,13 @@
+diff --git a/t_286305/left_BlockJUnit4ClassRunner_1.7.java b/t_286305/right_BlockJUnit4ClassRunner_1.8.java
+index 38ab1a8..5f0fe83 100644
+--- a/t_286305/left_BlockJUnit4ClassRunner_1.7.java
++++ b/t_286305/right_BlockJUnit4ClassRunner_1.8.java
+@@ -54,7 +54,7 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod>
+ 	 *             if the test class is malformed.
+ 	 */
+ 	public BlockJUnit4ClassRunner(Class<?> klass) throws InitializationError {
+-		super(new TestClass(klass));
++		super(klass);
+ 		fTestMethods= computeTestMethods();
+ 		validate();
+ 	}

@@ -1,0 +1,22 @@
+diff --git a/t_231627/left_XmlIO_1.8.java b/t_231627/right_XmlIO_1.9.java
+index 7362212..729d7ae 100644
+--- a/t_231627/left_XmlIO_1.8.java
++++ b/t_231627/right_XmlIO_1.9.java
+@@ -30,6 +30,8 @@ import javax.xml.parsers.SAXParser;
+ import javax.xml.parsers.SAXParserFactory;
+ 
+ import org.columba.core.logging.ColumbaLogger;
++import org.columba.core.io.DiskIO;
++
+ import org.xml.sax.Attributes;
+ import org.xml.sax.SAXException;
+ import org.xml.sax.XMLReader;
+@@ -110,7 +112,7 @@ public class XmlIO extends DefaultHandler {
+ 
+ 			SAXParser saxParser = factory.newSAXParser();
+ 
+-			saxParser.parse(inputURL.openStream(), this);
++			saxParser.parse(inputURL.toString(), this);
+ 
+ 		} catch (javax.xml.parsers.ParserConfigurationException ex) {
+ 			ColumbaLogger.log.error(

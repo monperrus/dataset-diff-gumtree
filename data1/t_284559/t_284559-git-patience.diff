@@ -1,0 +1,13 @@
+diff --git a/t_284559/left_SMTPAppender_1.36.java b/t_284559/right_SMTPAppender_1.37.java
+index 918dd8d..b297b6a 100644
+--- a/t_284559/left_SMTPAppender_1.36.java
++++ b/t_284559/right_SMTPAppender_1.37.java
+@@ -255,7 +255,7 @@ public class SMTPAppender extends AppenderSkeleton {
+       msg.setSentDate(new Date());
+       Transport.send(msg);
+     } catch (Exception e) {
+-      errorHandler.error("Error occured while sending e-mail notification.", e);
++      errorHandler.error("Error occured while sending e-mail notification.", e, ErrorCode.GENERIC_FAILURE);
+     }
+   }
+ 

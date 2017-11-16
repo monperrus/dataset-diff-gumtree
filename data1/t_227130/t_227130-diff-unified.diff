@@ -1,0 +1,18 @@
+--- t_227130/left_Transaction_1.37.java	2013-03-17 15:47:24.000000000 +0100
++++ t_227130/right_Transaction_1.38.java	2013-03-17 15:47:24.000000000 +0100
+@@ -92,6 +92,15 @@
+     /**
+      * Populates a new transaction object.
+      */
++    public void create(NumberKey typeId, ScarabUser user)
++        throws Exception
++    {
++        create(typeId, user, null);
++    }
++
++    /**
++     * Populates a new transaction object.
++     */
+     public void create(NumberKey typeId, ScarabUser user, Attachment attachment)
+         throws Exception
+     {

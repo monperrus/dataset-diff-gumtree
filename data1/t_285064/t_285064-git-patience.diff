@@ -1,0 +1,13 @@
+diff --git a/t_285064/left_DrawApplication_1.15.java b/t_285064/right_DrawApplication_1.16.java
+index e79471a..4f18c33 100644
+--- a/t_285064/left_DrawApplication_1.15.java
++++ b/t_285064/right_DrawApplication_1.16.java
+@@ -336,7 +336,7 @@ public	class DrawApplication
+ 		CommandMenu menu = new CommandMenu("Debug");
+ 
+ 		Command cmd = new AbstractCommand("Simple Update", this) {
+-			public void executable() {
++			public void execute() {
+ 				this.view().setDisplayUpdate(new SimpleUpdateStrategy());
+ 			}
+ 		};

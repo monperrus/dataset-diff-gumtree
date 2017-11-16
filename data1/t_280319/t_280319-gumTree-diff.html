@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_InvokerInterceptor_1.1.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */ <br/>
+package org.apache.tomcat.modules.generators;<br/>
+<br/>
+import org.apache.tomcat.util.*;<br/>
+import org.apache.tomcat.core.*;<br/>
+import java.io.IOException;<br/>
+import java.io.PrintWriter;<br/>
+<br/>
+/**<br/>
+ *<br/>
+ *<br/>
+ * @author James Duncan Davidson [duncan@eng.sun.com]<br/>
+ * @author Jason Hunter [jch@eng.sun.com]<br/>
+ * @author James Todd [gonzo@eng.sun.com]<br/>
+ * @author Costin Manolache<br/>
+ */<br/>
+public class InvokerInterceptor extends BaseInterceptor {<br/>
+<br/>
+    String prefix="/servlet/";<br/>
+    int prefixLen=prefix.length();<br/>
+<br/>
+    public int requestMap(Request req) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// If we have an explicit mapper - return<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Container ct=req.getContainer();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;log( "Ct: " + ct.getHandler() + " " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;     ct.getPath() + " " + ct.getMapType());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(  req.getHandler()!=null &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     ct!=null &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     ct.getMapType() != Container.DEFAULT_MAP )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// default servlet / container<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// if doesn't starts with /servlet - return<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String pathInfo = req.pathInfo().toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String servletPath=req.servletPath().toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Now we need to fix path info and servlet path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( servletPath == null ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ! servletPath.startsWith( prefix ))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 0;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=req.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set the wrapper, and add a new mapping - next time<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we'll not have to do that ( the simple mapper is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// supposed to be faster )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String servletName = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String newPathInfo = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Original ServletPath=" +servletPath +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " PathInfo=" + pathInfo);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int secondSlash=servletPath.indexOf("/", prefixLen );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ( secondSlash &gt; -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    servletName = servletPath.substring(prefixLen, secondSlash );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    newPathInfo = servletPath.substring( secondSlash );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    servletName = servletPath.substring( prefixLen );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String newServletPath = prefix + servletName;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "After pathfix SN=" + servletName +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " SP=" + newServletPath +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " PI=" + newPathInfo);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;req.servletPath().setString(newServletPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.pathInfo().setString(newPathInfo);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Handler wrapper = ctx.getServletByName(servletName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (wrapper != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.setHandler( wrapper );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Dynamic add for the wrapper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// even if the server doesn't supports dynamic mappings,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we'll avoid the interceptor for include() and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// it's a much cleaner way to construct the servlet and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// make sure all interceptors are up to date.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.addServletMapping( newServletPath + "/*" ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   servletName );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // The facade should create the servlet name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Handler sw=ctx.getServletByName( servletName );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // &nbsp;&nbsp;&nbsp;&nbsp;    sw.setContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // &nbsp;&nbsp;&nbsp;&nbsp;    sw.setServletName(servletName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    ctx.addServlet( sw );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    sw.setServletClass( servletName );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //sw.setOrigin( Handler.ORIGIN_INVOKER );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    wrapper=sw;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Added mapping " + wrapper +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     " path=" + newServletPath + "/*" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    loghelper.log("dynamically adding wrapper for " + servletName, ex);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 404;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setHandler( wrapper );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    }<br/>
+    <br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_InvokerInterceptor_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */ <br/>
+package org.apache.tomcat.modules.generators;<br/>
+<br/>
+import org.apache.tomcat.util.*;<br/>
+import org.apache.tomcat.core.*;<br/>
+import java.io.IOException;<br/>
+import java.io.PrintWriter;<br/>
+<br/>
+/**<br/>
+ *<br/>
+ *<br/>
+ * @author James Duncan Davidson [duncan@eng.sun.com]<br/>
+ * @author Jason Hunter [jch@eng.sun.com]<br/>
+ * @author James Todd [gonzo@eng.sun.com]<br/>
+ * @author Costin Manolache<br/>
+ */<br/>
+public class InvokerInterceptor extends BaseInterceptor {<br/>
+<br/>
+    String prefix="/servlet/";<br/>
+    int prefixLen=prefix.length();<br/>
+<br/>
+    <span class="add"><span class="add">public</span> <span class="add">void</span> <span class="add">setPrefix</span>(<span class="add"><span class="add"><span class="add">String</span></span> <span class="add">prefix</span></span>) <span class="add">{<br/>
+        <span class="add">if( <span class="add"><span class="add">prefix</span> != <span class="add">null</span></span> ) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add"><span class="add">this</span>.<span class="add">prefix</span></span> = <span class="add">prefix</span></span>;</span><br/>
+            <span class="add"><span class="add"><span class="add">prefixLen</span>=<span class="add"><span class="add"><span class="add">this</span>.<span class="add">prefix</span></span>.<span class="add">length</span>()</span></span>;</span><br/>
+        }</span></span><br/>
+    }</span></span><br/>
+<br/>
+    public int requestMap(Request req) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// If we have an explicit mapper - return<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Container ct=req.getContainer();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;log( "Ct: " + ct.getHandler() + " " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;     ct.getPath() + " " + ct.getMapType());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(  req.getHandler()!=null &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     ct!=null &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     ct.getMapType() != Container.DEFAULT_MAP )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// default servlet / container<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// if doesn't starts with /servlet - return<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String pathInfo = req.pathInfo().toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String servletPath=req.servletPath().toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Now we need to fix path info and servlet path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( servletPath == null ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ! servletPath.startsWith( prefix ))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 0;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=req.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set the wrapper, and add a new mapping - next time<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we'll not have to do that ( the simple mapper is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// supposed to be faster )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String servletName = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String newPathInfo = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Original ServletPath=" +servletPath +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " PathInfo=" + pathInfo);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int secondSlash=servletPath.indexOf("/", prefixLen );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if ( secondSlash &gt; -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    servletName = servletPath.substring(prefixLen, secondSlash );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    newPathInfo = servletPath.substring( secondSlash );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    servletName = servletPath.substring( prefixLen );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String newServletPath = prefix + servletName;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "After pathfix SN=" + servletName +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " SP=" + newServletPath +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " PI=" + newPathInfo);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;req.servletPath().setString(newServletPath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.pathInfo().setString(newPathInfo);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Handler wrapper = ctx.getServletByName(servletName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (wrapper != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.setHandler( wrapper );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Dynamic add for the wrapper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// even if the server doesn't supports dynamic mappings,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we'll avoid the interceptor for include() and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// it's a much cleaner way to construct the servlet and<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// make sure all interceptors are up to date.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.addServletMapping( newServletPath + "/*" ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   servletName );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // The facade should create the servlet name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Handler sw=ctx.getServletByName( servletName );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // &nbsp;&nbsp;&nbsp;&nbsp;    sw.setContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // &nbsp;&nbsp;&nbsp;&nbsp;    sw.setServletName(servletName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    ctx.addServlet( sw );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    sw.setServletClass( servletName );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //sw.setOrigin( Handler.ORIGIN_INVOKER );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    wrapper=sw;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Added mapping " + wrapper +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     " path=" + newServletPath + "/*" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    loghelper.log("dynamically adding wrapper for " + servletName, ex);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 404;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setHandler( wrapper );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    }<br/>
+    <br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

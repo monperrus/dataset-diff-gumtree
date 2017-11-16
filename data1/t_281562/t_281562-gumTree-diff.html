@@ -1,0 +1,352 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ExceptionHandler_1.3.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999-2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Struts", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+package org.apache.struts.action;<br/>
+<br/>
+import java.util.Locale;<br/>
+<br/>
+import javax.servlet.ServletException;<br/>
+import javax.servlet.http.HttpServletRequest;<br/>
+import javax.servlet.http.HttpSession;<br/>
+import javax.servlet.http.HttpServletResponse;<br/>
+import org.apache.struts.action.Action;<br/>
+import org.apache.struts.action.ActionError;<br/>
+import org.apache.struts.action.ActionErrors;<br/>
+import org.apache.struts.action.ActionForm;<br/>
+import org.apache.struts.action.ActionForward;<br/>
+import org.apache.struts.action.ActionMapping;<br/>
+import org.apache.struts.config.ExceptionConfig;<br/>
+import org.apache.struts.util.AppException;<br/>
+<br/>
+<br/>
+public class ExceptionHandler {<br/>
+    /**<br/>
+     * Handle the exception.<br/>
+     * Return the &lt;code&gt;ActionForward&lt;/code&gt; instance (if any) returned by<br/>
+     * the called &lt;code&gt;ExceptionHandler&lt;/code&gt;.<br/>
+     *<br/>
+     * @param ex The exception to handle<br/>
+     * @param ae The ActionException corresponding to the exception<br/>
+     * @param mapping The ActionMapping we are processing<br/>
+     * @param formInstance The ActionForm we are processing<br/>
+     * @param request The servlet request we are processing<br/>
+     * @param response The servlet response we are creating<br/>
+     *<br/>
+     * @exception ServletException if a servlet exception occurs<br/>
+     */<br/>
+    <span class="upd">protected</span> ActionForward execute(Exception ex,<br/>
+                                    ExceptionConfig ae,<br/>
+                                    ActionMapping mapping,<br/>
+                                    ActionForm formInstance,<br/>
+                                    HttpServletRequest request,<br/>
+                                    HttpServletResponse response)<br/>
+        throws ServletException {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ActionForward forward = null;<br/>
+        ActionError error = null;<br/>
+        String property = null;<br/>
+<br/>
+        String path;<br/>
+<br/>
+        // Build the forward from the exception mapping if it exists<br/>
+        // or from the form input<br/>
+        if (ae.getPath() != null) {<br/>
+            path = ae.getPath();<br/>
+        } else {<br/>
+            path = mapping.getInput();<br/>
+        }<br/>
+<br/>
+        // Generate the forward<br/>
+        forward = new ActionForward(path);<br/>
+<br/>
+        // Figure out the error<br/>
+        if (ex instanceof AppException) {<br/>
+            error = ((AppException) ex).getError();<br/>
+            property = ((AppException) ex).getProperty();<br/>
+        } else {<br/>
+            error = new ActionError(ae.getKey());<br/>
+            property = error.getKey();<br/>
+        }<br/>
+<br/>
+        // Store the exception<br/>
+        storeException(request, property, error, forward, ae.getScope());<br/>
+<br/>
+        return forward;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Default implementation for handling an &lt;b&gt;ActionError&lt;/b&gt; generated<br/>
+     * from an Exception during &lt;b&gt;Action&lt;/b&gt; delegation.  The default<br/>
+     * implementation is to set an attribute of the request or session, as<br/>
+     * defined by the scope provided (the scope from the exception mapping).  An<br/>
+     * &lt;b&gt;ActionErrors&lt;/b&gt; instance is created, the error is added to the collection<br/>
+     * and the collection is set under the Action.ERROR_KEY.<br/>
+     *<br/>
+     * @param request<br/>
+     * @param error - The error generated from the exception mapping<br/>
+     * @param input - The forward generated from the input path (from the form or exception mapping)<br/>
+     * @param scope - The scope of the exception mapping.<br/>
+     *<br/>
+     */<br/>
+    protected void storeException(HttpServletRequest request,<br/>
+                        String property,<br/>
+                        ActionError error,<br/>
+                        ActionForward forward,<br/>
+                        String scope) {<br/>
+        ActionErrors errors = new ActionErrors();<br/>
+        errors.add(property, error);<br/>
+<br/>
+        if ("request".equals(scope)){<br/>
+            request.setAttribute(Action.ERROR_KEY, errors);<br/>
+        } else {<br/>
+            request.getSession().setAttribute(Action.ERROR_KEY, errors);<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ExceptionHandler_1.4.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999-2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Struts", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+package org.apache.struts.action;<br/>
+<br/>
+import java.util.Locale;<br/>
+<br/>
+import javax.servlet.ServletException;<br/>
+import javax.servlet.http.HttpServletRequest;<br/>
+import javax.servlet.http.HttpSession;<br/>
+import javax.servlet.http.HttpServletResponse;<br/>
+import org.apache.struts.action.Action;<br/>
+import org.apache.struts.action.ActionError;<br/>
+import org.apache.struts.action.ActionErrors;<br/>
+import org.apache.struts.action.ActionForm;<br/>
+import org.apache.struts.action.ActionForward;<br/>
+import org.apache.struts.action.ActionMapping;<br/>
+import org.apache.struts.config.ExceptionConfig;<br/>
+import org.apache.struts.util.AppException;<br/>
+<br/>
+<br/>
+public class ExceptionHandler {<br/>
+    /**<br/>
+     * Handle the exception.<br/>
+     * Return the &lt;code&gt;ActionForward&lt;/code&gt; instance (if any) returned by<br/>
+     * the called &lt;code&gt;ExceptionHandler&lt;/code&gt;.<br/>
+     *<br/>
+     * @param ex The exception to handle<br/>
+     * @param ae The ActionException corresponding to the exception<br/>
+     * @param mapping The ActionMapping we are processing<br/>
+     * @param formInstance The ActionForm we are processing<br/>
+     * @param request The servlet request we are processing<br/>
+     * @param response The servlet response we are creating<br/>
+     *<br/>
+     * @exception ServletException if a servlet exception occurs<br/>
+     */<br/>
+    <span class="upd">public</span> ActionForward execute(Exception ex,<br/>
+                                 ExceptionConfig ae,<br/>
+                                 ActionMapping mapping,<br/>
+                                 ActionForm formInstance,<br/>
+                                 HttpServletRequest request,<br/>
+                                 HttpServletResponse response)<br/>
+        throws ServletException {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ActionForward forward = null;<br/>
+        ActionError error = null;<br/>
+        String property = null;<br/>
+<br/>
+        String path;<br/>
+<br/>
+        // Build the forward from the exception mapping if it exists<br/>
+        // or from the form input<br/>
+        if (ae.getPath() != null) {<br/>
+            path = ae.getPath();<br/>
+        } else {<br/>
+            path = mapping.getInput();<br/>
+        }<br/>
+<br/>
+        // Generate the forward<br/>
+        forward = new ActionForward(path);<br/>
+<br/>
+        // Figure out the error<br/>
+        if (ex instanceof AppException) {<br/>
+            error = ((AppException) ex).getError();<br/>
+            property = ((AppException) ex).getProperty();<br/>
+        } else {<br/>
+            error = new ActionError(ae.getKey());<br/>
+            property = error.getKey();<br/>
+        }<br/>
+<br/>
+        // Store the exception<br/>
+        storeException(request, property, error, forward, ae.getScope());<br/>
+<br/>
+        return forward;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Default implementation for handling an &lt;b&gt;ActionError&lt;/b&gt; generated<br/>
+     * from an Exception during &lt;b&gt;Action&lt;/b&gt; delegation.  The default<br/>
+     * implementation is to set an attribute of the request or session, as<br/>
+     * defined by the scope provided (the scope from the exception mapping).  An<br/>
+     * &lt;b&gt;ActionErrors&lt;/b&gt; instance is created, the error is added to the collection<br/>
+     * and the collection is set under the Action.ERROR_KEY.<br/>
+     *<br/>
+     * @param request<br/>
+     * @param error - The error generated from the exception mapping<br/>
+     * @param input - The forward generated from the input path (from the form or exception mapping)<br/>
+     * @param scope - The scope of the exception mapping.<br/>
+     *<br/>
+     */<br/>
+    protected void storeException(HttpServletRequest request,<br/>
+                        String property,<br/>
+                        ActionError error,<br/>
+                        ActionForward forward,<br/>
+                        String scope) {<br/>
+        ActionErrors errors = new ActionErrors();<br/>
+        errors.add(property, error);<br/>
+<br/>
+        if ("request".equals(scope)){<br/>
+            request.setAttribute(Action.ERROR_KEY, errors);<br/>
+        } else {<br/>
+            request.getSession().setAttribute(Action.ERROR_KEY, errors);<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

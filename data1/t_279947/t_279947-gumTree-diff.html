@@ -1,0 +1,1257 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_SimpleMapper1_1.4.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */ <br/>
+<br/>
+package org.apache.tomcat.modules.mappers;<br/>
+<br/>
+import org.apache.tomcat.core.*;<br/>
+import org.apache.tomcat.util.buf.MessageBytes;<br/>
+import org.apache.tomcat.util.io.FileUtil;<br/>
+//import org.apache.tomcat.util.PrefixMapper;<br/>
+import org.apache.tomcat.util.collections.*;<br/>
+import java.util.*;<br/>
+<br/>
+/**<br/>
+ *  This class will set up the data structures used by a simple patern matching<br/>
+ *  alghoritm and use it to extract the path components from the request URI.<br/>
+ *<br/>
+ *  This particular implementation does the following:<br/>
+ *  - extract the information that is relevant to matching from the Request<br/>
+ *   object. The current implementation deals with the Host header and the<br/>
+ *   request URI.<br/>
+ *  - Use an external mapper to find the best match.<br/>
+ *  - Adjust the request paths<br/>
+ * <br/>
+ *  SimpleMapper1 will set 2 context notes - "map.extensions" is a<br/>
+ *  SimpleHashtable containing the extension mappings, and "tomcat.map.default"<br/>
+ *  for the default map, if defined explicitely.<br/>
+ *<br/>
+ *  It will also maintain a global mapping structure for all prefix mappings,<br/>
+ *  including contexts. <br/>
+ * <br/>
+ *  The execution time is proportional with the number of hosts, number of<br/>
+ *  context, number of mappings and with the length of the request.<br/>
+ *<br/>
+ */<br/>
+public class SimpleMapper1 extends  BaseInterceptor  {<br/>
+    ContextManager cm;<br/>
+<br/>
+    PrefixMapper map;<br/>
+<br/>
+    // We store the extension maps as per/context notes.<br/>
+    int ctExtMapNote=-1;<br/>
+    int defaultMapNOTE=-1;<br/>
+    <br/>
+    // Property for the PrefixMapper - cache the mapping results<br/>
+    boolean mapCacheEnabled=false;<br/>
+    <br/>
+    public SimpleMapper1() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map=new PrefixMapper();<br/>
+    }<br/>
+<br/>
+    /* -------------------- Support functions -------------------- */<br/>
+    /** Allow the mapper to cache mapping results - resulting in a<br/>
+     *  faster match for frequent requests. ( treat this as experimental)<br/>
+     */<br/>
+    public void setMapCache( boolean v ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCacheEnabled = v;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map.setMapCache( v );<br/>
+    }<br/>
+<br/>
+    /* -------------------- Initialization -------------------- */<br/>
+    <br/>
+    /** Set the context manager. To keep it simple we don't support<br/>
+     *  dynamic add/remove for this interceptor. <br/>
+     */<br/>
+    public void engineInit( ContextManager cm )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.cm=cm;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// set-up a per/container note for maps<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctExtMapNote = cm.getNoteId( ContextManager.CONTAINER_NOTE,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "map.extension");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;defaultMapNOTE=cm.getNoteId( ContextManager.CONTAINER_NOTE,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "tomcat.map.default");<br/>
+    }<br/>
+<br/>
+    /** Called when a context is added.<br/>
+     */<br/>
+    public void addContext( ContextManager cm, Context ctx )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map.addMapping( ctx.getHost(), ctx.getPath(), ctx.getContainer());<br/>
+    }<br/>
+<br/>
+    /** Called when a context is removed from a CM - we must ask the mapper to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;remove all the maps related with this context<br/>
+     */<br/>
+    public void removeContext( ContextManager cm, Context ctx )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0) log( "Removed from maps ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map.removeAllMappings( ctx.getHost(), <span class="del"><span class="mv">ctx</span>.<span class="del">getPath</span>()</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// extension mappings are local to ctx, no need to do something<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// about that<br/>
+    }<br/>
+    <br/>
+<br/>
+    /**<br/>
+     * Associate URL pattern  to a set of propreties.<br/>
+     * <br/>
+     * Note that the order of resolution to handle a request is:<br/>
+     *<br/>
+     *    exact mapped servlet (eg /catalog)<br/>
+     *    prefix mapped servlets (eg /foo/bar/*)<br/>
+     *    extension mapped servlets (eg *jsp)<br/>
+     *    default servlet<br/>
+     *<br/>
+     */<br/>
+    public void addContainer( Container ct )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=ct.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String vhost=ctx.getHost();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String path=ct.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=ctx.getPath();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(ct.getRoles() != null || ct.getTransport() != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // it was only a security map, no handler defined<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;switch( ct.getMapType() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.PREFIX_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // cut /* ( no need to do a string concat for every match )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // workaround for frequent bug in web.xml ( backw. compat )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! path.startsWith( "/" ) ) path="/" + path;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    map.addMapping( vhost,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ctxP + path.substring( 0, path.length()-2 ), ct);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: prefix map " + vhost + ":" +  ctxP +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    path + " -&gt; " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.DEFAULT_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // This will be used if no other map match.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // AVOID USING IT - STATIC FILES SHOULD BE HANDLED BY<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // APACHE ( or tomcat )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Container defMapC=ct.getContext().getContainer();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    defMapC.setNote( defaultMapNOTE, ct );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: default map " + vhost + ":" +  ctxP +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    path + " -&gt; " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.EXTENSION_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Add it per/defaultContainer - as spec require ( it may also be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // possible to support type maps per/Container, i.e. /foo/*.jsp -<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // but that would require changes in the spec.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context mapCtx=ct.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Container defC=mapCtx.getContainer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    SimpleHashtable eM=(SimpleHashtable) defC.getNote( ctExtMapNote );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( eM==null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eM=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defC.setNote( ctExtMapNote, eM );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // add it to the Container local maps<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    eM.put( path.substring( 1 ), ct );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "SM: extension map " + ctxP + "/" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     path + " " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.PATH_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // workaround for frequent bug in web.xml<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! path.startsWith( "/" ) ) path="/" + path;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    map.addExactMapping( vhost, ctxP + path, ct);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: exact map " + vhost + ":" + ctxP +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    path + " -&gt; " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // XXX not implemented - will deal with that after everything else works.<br/>
+    // Remove context will still work<br/>
+    public void removeContainer( Container ct )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=ct.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String mapping=ct.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=ctx.getPath();<br/>
+        mapping = mapping.trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0) log( "Remove mapping " + mapping );<br/>
+    }<br/>
+<br/>
+<br/>
+    /* -------------------- Request mapping -------------------- */<br/>
+<br/>
+<br/>
+    /** First step of request porcessing is finding the Context.<br/>
+     */<br/>
+    public int contextMap( Request req ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;MessageBytes pathMB = req.requestURI();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    String host=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    MessageBytes hostMB=req.serverName();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    host=req.serverName().toString();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0) cm.log("Host = " + hostMB.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Container container =(Container)map.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getLongestPrefixMatch(  hostMB, pathMB);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( container == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new RuntimeException( "Assertion failed: " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    "container==null");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cm.log("SM: Prefix match " + pathMB.toString() + " -&gt; " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       container.getPath() + " " + container.getHandler()  +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       " " + container.getRoles());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Once - adjust for prefix and context path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // If cached - we don't need to do it again ( since it is the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // final Container,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // either prefix or extension )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    fixRequestPaths( pathMB.toString() /*XXX*/, req, container );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // if it's default container - try extension match<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    if (  container.getMapType() == Container.DEFAULT_MAP ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (  container.getHandler() == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Container extC = matchExtension( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( extC != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // change the handler<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if( extC.getHandler() != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixRequestPaths( pathMB.toString(), req, extC );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container=extC;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: Found extension mapping " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    extC.getHandler());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // change security roles<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Default map - if present<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( container.getHandler() == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Container ctxDef=req.getContext().getContainer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Container defC=(Container)ctxDef.getNote( defaultMapNOTE );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( defC != null &amp;&amp; defC.getHandler() !=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    fixRequestPaths( pathMB.toString(), req, defC );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: Found default mapping " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    defC.getHandler() + " " + defC.getPath() +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     " " + defC.getMapType());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0) log("SM: After mapping " + req + " " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    req.getHandler());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("Mapping " + req, ex);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 500;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    }<br/>
+    <br/>
+    /** No need to do that - we finished everything in the first step.<br/>
+     *  <br/>
+     */<br/>
+    //    public int requestMap(Request req) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// No op. All mapping is done in the first step - it's better because<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the alghoritm is more efficient. The only case where those 2 are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// not called togheter is in getContext( "path" ). <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// We can split it again later if that creates problems - but right<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// now it's important to have a clear alghoritm. Note that requestMap<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// is _allways_ called after contextMap ( it was asserted in  all<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// implementations).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    // &nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    //     }<br/>
+<br/>
+    // -------------------- Implementation methods --------------------<br/>
+    <br/>
+    /** Will match an extension - note that Servlet API use special rules<br/>
+     *  for mapping extension, different from what is used in existing web<br/>
+     * servers. That makes this code very easy ( only need to deal with<br/>
+     * the last component of the name ), but it's hard to integrate and you<br/>
+     * have no way to use pathInfo.<br/>
+     */<br/>
+    Container matchExtension( Request req ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=req.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=ctx.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we haven't matched any prefix,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String path = req.servletPath().toString(); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( path == null ) return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String extension=FileUtil.getExtension( path );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( extension == null ) return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cm.log("SM: Extension match " + ctxP +  " " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   path + " " + extension );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Find extension maps for the context<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SimpleHashtable extM=(SimpleHashtable)ctx.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    getContainer().getNote( ctExtMapNote );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( extM==null ) return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Find the container associated with that extension<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Container container= (Container)extM.get(extension);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (container == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// This container doesn't change the mappings - it only <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// has "other" properties ( in the current code security<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// constraints <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( container.getHandler() == null) return container;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return container; <br/>
+    }<br/>
+<br/>
+    /** Adjust the paths in request after matching a container<br/>
+     */<br/>
+    void fixRequestPaths( String path, Request req, Container container )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws Exception<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set servlet path and path info<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Found a match !<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Adjust paths based on the match<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s=container.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=container.getContext().getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int sLen=s.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int pathLen=path.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int ctxPLen=ctxP.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String pathI=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Perform URL decoding only if necessary<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;switch( container.getMapType()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case  Container.PREFIX_MAP: <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    s=s.substring( 0, sLen -2 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    pathI= path.substring( ctxPLen + sLen - 2, pathLen);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 ) log( "Adjust for prefix map " + s + " " + pathI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.DEFAULT_MAP:<br/>
+            s = path.substring( ctxPLen );<br/>
+            pathI = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 ) log( "Default map " + s + " " + pathI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.PATH_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    pathI= null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // For exact matching - can't have path info ( or it's <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // a prefix map )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //path.substring( ctxPLen + sLen , pathLen);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 ) log( "Adjust for path map " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       s + " " + pathI + container.getPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break; // keep the path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.EXTENSION_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /*  adjust paths */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    s= path.substring( ctxPLen );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    pathI=null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.servletPath().setString( s );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! "".equals(pathI)) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.pathInfo().setString(pathI);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=container.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setHandler( container.getHandler() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContainer( container );<br/>
+    }<br/>
+    <br/>
+}<br/>
+<br/>
+<br/>
+/** Prefix and exact mapping alghoritm.<br/>
+ *XXX finish factoring out the creation of the map ( right now direct field access is<br/>
+ *  used, since the code was just cut out from SimpleMapper).<br/>
+ *  XXX make sure the code is useable as a general path mapper - or at least a bridge<br/>
+ *  can be created between SimpleMapper and a patern matcher like the one in XPath<br/>
+ *<br/>
+ * @author costin@costin.dnt.ro<br/>
+ */<br/>
+class PrefixMapper  {<br/>
+    // host -&gt; PrefixMapper for virtual hosts<br/>
+    // hosts are stored in lower case ( the "common" case )<br/>
+    SimpleHashtable vhostMaps=new SimpleHashtable();<br/>
+<br/>
+<br/>
+    SimpleHashtable prefixMappedServlets;<br/>
+    SimpleHashtable exactMappedServlets;<br/>
+<br/>
+        // Cache the most recent mappings<br/>
+    // Disabled by default ( since we haven't implemented<br/>
+    // capacity and remove ). <br/>
+    SimpleHashtable mapCache;<br/>
+    // By using TreeMap instead of SimpleMap you go from 143 to 161 RPS<br/>
+    // ( at least on my machine )<br/>
+    // Interesting - even if SimpleHashtable is faster than Hashtable<br/>
+    // most of the time, the average is very close for both - it seems<br/>
+    // that while the synchronization in Hashtable is locking, GC have<br/>
+    // a chance to work, while in SimpleHashtable case GC creates big<br/>
+    // peeks. That will go away with more reuse, so we should use SH.<br/>
+<br/>
+    // An alternative to explore after everything works is to use specialized<br/>
+    // mappers ( extending this one for example ) using 1.2 collections<br/>
+    // TreeMap mapCache;<br/>
+    boolean mapCacheEnabled=false;<br/>
+<br/>
+    <br/>
+    public PrefixMapper() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;prefixMappedServlets=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;exactMappedServlets=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCache=new SimpleHashtable();<br/>
+    }<br/>
+<br/>
+    public void setMapCache( boolean v ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCacheEnabled=v;<br/>
+    }<br/>
+<br/>
+    /** Remove all mappings matching path<br/>
+     */<br/>
+    public void removeAllMappings( String host, <span class="upd"><span class="upd">String</span></span> <span class="upd">path</span> ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PrefixMapper vmap=this;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host!=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    host=host.toLowerCase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    vmap=(PrefixMapper)vhostMaps.get(host);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// remove all paths starting with path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration en=vmap.prefixMappedServlets.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while( en.hasMoreElements() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String s=(String)en.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="del">if( <span class="mv">s.<span class="mv"><span class="upd">startsWith</span></span>( <span class="mv"><span class="upd">path</span></span> )</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">vmap.prefixMappedServlets.remove( s );</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;en=vmap.exactMappedServlets.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while( en.hasMoreElements() ) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="mv">String s=(String)en.nextElement();</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="del">if( <span class="mv"><span class="mv">s</span>.<span class="mv"><span class="upd">startsWith</span></span>( <span class="mv"><span class="upd">path</span></span> )</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">vmap.exactMappedServlets.remove( s );</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// reset the cache<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCache=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     */<br/>
+    void addMapping( String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;prefixMappedServlets.put( path, target);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     */<br/>
+    void addExactMapping( String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;exactMappedServlets.put( path, target);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     */<br/>
+    public void addMapping( String host, String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    prefixMappedServlets.put( path, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    host=host.toLowerCase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    PrefixMapper vmap=(PrefixMapper)vhostMaps.get( host );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( vmap == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vmap=new PrefixMapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vhostMaps.put( host, vmap );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vmap.setMapCache( mapCacheEnabled );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    vmap.addMapping( path, target );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     */<br/>
+    public void addExactMapping( String host, String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    exactMappedServlets.put( path, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    host=host.toLowerCase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    PrefixMapper vmap=(PrefixMapper)vhostMaps.get( host );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( vmap == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vmap=new PrefixMapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vhostMaps.put( host, vmap );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    vmap.addExactMapping( path, target );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+    <br/>
+    // -------------------- Implementation --------------------<br/>
+<br/>
+    /** Match a prefix rule - /foo/bar/index.html/abc<br/>
+     */<br/>
+    public Object getLongestPrefixMatch( MessageBytes hostMB,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MessageBytes pathMB )<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// XXX fixme<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String host=hostMB.toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String path=pathMB.toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object container = null;<br/>
+        String s = path;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PrefixMapper myMap=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host!=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    myMap=(PrefixMapper)vhostMaps.get( host );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( myMap==null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myMap=(PrefixMapper)vhostMaps.get( host.toLowerCase() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( myMap==null ) myMap = this; // default server<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;container=myMap.exactMappedServlets.get( path );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( container != null ) return container; // and we're done!<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/** Cache for request results - exploit the fact that few<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *  request are more "popular" than other.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *  Disable it if you want to benchmark the mapper !!!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( myMap.mapCacheEnabled ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    container=myMap.mapCache.get(path);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( container!=null ) return container;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (s.length() &gt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //if(debug&gt;8) context.log( "Prefix: " + s  );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    container = myMap.prefixMappedServlets.get(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (container == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// if empty string didn't map, time to give up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ( s.length() == 0 )<br/>
+                    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s=FileUtil.removeLast( s );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }  else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( myMap.mapCacheEnabled ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // XXX implement LRU or another replacement alghoritm<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    myMap.mapCache.put( path, container );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return container;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return container;<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+ <br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_SimpleMapper1_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */ <br/>
+<br/>
+package org.apache.tomcat.modules.mappers;<br/>
+<br/>
+import org.apache.tomcat.core.*;<br/>
+import org.apache.tomcat.util.buf.MessageBytes;<br/>
+import org.apache.tomcat.util.io.FileUtil;<br/>
+//import org.apache.tomcat.util.PrefixMapper;<br/>
+import org.apache.tomcat.util.collections.*;<br/>
+import java.util.*;<br/>
+<br/>
+/**<br/>
+ *  This class will set up the data structures used by a simple patern matching<br/>
+ *  alghoritm and use it to extract the path components from the request URI.<br/>
+ *<br/>
+ *  This particular implementation does the following:<br/>
+ *  - extract the information that is relevant to matching from the Request<br/>
+ *   object. The current implementation deals with the Host header and the<br/>
+ *   request URI.<br/>
+ *  - Use an external mapper to find the best match.<br/>
+ *  - Adjust the request paths<br/>
+ * <br/>
+ *  SimpleMapper1 will set 2 context notes - "map.extensions" is a<br/>
+ *  SimpleHashtable containing the extension mappings, and "tomcat.map.default"<br/>
+ *  for the default map, if defined explicitely.<br/>
+ *<br/>
+ *  It will also maintain a global mapping structure for all prefix mappings,<br/>
+ *  including contexts. <br/>
+ * <br/>
+ *  The execution time is proportional with the number of hosts, number of<br/>
+ *  context, number of mappings and with the length of the request.<br/>
+ *<br/>
+ */<br/>
+public class SimpleMapper1 extends  BaseInterceptor  {<br/>
+    ContextManager cm;<br/>
+<br/>
+    PrefixMapper map;<br/>
+<br/>
+    // We store the extension maps as per/context notes.<br/>
+    int ctExtMapNote=-1;<br/>
+    int defaultMapNOTE=-1;<br/>
+    <br/>
+    // Property for the PrefixMapper - cache the mapping results<br/>
+    boolean mapCacheEnabled=false;<br/>
+    <br/>
+    public SimpleMapper1() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map=new PrefixMapper();<br/>
+    }<br/>
+<br/>
+    /* -------------------- Support functions -------------------- */<br/>
+    /** Allow the mapper to cache mapping results - resulting in a<br/>
+     *  faster match for frequent requests. ( treat this as experimental)<br/>
+     */<br/>
+    public void setMapCache( boolean v ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCacheEnabled = v;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map.setMapCache( v );<br/>
+    }<br/>
+<br/>
+    /* -------------------- Initialization -------------------- */<br/>
+    <br/>
+    /** Set the context manager. To keep it simple we don't support<br/>
+     *  dynamic add/remove for this interceptor. <br/>
+     */<br/>
+    public void engineInit( ContextManager cm )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.cm=cm;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// set-up a per/container note for maps<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctExtMapNote = cm.getNoteId( ContextManager.CONTAINER_NOTE,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "map.extension");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;defaultMapNOTE=cm.getNoteId( ContextManager.CONTAINER_NOTE,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "tomcat.map.default");<br/>
+    }<br/>
+<br/>
+    /** Called when a context is added.<br/>
+     */<br/>
+    public void addContext( ContextManager cm, Context ctx )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map.addMapping( ctx.getHost(), ctx.getPath(), ctx.getContainer());<br/>
+    }<br/>
+<br/>
+    /** Called when a context is removed from a CM - we must ask the mapper to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;remove all the maps related with this context<br/>
+     */<br/>
+    public void removeContext( ContextManager cm, Context ctx )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0) log( "Removed from maps ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;map.removeAllMappings( ctx.getHost(), <span class="mv">ctx</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// extension mappings are local to ctx, no need to do something<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// about that<br/>
+    }<br/>
+    <br/>
+<br/>
+    /**<br/>
+     * Associate URL pattern  to a set of propreties.<br/>
+     * <br/>
+     * Note that the order of resolution to handle a request is:<br/>
+     *<br/>
+     *    exact mapped servlet (eg /catalog)<br/>
+     *    prefix mapped servlets (eg /foo/bar/*)<br/>
+     *    extension mapped servlets (eg *jsp)<br/>
+     *    default servlet<br/>
+     *<br/>
+     */<br/>
+    public void addContainer( Container ct )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=ct.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String vhost=ctx.getHost();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String path=ct.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=ctx.getPath();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(ct.getRoles() != null || ct.getTransport() != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // it was only a security map, no handler defined<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;switch( ct.getMapType() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.PREFIX_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // cut /* ( no need to do a string concat for every match )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // workaround for frequent bug in web.xml ( backw. compat )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! path.startsWith( "/" ) ) path="/" + path;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    map.addMapping( vhost,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ctxP + path.substring( 0, path.length()-2 ), ct);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: prefix map " + vhost + ":" +  ctxP +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    path + " -&gt; " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.DEFAULT_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // This will be used if no other map match.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // AVOID USING IT - STATIC FILES SHOULD BE HANDLED BY<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // APACHE ( or tomcat )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Container defMapC=ct.getContext().getContainer();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    defMapC.setNote( defaultMapNOTE, ct );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: default map " + vhost + ":" +  ctxP +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    path + " -&gt; " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.EXTENSION_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Add it per/defaultContainer - as spec require ( it may also be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // possible to support type maps per/Container, i.e. /foo/*.jsp -<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // but that would require changes in the spec.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context mapCtx=ct.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Container defC=mapCtx.getContainer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    SimpleHashtable eM=(SimpleHashtable) defC.getNote( ctExtMapNote );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( eM==null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eM=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defC.setNote( ctExtMapNote, eM );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // add it to the Container local maps<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    eM.put( path.substring( 1 ), ct );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "SM: extension map " + ctxP + "/" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     path + " " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.PATH_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // workaround for frequent bug in web.xml<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! path.startsWith( "/" ) ) path="/" + path;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    map.addExactMapping( vhost, ctxP + path, ct);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: exact map " + vhost + ":" + ctxP +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    path + " -&gt; " + ct + " " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // XXX not implemented - will deal with that after everything else works.<br/>
+    // Remove context will still work<br/>
+    public void removeContainer( Container ct )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=ct.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String mapping=ct.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=ctx.getPath();<br/>
+        mapping = mapping.trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0) log( "Remove mapping " + mapping );<br/>
+    }<br/>
+<br/>
+<br/>
+    /* -------------------- Request mapping -------------------- */<br/>
+<br/>
+<br/>
+    /** First step of request porcessing is finding the Context.<br/>
+     */<br/>
+    public int contextMap( Request req ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;MessageBytes pathMB = req.requestURI();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    String host=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    MessageBytes hostMB=req.serverName();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    host=req.serverName().toString();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0) cm.log("Host = " + hostMB.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Container container =(Container)map.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getLongestPrefixMatch(  hostMB, pathMB);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( container == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new RuntimeException( "Assertion failed: " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    "container==null");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cm.log("SM: Prefix match " + pathMB.toString() + " -&gt; " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       container.getPath() + " " + container.getHandler()  +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       " " + container.getRoles());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Once - adjust for prefix and context path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // If cached - we don't need to do it again ( since it is the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // final Container,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // either prefix or extension )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    fixRequestPaths( pathMB.toString() /*XXX*/, req, container );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // if it's default container - try extension match<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //&nbsp;&nbsp;&nbsp;&nbsp;    if (  container.getMapType() == Container.DEFAULT_MAP ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (  container.getHandler() == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Container extC = matchExtension( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( extC != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // change the handler<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if( extC.getHandler() != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixRequestPaths( pathMB.toString(), req, extC );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container=extC;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: Found extension mapping " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    extC.getHandler());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // change security roles<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Default map - if present<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( container.getHandler() == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Container ctxDef=req.getContext().getContainer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Container defC=(Container)ctxDef.getNote( defaultMapNOTE );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( defC != null &amp;&amp; defC.getHandler() !=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    fixRequestPaths( pathMB.toString(), req, defC );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("SM: Found default mapping " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    defC.getHandler() + " " + defC.getPath() +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     " " + defC.getMapType());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(debug&gt;0) log("SM: After mapping " + req + " " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    req.getHandler());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("Mapping " + req, ex);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 500;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    }<br/>
+    <br/>
+    /** No need to do that - we finished everything in the first step.<br/>
+     *  <br/>
+     */<br/>
+    //    public int requestMap(Request req) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// No op. All mapping is done in the first step - it's better because<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the alghoritm is more efficient. The only case where those 2 are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// not called togheter is in getContext( "path" ). <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// We can split it again later if that creates problems - but right<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// now it's important to have a clear alghoritm. Note that requestMap<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// is _allways_ called after contextMap ( it was asserted in  all<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// implementations).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    // &nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    //     }<br/>
+<br/>
+    // -------------------- Implementation methods --------------------<br/>
+    <br/>
+    /** Will match an extension - note that Servlet API use special rules<br/>
+     *  for mapping extension, different from what is used in existing web<br/>
+     * servers. That makes this code very easy ( only need to deal with<br/>
+     * the last component of the name ), but it's hard to integrate and you<br/>
+     * have no way to use pathInfo.<br/>
+     */<br/>
+    Container matchExtension( Request req ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=req.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=ctx.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we haven't matched any prefix,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String path = req.servletPath().toString(); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( path == null ) return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String extension=FileUtil.getExtension( path );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( extension == null ) return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cm.log("SM: Extension match " + ctxP +  " " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   path + " " + extension );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Find extension maps for the context<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SimpleHashtable extM=(SimpleHashtable)ctx.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    getContainer().getNote( ctExtMapNote );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( extM==null ) return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Find the container associated with that extension<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Container container= (Container)extM.get(extension);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (container == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// This container doesn't change the mappings - it only <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// has "other" properties ( in the current code security<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// constraints <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( container.getHandler() == null) return container;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return container; <br/>
+    }<br/>
+<br/>
+    /** Adjust the paths in request after matching a container<br/>
+     */<br/>
+    void fixRequestPaths( String path, Request req, Container container )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws Exception<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Set servlet path and path info<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Found a match !<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Adjust paths based on the match<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s=container.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String ctxP=container.getContext().getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int sLen=s.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int pathLen=path.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int ctxPLen=ctxP.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String pathI=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Perform URL decoding only if necessary<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;switch( container.getMapType()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case  Container.PREFIX_MAP: <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    s=s.substring( 0, sLen -2 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    pathI= path.substring( ctxPLen + sLen - 2, pathLen);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 ) log( "Adjust for prefix map " + s + " " + pathI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.DEFAULT_MAP:<br/>
+            s = path.substring( ctxPLen );<br/>
+            pathI = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 ) log( "Default map " + s + " " + pathI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.PATH_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    pathI= null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // For exact matching - can't have path info ( or it's <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // a prefix map )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //path.substring( ctxPLen + sLen , pathLen);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug&gt;0 ) log( "Adjust for path map " +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       s + " " + pathI + container.getPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    break; // keep the path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;case Container.EXTENSION_MAP:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /*  adjust paths */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    s= path.substring( ctxPLen );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    pathI=null;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.servletPath().setString( s );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! "".equals(pathI)) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.pathInfo().setString(pathI);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=container.getContext();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setHandler( container.getHandler() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContainer( container );<br/>
+    }<br/>
+    <br/>
+}<br/>
+<br/>
+<br/>
+/** Prefix and exact mapping alghoritm.<br/>
+ *XXX finish factoring out the creation of the map ( right now direct field access is<br/>
+ *  used, since the code was just cut out from SimpleMapper).<br/>
+ *  XXX make sure the code is useable as a general path mapper - or at least a bridge<br/>
+ *  can be created between SimpleMapper and a patern matcher like the one in XPath<br/>
+ *<br/>
+ * @author costin@costin.dnt.ro<br/>
+ */<br/>
+class PrefixMapper  {<br/>
+    <span class="add"><span class="add">private</span> <span class="add">static</span> <span class="add">int</span> <span class="add"><span class="add">debug</span>=<span class="add">1</span></span>;</span><br/>
+    // host -&gt; PrefixMapper for virtual hosts<br/>
+    // hosts are stored in lower case ( the "common" case )<br/>
+    SimpleHashtable vhostMaps=new SimpleHashtable();<br/>
+<br/>
+<br/>
+    SimpleHashtable prefixMappedServlets;<br/>
+    SimpleHashtable exactMappedServlets;<br/>
+<br/>
+        // Cache the most recent mappings<br/>
+    // Disabled by default ( since we haven't implemented<br/>
+    // capacity and remove ). <br/>
+    SimpleHashtable mapCache;<br/>
+    // By using TreeMap instead of SimpleMap you go from 143 to 161 RPS<br/>
+    // ( at least on my machine )<br/>
+    // Interesting - even if SimpleHashtable is faster than Hashtable<br/>
+    // most of the time, the average is very close for both - it seems<br/>
+    // that while the synchronization in Hashtable is locking, GC have<br/>
+    // a chance to work, while in SimpleHashtable case GC creates big<br/>
+    // peeks. That will go away with more reuse, so we should use SH.<br/>
+<br/>
+    // An alternative to explore after everything works is to use specialized<br/>
+    // mappers ( extending this one for example ) using 1.2 collections<br/>
+    // TreeMap mapCache;<br/>
+    boolean mapCacheEnabled=false;<br/>
+<br/>
+    <br/>
+    public PrefixMapper() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;prefixMappedServlets=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;exactMappedServlets=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCache=new SimpleHashtable();<br/>
+    }<br/>
+<br/>
+    public void setMapCache( boolean v ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCacheEnabled=v;<br/>
+    }<br/>
+<br/>
+    /** Remove all mappings matching path<br/>
+     */<br/>
+    public void removeAllMappings( String host, <span class="upd"><span class="upd">Context</span></span> <span class="upd">ctx</span> ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PrefixMapper vmap=this;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host!=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    host=host.toLowerCase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    vmap=(PrefixMapper)vhostMaps.get(host);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// remove all paths starting with path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration en=vmap.prefixMappedServlets.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while( en.hasMoreElements() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String s=(String)en.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="add"><span class="add"><span class="add">Container</span></span> <span class="add"><span class="add">ct</span>=<span class="add">(<span class="add"><span class="add">Container</span></span>)<span class="mv"><span class="add"><span class="mv"><span class="upd">vmap</span></span>.<span class="mv"><span class="upd">prefixMappedServlets</span></span></span>.<span class="add">get</span>( s )</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="add">if( <span class="add"><span class="add"><span class="add">ct</span>.<span class="add">getContext</span>()</span> == <span class="add">ctx</span></span> ) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if(<span class="add"><span class="add">debug</span> &gt; <span class="add">0</span></span> )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <span class="add"><span class="add"><span class="add">ctx</span>.<span class="add">log</span>( <span class="add"><span class="add">"Remove mapping "</span> + <span class="mv">s</span></span> )</span>;</span></span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">vmap.prefixMappedServlets.remove( s );</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;en=vmap.exactMappedServlets.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while( en.hasMoreElements() ) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="mv">String s=(String)en.nextElement();</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="add"><span class="add"><span class="add">Container</span></span> <span class="add"><span class="add">ct</span>=<span class="add">(<span class="add"><span class="add">Container</span></span>)<span class="mv"><span class="add"><span class="mv"><span class="upd">vmap</span></span>.<span class="mv"><span class="upd">exactMappedServlets</span></span></span>.<span class="add">get</span>( <span class="add">s</span> )</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <span class="add">if( <span class="add"><span class="add"><span class="add">ct</span>.<span class="add">getContext</span>()</span> == <span class="add">ctx</span></span> ) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if(<span class="add"><span class="add">debug</span> &gt; <span class="add">0</span></span> )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <span class="add"><span class="add"><span class="add">ctx</span>.<span class="add">log</span>( <span class="add"><span class="add">"Remove mapping "</span> + <span class="add">s</span></span> )</span>;</span></span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">vmap.exactMappedServlets.remove( s );</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// reset the cache<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;mapCache=new SimpleHashtable();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     */<br/>
+    void addMapping( String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;prefixMappedServlets.put( path, target);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     */<br/>
+    void addExactMapping( String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;exactMappedServlets.put( path, target);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     */<br/>
+    public void addMapping( String host, String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    prefixMappedServlets.put( path, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    host=host.toLowerCase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    PrefixMapper vmap=(PrefixMapper)vhostMaps.get( host );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( vmap == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vmap=new PrefixMapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vhostMaps.put( host, vmap );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vmap.setMapCache( mapCacheEnabled );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    vmap.addMapping( path, target );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     */<br/>
+    public void addExactMapping( String host, String path, Object target ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    exactMappedServlets.put( path, target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    host=host.toLowerCase();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    PrefixMapper vmap=(PrefixMapper)vhostMaps.get( host );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( vmap == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vmap=new PrefixMapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vhostMaps.put( host, vmap );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    vmap.addExactMapping( path, target );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+    <br/>
+    // -------------------- Implementation --------------------<br/>
+<br/>
+    /** Match a prefix rule - /foo/bar/index.html/abc<br/>
+     */<br/>
+    public Object getLongestPrefixMatch( MessageBytes hostMB,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MessageBytes pathMB )<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// XXX fixme<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String host=hostMB.toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String path=pathMB.toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object container = null;<br/>
+        String s = path;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PrefixMapper myMap=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host!=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    myMap=(PrefixMapper)vhostMaps.get( host );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( myMap==null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myMap=(PrefixMapper)vhostMaps.get( host.toLowerCase() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( myMap==null ) myMap = this; // default server<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;container=myMap.exactMappedServlets.get( path );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( container != null ) return container; // and we're done!<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/** Cache for request results - exploit the fact that few<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *  request are more "popular" than other.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *  Disable it if you want to benchmark the mapper !!!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( myMap.mapCacheEnabled ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    container=myMap.mapCache.get(path);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( container!=null ) return container;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (s.length() &gt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //if(debug&gt;8) context.log( "Prefix: " + s  );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    container = myMap.prefixMappedServlets.get(s);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (container == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// if empty string didn't map, time to give up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ( s.length() == 0 )<br/>
+                    break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s=FileUtil.removeLast( s );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }  else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( myMap.mapCacheEnabled ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // XXX implement LRU or another replacement alghoritm<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    myMap.mapCache.put( path, container );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return container;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return container;<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+ <br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

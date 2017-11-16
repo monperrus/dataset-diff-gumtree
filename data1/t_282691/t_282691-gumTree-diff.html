@@ -1,0 +1,708 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_LookupDispatchAction_1.17.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/src/share/org/apache/struts/actions/LookupDispatchAction.java,v 1.17 2003-10-05 17:48:57 dgraham Exp $<br/>
+ * $Revision: 1.17 $<br/>
+ * $Date: 2003-10-05 17:48:57 $<br/>
+ *<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001-2003 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowledgement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Struts", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their name, without prior written<br/>
+ *    permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+ <br/>
+package org.apache.struts.actions;<br/>
+<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import java.util.Locale;<br/>
+import java.util.Map;<br/>
+<br/>
+import javax.servlet.ServletException;<br/>
+import javax.servlet.http.HttpServletRequest;<br/>
+import javax.servlet.http.HttpServletResponse;<br/>
+<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del"><span class="del"><span class="del">org</span>.<span class="del">apache</span></span>.<span class="del">commons</span></span>.<span class="del">lang</span></span>.<span class="del">StringUtils</span></span>;</span><br/>
+import org.apache.struts.Globals;<br/>
+import org.apache.struts.action.ActionForm;<br/>
+import org.apache.struts.action.ActionForward;<br/>
+import org.apache.struts.action.ActionMapping;<br/>
+import org.apache.struts.config.MessageResourcesConfig;<br/>
+import org.apache.struts.config.ModuleConfig;<br/>
+import org.apache.struts.util.MessageResources;<br/>
+<br/>
+/**<br/>
+ *  &lt;p&gt;<br/>
+ *<br/>
+ *  An abstract &lt;strong&gt;Action&lt;/strong&gt; that dispatches to the subclass mapped<br/>
+ *  &lt;code&gt;execute&lt;/code&gt; method. This is useful in<br/>
+ *  cases where an HTML form has multiple submit buttons with the same name. The<br/>
+ *  button name is specified by the &lt;code&gt;parameter&lt;/code&gt; property of the<br/>
+ *  corresponding ActionMapping. To configure the use of this action in your<br/>
+ *  &lt;code&gt;struts-config.xml&lt;/code&gt; file, create an entry like this:&lt;/p&gt; &lt;pre&gt;<br/>
+ *   &amp;lt;action path="/test"<br/>
+ *           type="org.example.MyAction"<br/>
+ *           name="MyForm"<br/>
+ *          scope="request"<br/>
+ *          input="/test.jsp"<br/>
+ *      parameter="action"/&amp;gt;<br/>
+ * &lt;/pre&gt; &lt;p&gt;<br/>
+ *<br/>
+ *  which will use the value of the request parameter named "action" to locate<br/>
+ *  the corresponding key in ApplicationResources. For example, you might have<br/>
+ *  the following ApplicationResources.properties:&lt;/p&gt; &lt;pre&gt;<br/>
+ *    button.add=Add Record<br/>
+ *    button.delete=Delete Record<br/>
+ *  &lt;/pre&gt;&lt;p&gt;<br/>
+ *<br/>
+ *  And your JSP would have the following format for submit buttons:&lt;/p&gt; &lt;pre&gt;<br/>
+ *   &amp;lt;html:form action="/test"&amp;gt;<br/>
+ *    &amp;lt;html:submit property="action"&amp;gt;<br/>
+ *      &amp;lt;bean:message key="button.add"/&amp;gt;<br/>
+ *    &amp;lt;/html:submit&amp;gt;<br/>
+ *    &amp;lt;html:submit property="action"&amp;gt;<br/>
+ *      &amp;lt;bean:message key="button.delete"/&amp;gt;<br/>
+ *    &amp;lt;/html:submit&amp;gt;<br/>
+ *  &amp;lt;/html:form&amp;gt;<br/>
+ *  &lt;/pre&gt; &lt;p&gt;<br/>
+ *<br/>
+ *  Your subclass must implement both getKeyMethodMap and the<br/>
+ *  methods defined in the map. An example of such implementations are:&lt;/p&gt;<br/>
+ * &lt;pre&gt;<br/>
+ *  protected Map getKeyMethodMap() {<br/>
+ *      Map map = new HashMap();<br/>
+ *      map.put("button.add", "add");<br/>
+ *      map.put("button.delete", "delete");<br/>
+ *      return map;<br/>
+ *  }<br/>
+ *<br/>
+ *  public ActionForward add(ActionMapping mapping,<br/>
+ *          ActionForm form,<br/>
+ *          HttpServletRequest request,<br/>
+ *          HttpServletResponse response)<br/>
+ *          throws IOException, ServletException {<br/>
+ *      // do add<br/>
+ *      return mapping.findForward("success");<br/>
+ *  }<br/>
+ *<br/>
+ *  public ActionForward delete(ActionMapping mapping,<br/>
+ *          ActionForm form,<br/>
+ *          HttpServletRequest request,<br/>
+ *          HttpServletResponse response)<br/>
+ *          throws IOException, ServletException {<br/>
+ *      // do delete<br/>
+ *      return mapping.findForward("success");<br/>
+ *  }<br/>
+ *  &lt;p&gt;<br/>
+ *<br/>
+ *  &lt;strong&gt;Notes&lt;/strong&gt; - If duplicate values exist for the keys returned by<br/>
+ *  getKeys, only the first one found will be returned. If no corresponding key<br/>
+ *  is found then an exception will be thrown. You can override the<br/>
+ *  method &lt;code&gt;unspecified&lt;/code&gt; to provide a custom handler. If the submit<br/>
+ *  was cancelled (a &lt;code&gt;html:cancel&lt;/code&gt; button was pressed), the custom<br/>
+ *  handler &lt;code&gt;cancelled&lt;/code&gt; will be used instead.<br/>
+ *<br/>
+ * @author Erik Hatcher<br/>
+ * @author Scott Carlson<br/>
+ * @author David Graham<br/>
+ * @author Leonardo Quijano<br/>
+ * @author Rob Leland<br/>
+ * @author Ted Husted<br/>
+ */<br/>
+public abstract class LookupDispatchAction extends DispatchAction {<br/>
+<br/>
+    /**<br/>
+     * Reverse lookup map from resource value to resource key.<br/>
+     */<br/>
+    protected Map localeMap = new HashMap();<br/>
+<br/>
+    /**<br/>
+     * Resource key to method name lookup.<br/>
+     */<br/>
+    protected Map keyMethodMap = null;<br/>
+<br/>
+    // ---------------------------------------------------------- Public Methods<br/>
+<br/>
+    /**<br/>
+     *  Process the specified HTTP request, and create the corresponding HTTP<br/>
+     *  response (or forward to another web component that will create it).<br/>
+     *  Return an &lt;code&gt;ActionForward&lt;/code&gt; instance describing where and how<br/>
+     *  control should be forwarded, or &lt;code&gt;null&lt;/code&gt; if the response has<br/>
+     *  already been completed.<br/>
+     *<br/>
+     * @param mapping The ActionMapping used to select this instance<br/>
+     * @param request The HTTP request we are processing<br/>
+     * @param response The HTTP response we are creating<br/>
+     * @param form The optional ActionForm bean for this request (if any)<br/>
+     * @return Describes where and how control should be forwarded.<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public ActionForward execute(<br/>
+            ActionMapping mapping,<br/>
+            ActionForm form,<br/>
+            HttpServletRequest request,<br/>
+            HttpServletResponse response)<br/>
+            throws Exception {<br/>
+<br/>
+        if (isCancelled(request)) {<br/>
+            ActionForward af = cancelled(mapping, form, request, response);<br/>
+            if (af != null) {<br/>
+                return af;<br/>
+            }<br/>
+        }<br/>
+        // Identify the request parameter containing the method name<br/>
+        String parameter = mapping.getParameter();<br/>
+        if (parameter == null) {<br/>
+            String message = messages.getMessage("dispatch.handler", mapping.getPath());<br/>
+            throw new ServletException(message);<br/>
+        }<br/>
+<br/>
+        // Identify the string to lookup<br/>
+        String methodName = getMethodName(mapping, form, request, response, parameter);<br/>
+<br/>
+        return dispatchMethod(mapping, form, request, response, methodName);<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This is the first time this Locale is used so build the reverse lookup Map.<br/>
+     * Search for message keys in all configured MessageResources for<br/>
+     * the current module.<br/>
+     */<br/>
+    private Map initLookupMap(HttpServletRequest request, Locale userLocale) {<br/>
+        Map lookupMap = new HashMap();<br/>
+        this.keyMethodMap = this.getKeyMethodMap();<br/>
+<br/>
+        ModuleConfig moduleConfig =<br/>
+                (ModuleConfig) request.getAttribute(Globals.MODULE_KEY);<br/>
+<br/>
+        MessageResourcesConfig[] mrc = moduleConfig.findMessageResourcesConfigs();<br/>
+<br/>
+        // Look through all module's MessageResources<br/>
+        for (int i = 0; i &lt; mrc.length; i++) {<br/>
+            MessageResources resources = this.getResources(request, mrc[i].getKey());<br/>
+<br/>
+            // Look for key in MessageResources<br/>
+            Iterator iter = this.keyMethodMap.keySet().iterator();<br/>
+            while (iter.hasNext()) {<br/>
+                String key = (String) iter.next();<br/>
+                String text = resources.getMessage(userLocale, key);<br/>
+<br/>
+                // Found key and haven't added to Map yet, so add the text<br/>
+                if ((text != null) &amp;&amp; !lookupMap.containsKey(text)) {<br/>
+                    lookupMap.put(text, key);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return lookupMap;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Provides the mapping from resource key to method name.<br/>
+     *<br/>
+     * @return Resource key / method name map.<br/>
+     */<br/>
+    protected abstract Map getKeyMethodMap();<br/>
+<br/>
+    /**<br/>
+     * Lookup the method name corresponding to the client request's locale.<br/>
+     *<br/>
+     * @param request The HTTP request we are processing<br/>
+     * @param keyName The parameter name to use as the properties key<br/>
+     * @param mapping The ActionMapping used to select this instance<br/>
+     *<br/>
+     * @return The method's localized name.<br/>
+     * @throws ServletException if keyName cannot be resolved<br/>
+     * @since Struts 1.2.0<br/>
+     */ protected String getLookupMapName(HttpServletRequest request,<br/>
+                                          String keyName,<br/>
+                                          ActionMapping mapping)<br/>
+            throws ServletException {<br/>
+<br/>
+        // Based on this request's Locale get the lookupMap<br/>
+        Map lookupMap = null;<br/>
+<br/>
+        synchronized(localeMap) {<br/>
+            Locale userLocale = this.getLocale(request);<br/>
+            lookupMap = (Map) this.localeMap.get(userLocale);<br/>
+<br/>
+            if (lookupMap == null) {<br/>
+                lookupMap = this.initLookupMap(request, userLocale);<br/>
+                this.localeMap.put(userLocale, lookupMap);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // Find the key for the resource<br/>
+        String key = (String) lookupMap.get(keyName);<br/>
+        if (key == null) {<br/>
+            String message = messages.getMessage(<br/>
+                    "dispatch.resource", mapping.getPath(), keyName);<br/>
+            throw new ServletException(message);<br/>
+        }<br/>
+<br/>
+        // Find the method name<br/>
+        String methodName = (String) keyMethodMap.get(key);<br/>
+        if (methodName == null) {<br/>
+            String message = messages.getMessage(<br/>
+                    "dispatch.lookup", mapping.getPath(), key);<br/>
+            throw new ServletException(message);<br/>
+        }<br/>
+<br/>
+        return methodName;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the method name, given a parameter's value.<br/>
+     *<br/>
+     * @param mapping The ActionMapping used to select this instance<br/>
+     * @param form The optional ActionForm bean for this request (if any)<br/>
+     * @param request The HTTP request we are processing<br/>
+     * @param response The HTTP response we are creating<br/>
+     * @param parameter The &lt;code&gt;ActionMapping&lt;/code&gt; parameter's name<br/>
+     *<br/>
+     * @return The method's name.<br/>
+     * @since Struts 1.2.0<br/>
+     */<br/>
+    protected String getMethodName(ActionMapping mapping,<br/>
+                                   ActionForm form,<br/>
+                                   HttpServletRequest request,<br/>
+                                   HttpServletResponse response,<br/>
+                                   String parameter)<br/>
+            throws Exception {<br/>
+<br/>
+        // Identify the method name to be dispatched to.<br/>
+        // dispatchMethod() will call unspecified() if name is null<br/>
+        String keyName = request.getParameter(parameter);<br/>
+        if (<span class="mv"><span class="upd">StringUtils</span>.<span class="upd">isEmpty</span>(<span class="mv">keyName</span>)</span>) {<br/>
+            return null;<br/>
+        }<br/>
+<br/>
+        String methodName = getLookupMapName(request, keyName, mapping);<br/>
+<br/>
+        return methodName;<br/>
+    }<br/>
+<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_LookupDispatchAction_1.18.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/src/share/org/apache/struts/actions/LookupDispatchAction.java,v 1.18 2003-11-27 19:20:31 dgraham Exp $<br/>
+ * $Revision: 1.18 $<br/>
+ * $Date: 2003-11-27 19:20:31 $<br/>
+ *<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001-2003 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowledgement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Struts", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their name, without prior written<br/>
+ *    permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+ <br/>
+package org.apache.struts.actions;<br/>
+<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import java.util.Locale;<br/>
+import java.util.Map;<br/>
+<br/>
+import javax.servlet.ServletException;<br/>
+import javax.servlet.http.HttpServletRequest;<br/>
+import javax.servlet.http.HttpServletResponse;<br/>
+<br/>
+import org.apache.struts.Globals;<br/>
+import org.apache.struts.action.ActionForm;<br/>
+import org.apache.struts.action.ActionForward;<br/>
+import org.apache.struts.action.ActionMapping;<br/>
+import org.apache.struts.config.MessageResourcesConfig;<br/>
+import org.apache.struts.config.ModuleConfig;<br/>
+import org.apache.struts.util.MessageResources;<br/>
+<br/>
+/**<br/>
+ *  &lt;p&gt;<br/>
+ *<br/>
+ *  An abstract &lt;strong&gt;Action&lt;/strong&gt; that dispatches to the subclass mapped<br/>
+ *  &lt;code&gt;execute&lt;/code&gt; method. This is useful in<br/>
+ *  cases where an HTML form has multiple submit buttons with the same name. The<br/>
+ *  button name is specified by the &lt;code&gt;parameter&lt;/code&gt; property of the<br/>
+ *  corresponding ActionMapping. To configure the use of this action in your<br/>
+ *  &lt;code&gt;struts-config.xml&lt;/code&gt; file, create an entry like this:&lt;/p&gt; &lt;pre&gt;<br/>
+ *   &amp;lt;action path="/test"<br/>
+ *           type="org.example.MyAction"<br/>
+ *           name="MyForm"<br/>
+ *          scope="request"<br/>
+ *          input="/test.jsp"<br/>
+ *      parameter="action"/&amp;gt;<br/>
+ * &lt;/pre&gt; &lt;p&gt;<br/>
+ *<br/>
+ *  which will use the value of the request parameter named "action" to locate<br/>
+ *  the corresponding key in ApplicationResources. For example, you might have<br/>
+ *  the following ApplicationResources.properties:&lt;/p&gt; &lt;pre&gt;<br/>
+ *    button.add=Add Record<br/>
+ *    button.delete=Delete Record<br/>
+ *  &lt;/pre&gt;&lt;p&gt;<br/>
+ *<br/>
+ *  And your JSP would have the following format for submit buttons:&lt;/p&gt; &lt;pre&gt;<br/>
+ *   &amp;lt;html:form action="/test"&amp;gt;<br/>
+ *    &amp;lt;html:submit property="action"&amp;gt;<br/>
+ *      &amp;lt;bean:message key="button.add"/&amp;gt;<br/>
+ *    &amp;lt;/html:submit&amp;gt;<br/>
+ *    &amp;lt;html:submit property="action"&amp;gt;<br/>
+ *      &amp;lt;bean:message key="button.delete"/&amp;gt;<br/>
+ *    &amp;lt;/html:submit&amp;gt;<br/>
+ *  &amp;lt;/html:form&amp;gt;<br/>
+ *  &lt;/pre&gt; &lt;p&gt;<br/>
+ *<br/>
+ *  Your subclass must implement both getKeyMethodMap and the<br/>
+ *  methods defined in the map. An example of such implementations are:&lt;/p&gt;<br/>
+ * &lt;pre&gt;<br/>
+ *  protected Map getKeyMethodMap() {<br/>
+ *      Map map = new HashMap();<br/>
+ *      map.put("button.add", "add");<br/>
+ *      map.put("button.delete", "delete");<br/>
+ *      return map;<br/>
+ *  }<br/>
+ *<br/>
+ *  public ActionForward add(ActionMapping mapping,<br/>
+ *          ActionForm form,<br/>
+ *          HttpServletRequest request,<br/>
+ *          HttpServletResponse response)<br/>
+ *          throws IOException, ServletException {<br/>
+ *      // do add<br/>
+ *      return mapping.findForward("success");<br/>
+ *  }<br/>
+ *<br/>
+ *  public ActionForward delete(ActionMapping mapping,<br/>
+ *          ActionForm form,<br/>
+ *          HttpServletRequest request,<br/>
+ *          HttpServletResponse response)<br/>
+ *          throws IOException, ServletException {<br/>
+ *      // do delete<br/>
+ *      return mapping.findForward("success");<br/>
+ *  }<br/>
+ *  &lt;p&gt;<br/>
+ *<br/>
+ *  &lt;strong&gt;Notes&lt;/strong&gt; - If duplicate values exist for the keys returned by<br/>
+ *  getKeys, only the first one found will be returned. If no corresponding key<br/>
+ *  is found then an exception will be thrown. You can override the<br/>
+ *  method &lt;code&gt;unspecified&lt;/code&gt; to provide a custom handler. If the submit<br/>
+ *  was cancelled (a &lt;code&gt;html:cancel&lt;/code&gt; button was pressed), the custom<br/>
+ *  handler &lt;code&gt;cancelled&lt;/code&gt; will be used instead.<br/>
+ *<br/>
+ * @author Erik Hatcher<br/>
+ * @author Scott Carlson<br/>
+ * @author David Graham<br/>
+ * @author Leonardo Quijano<br/>
+ * @author Rob Leland<br/>
+ * @author Ted Husted<br/>
+ */<br/>
+public abstract class LookupDispatchAction extends DispatchAction {<br/>
+<br/>
+    /**<br/>
+     * Reverse lookup map from resource value to resource key.<br/>
+     */<br/>
+    protected Map localeMap = new HashMap();<br/>
+<br/>
+    /**<br/>
+     * Resource key to method name lookup.<br/>
+     */<br/>
+    protected Map keyMethodMap = null;<br/>
+<br/>
+    // ---------------------------------------------------------- Public Methods<br/>
+<br/>
+    /**<br/>
+     *  Process the specified HTTP request, and create the corresponding HTTP<br/>
+     *  response (or forward to another web component that will create it).<br/>
+     *  Return an &lt;code&gt;ActionForward&lt;/code&gt; instance describing where and how<br/>
+     *  control should be forwarded, or &lt;code&gt;null&lt;/code&gt; if the response has<br/>
+     *  already been completed.<br/>
+     *<br/>
+     * @param mapping The ActionMapping used to select this instance<br/>
+     * @param request The HTTP request we are processing<br/>
+     * @param response The HTTP response we are creating<br/>
+     * @param form The optional ActionForm bean for this request (if any)<br/>
+     * @return Describes where and how control should be forwarded.<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public ActionForward execute(<br/>
+        ActionMapping mapping,<br/>
+        ActionForm form,<br/>
+        HttpServletRequest request,<br/>
+        HttpServletResponse response)<br/>
+        throws Exception {<br/>
+<br/>
+        if (isCancelled(request)) {<br/>
+            ActionForward af = cancelled(mapping, form, request, response);<br/>
+            if (af != null) {<br/>
+                return af;<br/>
+            }<br/>
+        }<br/>
+        // Identify the request parameter containing the method name<br/>
+        String parameter = mapping.getParameter();<br/>
+        if (parameter == null) {<br/>
+            String message = messages.getMessage("dispatch.handler", mapping.getPath());<br/>
+            throw new ServletException(message);<br/>
+        }<br/>
+<br/>
+        // Identify the string to lookup<br/>
+        String methodName = getMethodName(mapping, form, request, response, parameter);<br/>
+<br/>
+        return dispatchMethod(mapping, form, request, response, methodName);<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This is the first time this Locale is used so build the reverse lookup Map.<br/>
+     * Search for message keys in all configured MessageResources for<br/>
+     * the current module.<br/>
+     */<br/>
+    private Map initLookupMap(HttpServletRequest request, Locale userLocale) {<br/>
+        Map lookupMap = new HashMap();<br/>
+        this.keyMethodMap = this.getKeyMethodMap();<br/>
+<br/>
+        ModuleConfig moduleConfig =<br/>
+                (ModuleConfig) request.getAttribute(Globals.MODULE_KEY);<br/>
+<br/>
+        MessageResourcesConfig[] mrc = moduleConfig.findMessageResourcesConfigs();<br/>
+<br/>
+        // Look through all module's MessageResources<br/>
+        for (int i = 0; i &lt; mrc.length; i++) {<br/>
+            MessageResources resources = this.getResources(request, mrc[i].getKey());<br/>
+<br/>
+            // Look for key in MessageResources<br/>
+            Iterator iter = this.keyMethodMap.keySet().iterator();<br/>
+            while (iter.hasNext()) {<br/>
+                String key = (String) iter.next();<br/>
+                String text = resources.getMessage(userLocale, key);<br/>
+<br/>
+                // Found key and haven't added to Map yet, so add the text<br/>
+                if ((text != null) &amp;&amp; !lookupMap.containsKey(text)) {<br/>
+                    lookupMap.put(text, key);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return lookupMap;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Provides the mapping from resource key to method name.<br/>
+     *<br/>
+     * @return Resource key / method name map.<br/>
+     */<br/>
+    protected abstract Map getKeyMethodMap();<br/>
+<br/>
+    /**<br/>
+     * Lookup the method name corresponding to the client request's locale.<br/>
+     *<br/>
+     * @param request The HTTP request we are processing<br/>
+     * @param keyName The parameter name to use as the properties key<br/>
+     * @param mapping The ActionMapping used to select this instance<br/>
+     *<br/>
+     * @return The method's localized name.<br/>
+     * @throws ServletException if keyName cannot be resolved<br/>
+     * @since Struts 1.2.0<br/>
+     */ <br/>
+    protected String getLookupMapName(<br/>
+        HttpServletRequest request,<br/>
+        String keyName,<br/>
+        ActionMapping mapping)<br/>
+        throws ServletException {<br/>
+<br/>
+        // Based on this request's Locale get the lookupMap<br/>
+        Map lookupMap = null;<br/>
+<br/>
+        synchronized(localeMap) {<br/>
+            Locale userLocale = this.getLocale(request);<br/>
+            lookupMap = (Map) this.localeMap.get(userLocale);<br/>
+<br/>
+            if (lookupMap == null) {<br/>
+                lookupMap = this.initLookupMap(request, userLocale);<br/>
+                this.localeMap.put(userLocale, lookupMap);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // Find the key for the resource<br/>
+        String key = (String) lookupMap.get(keyName);<br/>
+        if (key == null) {<br/>
+            String message = messages.getMessage(<br/>
+                    "dispatch.resource", mapping.getPath(), keyName);<br/>
+            throw new ServletException(message);<br/>
+        }<br/>
+<br/>
+        // Find the method name<br/>
+        String methodName = (String) keyMethodMap.get(key);<br/>
+        if (methodName == null) {<br/>
+            String message = messages.getMessage(<br/>
+                    "dispatch.lookup", mapping.getPath(), key);<br/>
+            throw new ServletException(message);<br/>
+        }<br/>
+<br/>
+        return methodName;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the method name, given a parameter's value.<br/>
+     *<br/>
+     * @param mapping The ActionMapping used to select this instance<br/>
+     * @param form The optional ActionForm bean for this request (if any)<br/>
+     * @param request The HTTP request we are processing<br/>
+     * @param response The HTTP response we are creating<br/>
+     * @param parameter The &lt;code&gt;ActionMapping&lt;/code&gt; parameter's name<br/>
+     *<br/>
+     * @return The method's name.<br/>
+     * @since Struts 1.2.0<br/>
+     */<br/>
+    protected String getMethodName(<br/>
+        ActionMapping mapping,<br/>
+        ActionForm form,<br/>
+        HttpServletRequest request,<br/>
+        HttpServletResponse response,<br/>
+        String parameter)<br/>
+        throws Exception {<br/>
+<br/>
+        // Identify the method name to be dispatched to.<br/>
+        // dispatchMethod() will call unspecified() if name is null<br/>
+        String keyName = request.getParameter(parameter);<br/>
+        if (<span class="add"><span class="add"><span class="mv">keyName</span> == <span class="add">null</span></span> || <span class="add"><span class="mv"><span class="upd">keyName</span>.<span class="upd">length</span>()</span> == <span class="add">0</span></span></span>) {<br/>
+            return null;<br/>
+        }<br/>
+<br/>
+        String methodName = getLookupMapName(request, keyName, mapping);<br/>
+<br/>
+        return methodName;<br/>
+    }<br/>
+<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

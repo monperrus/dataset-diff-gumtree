@@ -1,0 +1,13 @@
+diff --git a/t_247191/left_EJBSecurityManagerDefaultImpl_1.1.java b/t_247191/right_EJBSecurityManagerDefaultImpl_1.2.java
+index a461c6a..d9db017 100644
+--- a/t_247191/left_EJBSecurityManagerDefaultImpl_1.1.java
++++ b/t_247191/right_EJBSecurityManagerDefaultImpl_1.2.java
+@@ -46,7 +46,7 @@ public class EJBSecurityManagerDefaultImpl implements EJBSecurityManager
+ {
+ 	public boolean isValid( Principal principal, Object credential )
+ 	{
+-		return principal.getName().equals( credential.toString() );
++		return credential != null && principal.getName().equals( credential.toString() );
+ 	}
+ }
+ 

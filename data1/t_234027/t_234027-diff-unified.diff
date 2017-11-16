@@ -1,0 +1,11 @@
+--- t_234027/left_CheckForNewMessagesCommand_1.32.java	2013-03-17 15:47:32.000000000 +0100
++++ t_234027/right_CheckForNewMessagesCommand_1.33.java	2013-03-17 15:47:32.000000000 +0100
+@@ -66,7 +66,7 @@
+ 
+ 		// check for new headers
+ 		try {
+-			imapFolder.ensureFolderIsSynced(false);
++			imapFolder.ensureFolderIsSynced(false, false);
+ 		} catch (IOException e) {
+ 			worker.cancel();
+ 			throw new CommandCancelledException(e);

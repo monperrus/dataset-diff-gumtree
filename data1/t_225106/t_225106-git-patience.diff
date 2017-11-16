@@ -1,0 +1,13 @@
+diff --git a/t_225106/left_SegmentTermDocs_1.6.java b/t_225106/right_SegmentTermDocs_1.7.java
+index 6c2d633..edff5ca 100644
+--- a/t_225106/left_SegmentTermDocs_1.6.java
++++ b/t_225106/right_SegmentTermDocs_1.7.java
+@@ -199,7 +199,7 @@ class SegmentTermDocs implements TermDocs {
+         if (skipDoc != 0 && skipDoc >= doc)
+           numSkipped += skipInterval;
+ 
+-        if ((count + numSkipped + skipInterval) > df)
++        if ((count + numSkipped + skipInterval) >= df)
+           break;                                  // no more skips
+ 
+         skipDoc += skipStream.readVInt();

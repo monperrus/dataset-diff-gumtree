@@ -1,0 +1,13 @@
+diff --git a/t_234190/left_HeaderViewer_1.16.java b/t_234190/right_HeaderViewer_1.17.java
+index 8749b7c..7dd8428 100644
+--- a/t_234190/left_HeaderViewer_1.16.java
++++ b/t_234190/right_HeaderViewer_1.17.java
+@@ -277,7 +277,7 @@ public class HeaderViewer extends JPanel {
+ 			JButton moreButton = createAttachmentMoreButton();
+ 
+ 			DynamicItemListPanel p = new DynamicItemListPanel(2, null, true);
+-//			p.setShowLastSeparator(false);
++			p.setShowLastSeparator(false);
+ 			p.setOpaque(false);
+ 
+ 			for (int j = 0; j < value.length; j++) {

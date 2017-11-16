@@ -1,0 +1,498 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_SegmentTermDocs_1.6.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.index;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.io.IOException;<br/>
+import org.apache.lucene.util.BitVector;<br/>
+import org.apache.lucene.store.InputStream;<br/>
+<br/>
+class SegmentTermDocs implements TermDocs {<br/>
+  protected SegmentReader parent;<br/>
+  private InputStream freqStream;<br/>
+  private int count;<br/>
+  private int df;<br/>
+  private BitVector deletedDocs;<br/>
+  int doc = 0;<br/>
+  int freq;<br/>
+<br/>
+  private int skipInterval;<br/>
+  private int skipCount;<br/>
+  private InputStream skipStream;<br/>
+  private int skipDoc;<br/>
+  private long freqPointer;<br/>
+  private long proxPointer;<br/>
+  private long skipPointer;<br/>
+  private boolean haveSkipped;<br/>
+<br/>
+  SegmentTermDocs(SegmentReader parent)<br/>
+          throws IOException {<br/>
+    this.parent = parent;<br/>
+    this.freqStream = (InputStream) parent.freqStream.clone();<br/>
+    this.deletedDocs = parent.deletedDocs;<br/>
+    this.skipInterval = parent.tis.getSkipInterval();<br/>
+  }<br/>
+<br/>
+  public void seek(Term term) throws IOException {<br/>
+    TermInfo ti = parent.tis.get(term);<br/>
+    seek(ti);<br/>
+  }<br/>
+<br/>
+  public void seek(TermEnum enum) throws IOException {<br/>
+    TermInfo ti;<br/>
+    if (enum instanceof SegmentTermEnum)          // optimized case<br/>
+      ti = ((SegmentTermEnum) enum).termInfo();<br/>
+    else                                          // punt case<br/>
+      ti = parent.tis.get(enum.term());<br/>
+    seek(ti);<br/>
+  }<br/>
+<br/>
+  void seek(TermInfo ti) throws IOException {<br/>
+    count = 0;<br/>
+    if (ti == null) {<br/>
+      df = 0;<br/>
+    } else {<br/>
+      df = ti.docFreq;<br/>
+      doc = 0;<br/>
+      skipDoc = 0;<br/>
+      skipCount = 0;<br/>
+      freqPointer = ti.freqPointer;<br/>
+      proxPointer = ti.proxPointer;<br/>
+      skipPointer = freqPointer + ti.skipOffset;<br/>
+      freqStream.seek(freqPointer);<br/>
+      haveSkipped = false;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  public void close() throws IOException {<br/>
+    freqStream.close();<br/>
+  }<br/>
+<br/>
+  public final int doc() { return doc; }<br/>
+  public final int freq() { return freq; }<br/>
+<br/>
+  protected void skippingDoc() throws IOException {<br/>
+  }<br/>
+<br/>
+  public boolean next() throws IOException {<br/>
+    while (true) {<br/>
+      if (count == df)<br/>
+        return false;<br/>
+<br/>
+      int docCode = freqStream.readVInt();<br/>
+      doc += docCode &gt;&gt;&gt; 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // shift off low bit<br/>
+      if ((docCode &amp; 1) != 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // if low bit is set<br/>
+        freq = 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // freq is one<br/>
+      else<br/>
+        freq = freqStream.readVInt();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // else read freq<br/>
+<br/>
+      count++;<br/>
+<br/>
+      if (deletedDocs == null || !deletedDocs.get(doc))<br/>
+        break;<br/>
+      skippingDoc();<br/>
+    }<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+  /** Optimized implementation. */<br/>
+  public int read(final int[] docs, final int[] freqs)<br/>
+          throws IOException {<br/>
+    final int length = docs.length;<br/>
+    int i = 0;<br/>
+    while (i &lt; length &amp;&amp; count &lt; df) {<br/>
+<br/>
+      // manually inlined call to next() for speed<br/>
+      final int docCode = freqStream.readVInt();<br/>
+      doc += docCode &gt;&gt;&gt; 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // shift off low bit<br/>
+      if ((docCode &amp; 1) != 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // if low bit is set<br/>
+        freq = 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // freq is one<br/>
+      else<br/>
+        freq = freqStream.readVInt();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // else read freq<br/>
+      count++;<br/>
+<br/>
+      if (deletedDocs == null || !deletedDocs.get(doc)) {<br/>
+        docs[i] = doc;<br/>
+        freqs[i] = freq;<br/>
+        ++i;<br/>
+      }<br/>
+    }<br/>
+    return i;<br/>
+  }<br/>
+<br/>
+  /** Overridden by SegmentTermPositions to skip in prox stream. */<br/>
+  protected void skipProx(long proxPointer) throws IOException {}<br/>
+<br/>
+  /** Optimized implementation. */<br/>
+  public boolean skipTo(int target) throws IOException {<br/>
+    if (df &gt; skipInterval) {                      // optimized case<br/>
+<br/>
+      if (skipStream == null)<br/>
+        skipStream = (InputStream) freqStream.clone(); // lazily clone<br/>
+<br/>
+      if (!haveSkipped) {                          // lazily seek skip stream<br/>
+        skipStream.seek(skipPointer);<br/>
+        haveSkipped = true;<br/>
+      }<br/>
+<br/>
+      // scan skip data<br/>
+      int lastSkipDoc = skipDoc;<br/>
+      long lastFreqPointer = freqStream.getFilePointer();<br/>
+      long lastProxPointer = -1;<br/>
+      int numSkipped = -1 - (count % skipInterval);<br/>
+<br/>
+      while (target &gt; skipDoc) {<br/>
+        lastSkipDoc = skipDoc;<br/>
+        lastFreqPointer = freqPointer;<br/>
+        lastProxPointer = proxPointer;<br/>
+        if (skipDoc != 0 &amp;&amp; skipDoc &gt;= doc)<br/>
+          numSkipped += skipInterval;<br/>
+<br/>
+        if (<span class="upd">(count + numSkipped + skipInterval) &gt; df</span>)<br/>
+          break;                                  // no more skips<br/>
+<br/>
+        skipDoc += skipStream.readVInt();<br/>
+        freqPointer += skipStream.readVInt();<br/>
+        proxPointer += skipStream.readVInt();<br/>
+<br/>
+        skipCount++;<br/>
+      }<br/>
+      <br/>
+      // if we found something to skip, then skip it<br/>
+      if (lastFreqPointer &gt; freqStream.getFilePointer()) {<br/>
+        freqStream.seek(lastFreqPointer);<br/>
+        skipProx(lastProxPointer);<br/>
+<br/>
+        doc = lastSkipDoc;<br/>
+        count += numSkipped;<br/>
+      }<br/>
+<br/>
+    }<br/>
+<br/>
+    // done skipping, now just scan<br/>
+    do {<br/>
+      if (!next())<br/>
+        return false;<br/>
+    } while (target &gt; doc);<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_SegmentTermDocs_1.7.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.index;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.io.IOException;<br/>
+import org.apache.lucene.util.BitVector;<br/>
+import org.apache.lucene.store.InputStream;<br/>
+<br/>
+class SegmentTermDocs implements TermDocs {<br/>
+  protected SegmentReader parent;<br/>
+  private InputStream freqStream;<br/>
+  private int count;<br/>
+  private int df;<br/>
+  private BitVector deletedDocs;<br/>
+  int doc = 0;<br/>
+  int freq;<br/>
+<br/>
+  private int skipInterval;<br/>
+  private int skipCount;<br/>
+  private InputStream skipStream;<br/>
+  private int skipDoc;<br/>
+  private long freqPointer;<br/>
+  private long proxPointer;<br/>
+  private long skipPointer;<br/>
+  private boolean haveSkipped;<br/>
+<br/>
+  SegmentTermDocs(SegmentReader parent)<br/>
+          throws IOException {<br/>
+    this.parent = parent;<br/>
+    this.freqStream = (InputStream) parent.freqStream.clone();<br/>
+    this.deletedDocs = parent.deletedDocs;<br/>
+    this.skipInterval = parent.tis.getSkipInterval();<br/>
+  }<br/>
+<br/>
+  public void seek(Term term) throws IOException {<br/>
+    TermInfo ti = parent.tis.get(term);<br/>
+    seek(ti);<br/>
+  }<br/>
+<br/>
+  public void seek(TermEnum enum) throws IOException {<br/>
+    TermInfo ti;<br/>
+    if (enum instanceof SegmentTermEnum)          // optimized case<br/>
+      ti = ((SegmentTermEnum) enum).termInfo();<br/>
+    else                                          // punt case<br/>
+      ti = parent.tis.get(enum.term());<br/>
+    seek(ti);<br/>
+  }<br/>
+<br/>
+  void seek(TermInfo ti) throws IOException {<br/>
+    count = 0;<br/>
+    if (ti == null) {<br/>
+      df = 0;<br/>
+    } else {<br/>
+      df = ti.docFreq;<br/>
+      doc = 0;<br/>
+      skipDoc = 0;<br/>
+      skipCount = 0;<br/>
+      freqPointer = ti.freqPointer;<br/>
+      proxPointer = ti.proxPointer;<br/>
+      skipPointer = freqPointer + ti.skipOffset;<br/>
+      freqStream.seek(freqPointer);<br/>
+      haveSkipped = false;<br/>
+    }<br/>
+  }<br/>
+<br/>
+  public void close() throws IOException {<br/>
+    freqStream.close();<br/>
+  }<br/>
+<br/>
+  public final int doc() { return doc; }<br/>
+  public final int freq() { return freq; }<br/>
+<br/>
+  protected void skippingDoc() throws IOException {<br/>
+  }<br/>
+<br/>
+  public boolean next() throws IOException {<br/>
+    while (true) {<br/>
+      if (count == df)<br/>
+        return false;<br/>
+<br/>
+      int docCode = freqStream.readVInt();<br/>
+      doc += docCode &gt;&gt;&gt; 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // shift off low bit<br/>
+      if ((docCode &amp; 1) != 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // if low bit is set<br/>
+        freq = 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // freq is one<br/>
+      else<br/>
+        freq = freqStream.readVInt();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // else read freq<br/>
+<br/>
+      count++;<br/>
+<br/>
+      if (deletedDocs == null || !deletedDocs.get(doc))<br/>
+        break;<br/>
+      skippingDoc();<br/>
+    }<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+  /** Optimized implementation. */<br/>
+  public int read(final int[] docs, final int[] freqs)<br/>
+          throws IOException {<br/>
+    final int length = docs.length;<br/>
+    int i = 0;<br/>
+    while (i &lt; length &amp;&amp; count &lt; df) {<br/>
+<br/>
+      // manually inlined call to next() for speed<br/>
+      final int docCode = freqStream.readVInt();<br/>
+      doc += docCode &gt;&gt;&gt; 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // shift off low bit<br/>
+      if ((docCode &amp; 1) != 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // if low bit is set<br/>
+        freq = 1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // freq is one<br/>
+      else<br/>
+        freq = freqStream.readVInt();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // else read freq<br/>
+      count++;<br/>
+<br/>
+      if (deletedDocs == null || !deletedDocs.get(doc)) {<br/>
+        docs[i] = doc;<br/>
+        freqs[i] = freq;<br/>
+        ++i;<br/>
+      }<br/>
+    }<br/>
+    return i;<br/>
+  }<br/>
+<br/>
+  /** Overridden by SegmentTermPositions to skip in prox stream. */<br/>
+  protected void skipProx(long proxPointer) throws IOException {}<br/>
+<br/>
+  /** Optimized implementation. */<br/>
+  public boolean skipTo(int target) throws IOException {<br/>
+    if (df &gt; skipInterval) {                      // optimized case<br/>
+<br/>
+      if (skipStream == null)<br/>
+        skipStream = (InputStream) freqStream.clone(); // lazily clone<br/>
+<br/>
+      if (!haveSkipped) {                          // lazily seek skip stream<br/>
+        skipStream.seek(skipPointer);<br/>
+        haveSkipped = true;<br/>
+      }<br/>
+<br/>
+      // scan skip data<br/>
+      int lastSkipDoc = skipDoc;<br/>
+      long lastFreqPointer = freqStream.getFilePointer();<br/>
+      long lastProxPointer = -1;<br/>
+      int numSkipped = -1 - (count % skipInterval);<br/>
+<br/>
+      while (target &gt; skipDoc) {<br/>
+        lastSkipDoc = skipDoc;<br/>
+        lastFreqPointer = freqPointer;<br/>
+        lastProxPointer = proxPointer;<br/>
+        if (skipDoc != 0 &amp;&amp; skipDoc &gt;= doc)<br/>
+          numSkipped += skipInterval;<br/>
+<br/>
+        if (<span class="upd">(count + numSkipped + skipInterval) &gt;= df</span>)<br/>
+          break;                                  // no more skips<br/>
+<br/>
+        skipDoc += skipStream.readVInt();<br/>
+        freqPointer += skipStream.readVInt();<br/>
+        proxPointer += skipStream.readVInt();<br/>
+<br/>
+        skipCount++;<br/>
+      }<br/>
+      <br/>
+      // if we found something to skip, then skip it<br/>
+      if (lastFreqPointer &gt; freqStream.getFilePointer()) {<br/>
+        freqStream.seek(lastFreqPointer);<br/>
+        skipProx(lastProxPointer);<br/>
+<br/>
+        doc = lastSkipDoc;<br/>
+        count += numSkipped;<br/>
+      }<br/>
+<br/>
+    }<br/>
+<br/>
+    // done skipping, now just scan<br/>
+    do {<br/>
+      if (!next())<br/>
+        return false;<br/>
+    } while (target &gt; doc);<br/>
+    return true;<br/>
+  }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

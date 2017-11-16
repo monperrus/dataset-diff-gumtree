@@ -1,0 +1,12 @@
+diff --git a/t_279885/left_ReloadInterceptor_1.6.java b/t_279885/right_ReloadInterceptor_1.7.java
+index 5068b4f..e8d3c71 100644
+--- a/t_279885/left_ReloadInterceptor_1.6.java
++++ b/t_279885/right_ReloadInterceptor_1.7.java
+@@ -143,6 +143,7 @@ public class ReloadInterceptor extends  BaseInterceptor
+ 	    dm.reset();
+ 	}
+ 	loaderHook(dm, context);
++	log( "Reloading context " + context );
+     }
+ 
+     

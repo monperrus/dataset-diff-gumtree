@@ -1,0 +1,13 @@
+diff --git a/t_275035/left_SlaveContextService_1.4.java b/t_275035/right_SlaveContextService_1.5.java
+index bcb633b..a3732b1 100644
+--- a/t_275035/left_SlaveContextService_1.4.java
++++ b/t_275035/right_SlaveContextService_1.5.java
+@@ -124,7 +124,7 @@ public class SlaveContextService implements IContextService {
+ 			Expression expression, boolean global) {
+ 		if (global) {
+ 			IContextActivation activation = fParentService.activateContext(
+-					contextId, expression);
++					contextId, expression, global);
+ 			fParentActivations.add(activation);
+ 			return activation;
+ 		}

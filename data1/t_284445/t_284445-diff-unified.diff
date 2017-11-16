@@ -1,0 +1,20 @@
+--- t_284445/left_FormattingInfo_1.2.java	2013-03-17 15:47:08.000000000 +0100
++++ t_284445/right_FormattingInfo_1.3.java	2013-03-17 15:47:08.000000000 +0100
+@@ -16,9 +16,6 @@
+ 
+ package org.apache.log4j.pattern;
+ 
+-import org.apache.log4j.helpers.LogLog;
+-
+-
+ /**
+    FormattingInfo instances contain the information obtained when parsing
+    formatting modifiers in conversion modifiers.
+@@ -39,7 +36,4 @@
+     leftAlign = false;
+   }
+ 
+-  void dump() {
+-    LogLog.debug("min=" + min + ", max=" + max + ", leftAlign=" + leftAlign);
+-  }
+ }

@@ -1,0 +1,4444 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Issue_1.140.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.om;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2002 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */ <br/>
+<br/>
+// JDK classes<br/>
+import java.io.Serializable;<br/>
+import java.util.Map;<br/>
+import java.util.HashMap;<br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+import java.util.ArrayList;<br/>
+import java.util.LinkedList;<br/>
+import java.util.Date;<br/>
+import java.sql.Connection;<br/>
+<br/>
+// Turbine classes<br/>
+import org.apache.turbine.TemplateContext;<br/>
+import org.apache.torque.TorqueException;<br/>
+import org.apache.torque.om.ObjectKey;<br/>
+import org.apache.torque.om.NumberKey;<br/>
+import org.apache.torque.om.Persistent;<br/>
+import org.apache.torque.manager.MethodResultCache;<br/>
+import org.apache.torque.util.Criteria;<br/>
+import org.apache.commons.collections.SequencedHashMap;<br/>
+import org.apache.torque.pool.DBConnection;<br/>
+import org.apache.torque.map.DatabaseMap;<br/>
+import org.apache.torque.oid.IDBroker;<br/>
+import org.apache.torque.util.BasePeer;<br/>
+<br/>
+// Scarab classes<br/>
+import org.tigris.scarab.om.Module;<br/>
+import org.tigris.scarab.om.ModuleManager;<br/>
+import org.tigris.scarab.services.security.ScarabSecurity;<br/>
+import org.tigris.scarab.services.cache.ScarabCache;<br/>
+import org.tigris.scarab.om.ScarabUserManager;<br/>
+import org.tigris.scarab.util.ScarabException;<br/>
+import org.tigris.scarab.attribute.TotalVotesAttribute;<br/>
+import org.tigris.scarab.attribute.OptionAttribute;<br/>
+import org.tigris.scarab.util.ScarabConstants;<br/>
+import org.tigris.scarab.tools.ScarabRequestTool;<br/>
+<br/>
+/** <br/>
+  * The skeleton for this class was autogenerated by Torque on:<br/>
+  *<br/>
+  * [Wed Feb 28 16:36:26 PST 2001]<br/>
+  *<br/>
+  * You should add additional methods to this class to meet the<br/>
+  * application requirements.  This class will only be generated as<br/>
+  * long as it does not already exist in the output directory.<br/>
+<br/>
+  */<br/>
+public class Issue <br/>
+    extends BaseIssue<br/>
+    implements Persistent<br/>
+{<br/>
+    // the following Strings are method names that are used in caching results<br/>
+    private static final String ISSUE = <br/>
+        "Issue";<br/>
+    protected static final String GET_ISSUE_BY_ID = <br/>
+        "getIssueById";<br/>
+    protected static final String GET_ATTRIBUTE_VALUES_MAP = <br/>
+        "getAttributeValuesMap";<br/>
+    protected static final String GET_ASSOCIATED_USERS = <br/>
+        "getAssociatedUsers";<br/>
+    protected static final String GET_MODULE_ATTRVALUES_MAP = <br/>
+        "getModuleAttributeValuesMap";<br/>
+    protected static final String GET_ATTRVALUE = <br/>
+        "getAttributeValue";<br/>
+    protected static final String GET_ATTRVALUES = <br/>
+        "getAttributeValues";<br/>
+    protected static final String GET_USERS_TO_EMAIL = <br/>
+        "getUsersToEmail";<br/>
+    protected static final String GET_USER_ATTRIBUTEVALUES = <br/>
+        "getUserAttributeValues";<br/>
+    protected static final String GET_CREATED_DATE = <br/>
+        "getCreatedDate";<br/>
+    protected static final String GET_CREATED_BY = <br/>
+        "getCreatedBy";<br/>
+    protected static final String GET_LAST_TRANSACTION = <br/>
+        "getLastTransaction";<br/>
+    protected static final String GET_MODIFIED_BY = <br/>
+        "getModifiedBy";<br/>
+    protected static final String GET_MODIFIED_DATE = <br/>
+        "getModifiedDate";<br/>
+    protected static final String GET_COMMENTS = <br/>
+        "getComments";<br/>
+    protected static final String GET_URLS = <br/>
+        "getUrls";<br/>
+    protected static final String GET_EXISTING_ATTACHMENTS = <br/>
+        "getExistingAttachments";<br/>
+    protected static final String GET_ACTIVITY = <br/>
+        "getActivity";<br/>
+    protected static final String GET_CHILDREN = <br/>
+        "getChildren";<br/>
+    protected static final String GET_PARENTS = <br/>
+        "getParents";<br/>
+    protected static final String GET_ALL_DEPENDENCY_TYPES = <br/>
+        "getAllDependencyTypes";<br/>
+    protected static final String GET_DEPENDENCY = <br/>
+        "getDependency";<br/>
+    protected static final String GET_TEMPLATE_TYPES = <br/>
+        "getTemplateTypes";<br/>
+    protected static final String GET_TEMPLATEINFO = <br/>
+        "getTemplateInfo";<br/>
+    protected static final String GET_CLOSED_DATE = <br/>
+        "getClosedDate";<br/>
+    protected static final String GET_ORPHAN_ATTRIBUTEVALUES_LIST = <br/>
+        "getOrphanAttributeValuesList";<br/>
+    protected static final String GET_DEFAULT_TEXT_ATTRIBUTEVALUE = <br/>
+        "getDefaultTextAttributeValue";<br/>
+    protected static final String GET_DEFAULT_TEXT = <br/>
+        "getDefaultText";<br/>
+<br/>
+    /**<br/>
+     * new issues are created only when the issuetype and module are known<br/>
+     * Or by the Peer when retrieving from db<br/>
+     */<br/>
+    Issue()<br/>
+    {<br/>
+    }<br/>
+<br/>
+    protected Issue(Module module, IssueType issueType)<br/>
+        throws Exception<br/>
+    {<br/>
+        this();<br/>
+        setModule(module);<br/>
+        setIssueType(issueType);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets an issue associated to a Module<br/>
+     */<br/>
+    public static Issue getNewInstance(Module module, <br/>
+                                       IssueType issueType)<br/>
+        throws Exception<br/>
+    {<br/>
+        Issue issue = new Issue(module, issueType);<br/>
+        return issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets the UniqueId for this Issue.<br/>
+     */<br/>
+    public String getUniqueId()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        if (getIdPrefix() == null)<br/>
+        {<br/>
+            setIdPrefix(getModule().getCode());<br/>
+        }<br/>
+        return getIdPrefix() + getIdCount();<br/>
+    }<br/>
+<br/>
+    public String getFederatedId()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        if ( getIdDomain() != null ) <br/>
+        {<br/>
+            return getIdDomain() + '-' + getUniqueId();<br/>
+        }<br/>
+        return getUniqueId();<br/>
+    }<br/>
+<br/>
+    public void setFederatedId(String id)<br/>
+    {<br/>
+        FederatedId fid = new FederatedId(id);<br/>
+        setIdDomain(fid.getDomain());<br/>
+        setIdPrefix(fid.getPrefix());<br/>
+        setIdCount(fid.getCount());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A FederatedId has this format: {Domain}-{Code}{Id}<br/>
+     * For example: collab.net-PACS1<br/>
+     * The domain can also be null.<br/>
+     */<br/>
+    public static class FederatedId<br/>
+        implements Serializable<br/>
+    {<br/>
+        String domainId;<br/>
+        String prefix;<br/>
+        int count;<br/>
+<br/>
+        public FederatedId(String id)<br/>
+        {<br/>
+            int dash = id.indexOf('-');<br/>
+            if ( dash &gt; 0 ) <br/>
+            {<br/>
+                domainId = id.substring(0, dash);<br/>
+                setUniqueId(id.substring(dash+1));<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                setUniqueId(id);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        public FederatedId(String domain, String prefix, int count)<br/>
+        {<br/>
+            domainId = domain;<br/>
+            this.prefix = prefix;<br/>
+            this.count = count;<br/>
+        }<br/>
+<br/>
+        public void setUniqueId(String id)<br/>
+        {<br/>
+            // we could start at 1 here, if the spec says one char is <br/>
+            // required, will keep it safe for now.<br/>
+            StringBuffer code = new StringBuffer(4);<br/>
+            int max = id.length() &lt; 4 ? id.length() : 4;<br/>
+            for ( int i=0; i&lt;max; i++) <br/>
+            {<br/>
+                char c = id.charAt(i);<br/>
+                if ( c != '0' &amp;&amp; c != '1' &amp;&amp; c != '2' &amp;&amp; c != '3' &amp;&amp; c != '4'<br/>
+                     &amp;&amp; c != '5' &amp;&amp; c != '6' &amp;&amp; c != '7' &amp;&amp; c!='8' &amp;&amp; c!='9' )<br/>
+                {<br/>
+                    code.append(c);<br/>
+                }<br/>
+            }<br/>
+            if ( code.length() != 0 ) <br/>
+            {<br/>
+                prefix = code.toString();                 <br/>
+            }<br/>
+            count = Integer.parseInt( id.substring(code.length()) );<br/>
+            <br/>
+        }<br/>
+<br/>
+        <br/>
+        /**<br/>
+         * Get the IdInstance<br/>
+         * @return String<br/>
+         */<br/>
+        public String getDomain()<br/>
+        {<br/>
+            return domainId;<br/>
+        }<br/>
+<br/>
+        /**<br/>
+         * Get the Prefix<br/>
+         * @return String<br/>
+         */<br/>
+        public String getPrefix()<br/>
+        {<br/>
+            return prefix;<br/>
+        }<br/>
+                <br/>
+        /**<br/>
+         * Get the Count<br/>
+         * @return int<br/>
+         */<br/>
+        public int getCount()<br/>
+        {<br/>
+            return count;<br/>
+        }<br/>
+        <br/>
+        /**<br/>
+         * Set the IdInstance<br/>
+         * @return String<br/>
+         */<br/>
+        public void setDomain(String domainId)<br/>
+        {<br/>
+            this.domainId = domainId;<br/>
+        }<br/>
+        /**<br/>
+         * Set the Prefix<br/>
+         * @param String<br/>
+         */<br/>
+        public void setPrefix(String prefix)<br/>
+        {<br/>
+            this.prefix = prefix;<br/>
+        }<br/>
+        <br/>
+        /**<br/>
+         * Set the Count<br/>
+         * @param int<br/>
+         */<br/>
+        public void setCount(int count)<br/>
+        {<br/>
+            this.count = count;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Whether this issue is an enter issue template.<br/>
+     */<br/>
+    public boolean isTemplate() throws Exception<br/>
+    {<br/>
+       return !getIssueType().equals(IssueType.ISSUE__PK);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Adds a comment to this issue.<br/>
+     */<br/>
+    public void addComment(Attachment attachment, ScarabUser user)<br/>
+        throws Exception<br/>
+    {<br/>
+        attachment.setIssue(this);<br/>
+        attachment.setTypeId(Attachment.COMMENT__PK);<br/>
+        attachment.setName("");<br/>
+        attachment.setCreatedBy(user.getUserId());<br/>
+        attachment.setMimeType("text/plain");<br/>
+        attachment.save();<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds an attachment file to this issue<br/>
+     */<br/>
+    public void addFile(Attachment attachment)<br/>
+        throws Exception<br/>
+    {<br/>
+        attachment.setIssue(this);<br/>
+        attachment.setTypeId(Attachment.FILE__PK);<br/>
+        addAttachment(attachment);<br/>
+    }<br/>
+    <br/>
+    /** <br/>
+     * Remove an attachment file<br/>
+     * @param index starts with 1 because velocityCount start from 1<br/>
+     * but Vector starts from 0<br/>
+     */<br/>
+    public void removeFile(String index)<br/>
+        throws Exception<br/>
+    {<br/>
+        getAttachments().remove(Integer.parseInt(index) - 1);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Throws UnsupportedOperationException.  Use<br/>
+     * &lt;code&gt;getModule()&lt;/code&gt; instead.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabModule&lt;/code&gt; value<br/>
+     */<br/>
+    public ScarabModule getScarabModule()<br/>
+    {<br/>
+        throw new UnsupportedOperationException(<br/>
+            "Should use getModule");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Throws UnsupportedOperationException.  Use<br/>
+     * &lt;code&gt;setModule(Module)&lt;/code&gt; instead.<br/>
+     *<br/>
+     */<br/>
+    public void setScarabModule(ScarabModule module)<br/>
+    {<br/>
+        throw new UnsupportedOperationException(<br/>
+            "Should use setModule(Module). Note module cannot be new.");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Use this instead of setScarabModule.  Note: module cannot be new.<br/>
+     */<br/>
+    public void setModule(Module me)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        NumberKey id = me.getModuleId();<br/>
+        if (id == null) <br/>
+        {<br/>
+            throw new TorqueException("Modules must be saved prior to " +<br/>
+                                      "being associated with other objects.");<br/>
+        }<br/>
+        setModuleId(id);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Module getter.  Use this method instead of getScarabModule().<br/>
+     *<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     */<br/>
+    public Module getModule()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        Module module = null;<br/>
+        ObjectKey id = getModuleId();<br/>
+        if ( id != null ) <br/>
+        {<br/>
+            module = ModuleManager.getInstance(id);<br/>
+        }<br/>
+        <br/>
+        return module;<br/>
+    }<br/>
+<br/>
+    public static Issue getIssueById(String id)<br/>
+    {<br/>
+        FederatedId fid = new FederatedId(id);<br/>
+        return getIssueById(fid);<br/>
+    }<br/>
+<br/>
+    public static Issue getIssueById(FederatedId fid)<br/>
+    {<br/>
+        Issue result = null;<br/>
+        Object obj = ScarabCache.get(ISSUE, GET_ISSUE_BY_ID, fid); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(5)<br/>
+                .add(IssuePeer.ID_PREFIX, fid.getPrefix())<br/>
+                .add(IssuePeer.ID_COUNT, fid.getCount());<br/>
+            <br/>
+            if (  fid.getDomain() != null ) <br/>
+            {<br/>
+                crit.add(IssuePeer.ID_DOMAIN, fid.getDomain());    <br/>
+            }<br/>
+            <br/>
+            Issue issue = null;<br/>
+            try<br/>
+            {<br/>
+                result = (Issue)IssuePeer.doSelect(crit).get(0);<br/>
+                IssueManager.putInstance(result);<br/>
+                ScarabCache.put(result, ISSUE, GET_ISSUE_BY_ID, fid);<br/>
+            }<br/>
+            catch (Exception e) <br/>
+            {<br/>
+                // return null<br/>
+            }<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (Issue)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are relevant to the issue's current module.<br/>
+     * Empty AttributeValues that are relevant for the module, but have <br/>
+     * not been set for the issue are included.  The values are ordered<br/>
+     * according to the module's preference<br/>
+     */<br/>
+    public SequencedHashMap getModuleAttributeValuesMap() <br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_MODULE_ATTRVALUES_MAP); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Attribute[] attributes = null;<br/>
+            HashMap siaValuesMap = null;<br/>
+<br/>
+            attributes = getModule().getActiveAttributes(getIssueType());<br/>
+            siaValuesMap = getAttributeValuesMap();<br/>
+<br/>
+            result = new SequencedHashMap((int)(1.25*attributes.length + 1));<br/>
+            for ( int i=0; i&lt;attributes.length; i++ ) <br/>
+            {<br/>
+                String key = attributes[i].getName().toUpperCase();<br/>
+                if ( siaValuesMap.containsKey(key) ) <br/>
+                {<br/>
+                    result.put( key, siaValuesMap.get(key) );<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    AttributeValue aval = AttributeValue<br/>
+                        .getNewInstance(attributes[i], this);<br/>
+                    addAttributeValue(aval);<br/>
+                    result.put(key, aval);<br/>
+                }<br/>
+            }<br/>
+            getMethodResult().put(result, this, GET_MODULE_ATTRVALUES_MAP);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (SequencedHashMap)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    public AttributeValue getAttributeValue(Attribute attribute)<br/>
+       throws Exception<br/>
+    {<br/>
+        AttributeValue result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ATTRVALUE, attribute); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            if ( isNew() ) <br/>
+            {<br/>
+                List avals = getAttributeValues();<br/>
+                if ( avals != null ) <br/>
+                {<br/>
+                    Iterator i = avals.iterator();<br/>
+                    while (i.hasNext()) <br/>
+                    {<br/>
+                        AttributeValue tempAval = (AttributeValue)i.next();<br/>
+                        if ( tempAval.getAttribute().equals(attribute)) <br/>
+                        {<br/>
+                            result = tempAval;<br/>
+                            break;<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {            <br/>
+                Criteria crit = new Criteria(2)<br/>
+                    .add(AttributeValuePeer.ISSUE_ID, getIssueId())        <br/>
+                    .add(AttributeValuePeer.DELETED, false)        <br/>
+                    .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                         attribute.getAttributeId());<br/>
+                <br/>
+                List avals = getAttributeValues(crit);               <br/>
+                if (avals.size() == 1) <br/>
+                {<br/>
+                    result = (AttributeValue)avals.get(0);<br/>
+                }<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_ATTRVALUE, attribute);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (AttributeValue)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns AttributeValues for the Attribute (which have not been deleted.)<br/>
+     * Warning: does not work for a new issue.<br/>
+     * FIXME! this method should be similar to getAttributeValue and<br/>
+     * getAttributeValue should call this method.<br/>
+     */<br/>
+    public List getAttributeValues(Attribute attribute)<br/>
+       throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ATTRVALUES, attribute); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            // FIXME!  needs a isNew() check for alternative logic.<br/>
+            Criteria crit = new Criteria(2)<br/>
+                .add(AttributeValuePeer.DELETED, false)        <br/>
+                .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                     attribute.getAttributeId());<br/>
+            <br/>
+            result = getAttributeValues(crit);<br/>
+            ScarabCache.put(result, this, GET_ATTRVALUES, attribute);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public boolean isAttributeValue(AttributeValue attVal)<br/>
+       throws Exception<br/>
+    {<br/>
+        boolean isValue = false;<br/>
+        List attValues = getAttributeValues(attVal.getAttribute());<br/>
+        if (attValues.contains(attVal))<br/>
+        {<br/>
+            isValue = true;<br/>
+        }<br/>
+        return isValue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are set for this Issue in the order<br/>
+     * that is preferred for this module<br/>
+     */<br/>
+    public AttributeValue[] getOrderedAttributeValues()<br/>
+        throws Exception<br/>
+    {        <br/>
+        Map values = getAttributeValuesMap();<br/>
+        Attribute[] attributes = getModule()<br/>
+            .getActiveAttributes(getIssueType());<br/>
+<br/>
+        return orderAttributeValues(values, attributes);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Extract the AttributeValues from the Map according to the <br/>
+     * order in the Attribute[]<br/>
+     */<br/>
+    private AttributeValue[] orderAttributeValues(Map values, <br/>
+                                                  Attribute[] attributes) <br/>
+        throws Exception<br/>
+    {<br/>
+        AttributeValue[] orderedValues = new AttributeValue[values.size()];<br/>
+<br/>
+        int i=0;<br/>
+        for ( int j=0; j&lt;attributes.length; j++ ) <br/>
+        {<br/>
+            AttributeValue av = (AttributeValue) values<br/>
+                .remove( attributes[j].getName().toUpperCase() );<br/>
+            if ( av != null ) <br/>
+            {<br/>
+                orderedValues[i++] = av;                <br/>
+            }<br/>
+        }<br/>
+        Iterator iter = values.values().iterator();<br/>
+        while ( iter.hasNext() ) <br/>
+        {<br/>
+            orderedValues[i++] = (AttributeValue)iter.next();<br/>
+        }<br/>
+<br/>
+        return orderedValues;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are set for this Issue<br/>
+     */<br/>
+    public HashMap getAttributeValuesMap() throws Exception<br/>
+    {<br/>
+        HashMap result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ATTRIBUTE_VALUES_MAP); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(2)<br/>
+                .add(AttributeValuePeer.DELETED, false);        <br/>
+            List siaValues = getAttributeValues(crit);<br/>
+            result = new HashMap( (int)(1.25*siaValues.size() + 1) );<br/>
+            for ( int i=0; i&lt;siaValues.size(); i++ ) <br/>
+            {<br/>
+                AttributeValue att = (AttributeValue) siaValues.get(i);<br/>
+                String name = att.getAttribute().getName();<br/>
+                result.put(name.toUpperCase(), att);<br/>
+            }<br/>
+<br/>
+            ScarabCache.put(result, this, GET_ATTRIBUTE_VALUES_MAP);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (HashMap)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are set for this issue and<br/>
+     * Empty AttributeValues that are relevant for the module, but have <br/>
+     * not been set for the issue are included.<br/>
+     */<br/>
+    public HashMap getAllAttributeValuesMap() <br/>
+        throws Exception<br/>
+    {<br/>
+        Map moduleAtts = getModuleAttributeValuesMap();<br/>
+        Map issueAtts = getAttributeValuesMap();<br/>
+        HashMap allValuesMap = new HashMap( (int)(1.25*(moduleAtts.size() + <br/>
+                                            issueAtts.size())+1) );<br/>
+<br/>
+        allValuesMap.putAll(moduleAtts);<br/>
+        allValuesMap.putAll(issueAtts);<br/>
+        return allValuesMap;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Describe &lt;code&gt;containsMinimumAttributeValues&lt;/code&gt; method here.<br/>
+     *<br/>
+     * @return a &lt;code&gt;boolean&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public boolean containsMinimumAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        List attributes = getModule()<br/>
+            .getRequiredAttributes(getIssueType());<br/>
+<br/>
+        boolean result = true;<br/>
+        SequencedHashMap avMap = getModuleAttributeValuesMap();<br/>
+        Iterator i = avMap.iterator();<br/>
+        while (i.hasNext()) <br/>
+        {<br/>
+            AttributeValue aval = (AttributeValue)avMap.get(i.next());<br/>
+            <br/>
+            if ( aval.getOptionId() == null &amp;&amp; aval.getValue() == null ) <br/>
+            {<br/>
+                for ( int j=attributes.size()-1; j&gt;=0; j-- ) <br/>
+                {<br/>
+                    if ( aval.getAttribute().getPrimaryKey().equals(<br/>
+                         ((Attribute)attributes.get(j)).getPrimaryKey() )) <br/>
+                    {<br/>
+                        result = false;<br/>
+                        break;<br/>
+                    }                    <br/>
+                }<br/>
+                if ( !result ) <br/>
+                {<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return result;<br/>
+    }       <br/>
+<br/>
+<br/>
+    /**<br/>
+     * Users who are valid values to the attribute this issue.  <br/>
+     * if a user has already<br/>
+     * been assigned to this issue, they will not show up in this list.<br/>
+     * use module.getEligibleUsers(Attribute) to get a complete list.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    public List getEligibleUsers(Attribute attribute)<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser[] users = getModule().getEligibleUsers(attribute);<br/>
+        // remove those already assigned<br/>
+        List assigneeAVs = getAttributeValues(attribute);<br/>
+        if ( users != null &amp;&amp; assigneeAVs != null ) <br/>
+        {        <br/>
+            for ( int i=users.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                for ( int j=assigneeAVs.size()-1; j&gt;=0; j-- ) <br/>
+                {<br/>
+                    AttributeValue av = (AttributeValue)assigneeAVs.get(j);<br/>
+                    NumberKey avUserId = av.getUserId();<br/>
+                    NumberKey userUserId = users[i].getUserId();<br/>
+                    if ( av != null &amp;&amp; avUserId != null &amp;&amp; <br/>
+                         userUserId != null &amp;&amp; <br/>
+                         avUserId.equals( userUserId ) )<br/>
+                    {<br/>
+                        users[i] = null;<br/>
+                        break;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        List eligibleUsers = new ArrayList(users.length);<br/>
+        for ( int i=0; i&lt;users.length; i++ ) <br/>
+        {<br/>
+            if ( users[i] != null )<br/>
+            {<br/>
+                eligibleUsers.add(users[i]);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return eligibleUsers;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns users assigned to user attributes that get emailed <br/>
+     * When issue is modified. Plus creating user.<br/>
+     */<br/>
+    public List getUsersToEmail(String action) throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_USERS_TO_EMAIL, action); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            List users = new ArrayList();<br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttributeValuePeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttributeValuePeer.ATTRIBUTE_ID,<br/>
+                         AttributePeer.ATTRIBUTE_ID)<br/>
+                .add(AttributePeer.ACTION, action)<br/>
+                .add(AttributeValuePeer.DELETED, 0);<br/>
+            List userAttVals = AttributeValuePeer.doSelect(crit);<br/>
+            for (int i=0;i&lt;userAttVals.size();i++)<br/>
+            {<br/>
+                AttributeValue attVal = (AttributeValue)userAttVals.get(i);<br/>
+                try<br/>
+                {<br/>
+                    ScarabUser su = ScarabUserManager.getInstance(attVal.getUserId());<br/>
+                    users.add(su);<br/>
+                }<br/>
+                catch (Exception e)<br/>
+                {<br/>
+                    throw new Exception("Error in retrieving users.");<br/>
+                }<br/>
+            }<br/>
+            if (action.equals(AttributePeer.EMAIL_TO))<br/>
+            {<br/>
+                users.add(getCreatedBy());<br/>
+            }<br/>
+            result = users;<br/>
+            ScarabCache.put(result, this, GET_USERS_TO_EMAIL, action);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns users assigned to all user attributes.<br/>
+     */<br/>
+    public List getAssociatedUsers() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ASSOCIATED_USERS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            List attributeList = getModule()<br/>
+                .getUserAttributes(getIssueType(), true);<br/>
+            List attributeIdList = new ArrayList();<br/>
+            <br/>
+            for ( int i=0; i&lt;attributeList.size(); i++ ) <br/>
+            {<br/>
+                Attribute att = (Attribute) attributeList.get(i);<br/>
+                RModuleAttribute modAttr = getModule().<br/>
+                    getRModuleAttribute(att, getIssueType());<br/>
+                if (modAttr.getActive())<br/>
+                {<br/>
+                    attributeIdList.add(att.getAttributeId());<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            if (!attributeIdList.isEmpty())<br/>
+            {<br/>
+                Criteria crit = new Criteria()<br/>
+                    .addIn(AttributeValuePeer.ATTRIBUTE_ID, attributeIdList)<br/>
+                    .add(AttributeValuePeer.DELETED, false);<br/>
+                crit.setDistinct();<br/>
+                <br/>
+                List attValues = getAttributeValues(crit);<br/>
+                for ( int i=0; i&lt;attValues.size(); i++ ) <br/>
+                {<br/>
+                    AttributeValue attVal = (AttributeValue) attValues.get(i);<br/>
+                    ScarabUser su = ScarabUserManager.getInstance(attVal.getUserId());<br/>
+                    result.add(su);<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            ScarabUser createdBy = getCreatedBy();<br/>
+            if (!result.contains(createdBy))<br/>
+            { <br/>
+                result.add(createdBy);<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_ASSOCIATED_USERS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns attribute values for user attributes.<br/>
+     */<br/>
+    public List getUserAttributeValues() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_USER_ATTRIBUTEVALUES); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            List attributeList = getModule().getUserAttributes(getIssueType(), true);<br/>
+            List attributeIdList = new ArrayList();<br/>
+            <br/>
+            for ( int i=0; i&lt;attributeList.size(); i++ ) <br/>
+            {<br/>
+                Attribute att = (Attribute) attributeList.get(i);<br/>
+                attributeIdList.add(att.getAttributeId());<br/>
+            }<br/>
+            <br/>
+            if(!attributeIdList.isEmpty())<br/>
+            {<br/>
+                Criteria crit = new Criteria()<br/>
+                    .addIn(AttributeValuePeer.ATTRIBUTE_ID, attributeIdList)<br/>
+                    .add(AttributeValuePeer.ISSUE_ID, getIssueId())<br/>
+                    .add(AttributeValuePeer.DELETED, 0);<br/>
+                result = AttributeValuePeer.doSelect(crit);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = new ArrayList(0);<br/>
+            }<br/>
+            getMethodResult().put(result, this, GET_USER_ATTRIBUTEVALUES);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+     <br/>
+    /**<br/>
+     * The date the issue was created.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public Date getCreatedDate()<br/>
+        throws Exception<br/>
+    {<br/>
+        Date result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Object obj = ScarabCache.get(this, GET_CREATED_DATE); <br/>
+            if ( obj == null ) <br/>
+            {        <br/>
+                Criteria crit = new Criteria();<br/>
+                crit.addJoin(TransactionPeer.TRANSACTION_ID, <br/>
+                             ActivityPeer.TRANSACTION_ID);<br/>
+                crit.add(ActivityPeer.ISSUE_ID, getIssueId());<br/>
+                crit.add(TransactionPeer.TYPE_ID, <br/>
+                         TransactionTypePeer.CREATE_ISSUE__PK);<br/>
+                // there could be multiple attributes modified during the <br/>
+                // creation which will lead to duplicates<br/>
+                crit.setDistinct();<br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                Transaction t = (Transaction)transactions.get(0);<br/>
+                result = t.getCreatedDate();<br/>
+                ScarabCache.put(result, this, GET_CREATED_DATE);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = (Date)obj;<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * The user that created the issue.<br/>
+     * FIXME: Not sure if this is the best way to get created user.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public ScarabUser getCreatedBy()<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Object obj = ScarabCache.get(this, GET_CREATED_BY); <br/>
+            if ( obj == null ) <br/>
+            {        <br/>
+                Criteria crit = new Criteria();<br/>
+                crit.addJoin(TransactionPeer.TRANSACTION_ID, <br/>
+                             ActivityPeer.TRANSACTION_ID);<br/>
+                crit.add(ActivityPeer.ISSUE_ID, getIssueId());<br/>
+                crit.add(TransactionPeer.TYPE_ID, <br/>
+                         TransactionTypePeer.CREATE_ISSUE__PK);<br/>
+                /*<br/>
+                  // there could be multiple attributes modified during the <br/>
+                  // creation which will lead to duplicates<br/>
+                  crit.setDistinct();<br/>
+                */<br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                if (transactions.size() &gt; 0)<br/>
+                {<br/>
+                    Transaction t = (Transaction)transactions.get(0);<br/>
+                    result = ScarabUserManager.getInstance(t.getCreatedBy());<br/>
+                }<br/>
+                ScarabCache.put(result, this, GET_CREATED_BY);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = (ScarabUser)obj;<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The last modification made to the issue.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     */<br/>
+    public Transaction getLastTransaction()<br/>
+        throws Exception<br/>
+    {<br/>
+        Transaction t = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Object obj = ScarabCache.get(this, GET_LAST_TRANSACTION); <br/>
+            if ( obj == null ) <br/>
+            {        <br/>
+                Criteria crit = new Criteria();<br/>
+                crit.addJoin(TransactionPeer.TRANSACTION_ID, <br/>
+                         ActivityPeer.TRANSACTION_ID);<br/>
+                crit.add(ActivityPeer.ISSUE_ID, getIssueId());<br/>
+                crit.add(TransactionPeer.TYPE_ID, <br/>
+                         TransactionTypePeer.EDIT_ISSUE__PK);<br/>
+                // there could be multiple attributes modified during the <br/>
+                // creation which will lead to duplicates<br/>
+                crit.setDistinct();<br/>
+                crit.addDescendingOrderByColumn(TransactionPeer.CREATED_DATE);<br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                if ( transactions.size() &gt; 0 ) <br/>
+                {<br/>
+                    t = (Transaction)transactions.get(0);<br/>
+                }<br/>
+                ScarabCache.put(t, this, GET_LAST_TRANSACTION);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                t = (Transaction)obj;<br/>
+            }<br/>
+        }<br/>
+        return t;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * The date issue was last modified.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     */<br/>
+    public Date getModifiedDate()<br/>
+        throws Exception<br/>
+    {<br/>
+        Date result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Transaction t = getLastTransaction();<br/>
+            if ( t == null)<br/>
+            {<br/>
+                result = getCreatedDate();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = t.getCreatedDate();<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The last user to modify the issue.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     */<br/>
+    public ScarabUser getModifiedBy()<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Transaction t = getLastTransaction();<br/>
+            if ( t == null)<br/>
+            {<br/>
+                result = getCreatedBy();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = ScarabUserManager.getInstance(t.getCreatedBy());<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Determines whether the comments list is longer than<br/>
+     * The default limit.<br/>
+     */<br/>
+    public boolean isCommentsLong() throws Exception<br/>
+    {<br/>
+        return (getComments(true).size() &gt; getCommentsLimit());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets default comments limit for this module-issue type.<br/>
+     */<br/>
+    private int getCommentsLimit() throws Exception<br/>
+    {<br/>
+        int limit=0;<br/>
+        try<br/>
+        {<br/>
+            limit = getModule().getRModuleIssueType(getIssueType())<br/>
+                    .getComments();<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {}<br/>
+        return limit;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns a list of Attachment objects with type "Comment"<br/>
+     * That are associated with this issue.<br/>
+     */<br/>
+    public List getComments(boolean full) throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Boolean fullBool = (full ? Boolean.TRUE : Boolean.FALSE);<br/>
+        Object obj = getMethodResult().get(this, GET_COMMENTS, fullBool); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttachmentPeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttachmentTypePeer.ATTACHMENT_TYPE_ID,<br/>
+                         AttachmentPeer.ATTACHMENT_TYPE_ID)<br/>
+                .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, <br/>
+                     Attachment.COMMENT__PK)<br/>
+                .<span class="upd">addAscendingOrderByColumn</span>(AttachmentPeer.CREATED_DATE);<br/>
+            if (!full)<br/>
+            {<br/>
+                crit.setLimit(getCommentsLimit());<br/>
+            }<br/>
+            result = AttachmentPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_COMMENTS, fullBool);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns a list of Attachment objects with type "URL"<br/>
+     * That are associated with this issue.<br/>
+     */<br/>
+    public List getUrls() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_URLS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttachmentPeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttachmentTypePeer.ATTACHMENT_TYPE_ID,<br/>
+                         AttachmentPeer.ATTACHMENT_TYPE_ID)<br/>
+                .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, <br/>
+                     Attachment.URL__PK)<br/>
+                .add(AttachmentPeer.DELETED, 0);<br/>
+            result = AttachmentPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_URLS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    <br/>
+<br/>
+    /**<br/>
+     * Get attachments that are not deleted<br/>
+     */<br/>
+    public List getExistingAttachments() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_EXISTING_ATTACHMENTS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttachmentPeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttachmentTypePeer.ATTACHMENT_TYPE_ID,<br/>
+                         AttachmentPeer.ATTACHMENT_TYPE_ID)<br/>
+                .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, <br/>
+                     Attachment.FILE__PK)<br/>
+                .add(AttachmentPeer.DELETED, 0);<br/>
+            result = AttachmentPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_EXISTING_ATTACHMENTS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;        <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets default history limit for this module-issue type.<br/>
+     */<br/>
+    public int getHistoryLimit() throws Exception<br/>
+    {<br/>
+        int limit=0;<br/>
+        try<br/>
+        {<br/>
+            limit = getModule().getRModuleIssueType(getIssueType())<br/>
+                    .getHistory();<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {}<br/>
+        <br/>
+        return limit;<br/>
+    }<br/>
+        <br/>
+    /**<br/>
+     * Determines whether the history list is longer than<br/>
+     * The default limit.<br/>
+     */<br/>
+    public boolean isHistoryLong() throws Exception<br/>
+    {<br/>
+        return isHistoryLong(getHistoryLimit());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Determines whether the history list is longer than<br/>
+     * The limit.<br/>
+     */<br/>
+    public boolean isHistoryLong(int limit) throws Exception<br/>
+    {<br/>
+        return (getActivity(true).size() &gt; limit);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    public List getActivity() throws Exception  <br/>
+    {<br/>
+        return getActivity(false, getHistoryLimit());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns limited list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    public List getActivity(int limit) throws Exception  <br/>
+    {<br/>
+        return getActivity(false, limit);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns limited list of Activity objects associated with this Issue.<br/>
+     * If fullHistory is false, it limits it,<br/>
+     * (this is the default)<br/>
+     */<br/>
+    public List getActivity(boolean fullHistory) throws Exception  <br/>
+    {<br/>
+        return getActivity(fullHistory, getHistoryLimit());<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns full list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    private List getActivity(boolean fullHistory, int limit) throws Exception  <br/>
+    {<br/>
+        List result = null;<br/>
+        Boolean fullHistoryObj = fullHistory ? Boolean.TRUE : Boolean.FALSE;<br/>
+        Object obj = getMethodResult().get(this, GET_ACTIVITY, fullHistoryObj,<br/>
+                                     new Integer(limit)); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(ActivityPeer.ISSUE_ID, getIssueId())<br/>
+                .addAscendingOrderByColumn(ActivityPeer.TRANSACTION_ID);<br/>
+            if (!fullHistory)<br/>
+            {<br/>
+                crit.setLimit(limit);<br/>
+            }<br/>
+            result = ActivityPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_ACTIVITY, fullHistoryObj,<br/>
+                            new Integer(limit));<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns limited list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    public void addActivity(Activity activity) throws TorqueException  <br/>
+    {<br/>
+        List activityList = null;<br/>
+        try<br/>
+        {<br/>
+            activityList = getActivity(true);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            throw new TorqueException(e);<br/>
+        }<br/>
+        super.addActivity(activity);<br/>
+        if (!activityList.contains(activity))<br/>
+        {<br/>
+            activityList.add(activity);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns list of child dependencies<br/>
+     * i.e., related to this issue through the DEPEND table.<br/>
+     */<br/>
+    public List getChildren() throws Exception  <br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_CHILDREN); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(DependPeer.OBSERVED_ID, getIssueId())<br/>
+                .add(DependPeer.DELETED, false);<br/>
+            result = DependPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_CHILDREN);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns list of parent dependencies<br/>
+     * i.e., related to this issue through the DEPEND table.<br/>
+     */<br/>
+    public List getParents() throws Exception  <br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_PARENTS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(DependPeer.OBSERVER_ID, getIssueId())<br/>
+                .add(DependPeer.DELETED, false);<br/>
+            result = DependPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_PARENTS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+        <br/>
+<br/>
+    /**<br/>
+     * Returns list of all types of dependencies an issue can have<br/>
+     * On another issue.<br/>
+     * @deprecated use DependencyTypeManager.getAll();<br/>
+     */<br/>
+    public List getAllDependencyTypes() throws Exception<br/>
+    {<br/>
+        return DependTypeManager.getAll();<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns type of dependency the passed-in issue has on<br/>
+     * This issue.<br/>
+     */<br/>
+    public Depend getDependency(Issue childIssue) throws Exception<br/>
+    {<br/>
+        Depend result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_DEPENDENCY, childIssue); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(2)<br/>
+                .add(DependPeer.OBSERVED_ID, getIssueId() )        <br/>
+                .add(DependPeer.OBSERVER_ID, childIssue.getIssueId() );<br/>
+            List depends = (List) DependPeer.doSelect(crit);<br/>
+            <br/>
+            Criteria crit2 = new Criteria(2)<br/>
+                .add(DependPeer.OBSERVER_ID, getIssueId() )        <br/>
+                .add(DependPeer.OBSERVED_ID, childIssue.getIssueId() );<br/>
+            List depends2 = (List) DependPeer.doSelect(crit2);<br/>
+            <br/>
+            if (depends.size() &gt; 0 )<br/>
+            {<br/>
+                result = (Depend)depends.get(0);<br/>
+            }<br/>
+            else if (depends2.size() &gt; 0 )<br/>
+            {<br/>
+                result = (Depend)depends2.get(0);<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_DEPENDENCY, childIssue);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (Depend)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Removes any unset attributes and sets the issue # prior to saving<br/>
+     * for the first time.  Calls super.save()<br/>
+     *<br/>
+     * @param dbCon a &lt;code&gt;DBConnection&lt;/code&gt; value<br/>
+     * @exception TorqueException if an error occurs<br/>
+     */<br/>
+    public void save(DBConnection dbCon)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        Module module = getModule();<br/>
+        if (!module.allowsIssues() || (isNew() &amp;&amp; !module.allowsNewIssues())) <br/>
+        {<br/>
+            throw new UnsupportedOperationException(module.getName() + <br/>
+                " does not allow issues.");<br/>
+        }<br/>
+        <br/>
+        // remove unset AttributeValues before saving<br/>
+        List attValues = getAttributeValues();<br/>
+        // reverse order since removing from list<br/>
+        for ( int i=attValues.size()-1; i&gt;=0; i-- ) <br/>
+        {<br/>
+            AttributeValue attVal = (AttributeValue) attValues.get(i);<br/>
+            if ( !attVal.isSet() ) <br/>
+            {<br/>
+                attValues.remove(i);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if ( isNew() ) <br/>
+        {<br/>
+            // set the issue id<br/>
+            setIdDomain(module.getDomain());<br/>
+            setIdPrefix(module.getCode());<br/>
+            try<br/>
+            {<br/>
+                setIdCount(getNextIssueId(dbCon));<br/>
+            }<br/>
+            catch (Exception e)<br/>
+            {<br/>
+                throw new TorqueException(e);<br/>
+            }<br/>
+        }<br/>
+        super.save(dbCon);<br/>
+    }<br/>
+<br/>
+<br/>
+    private int getNextIssueId(DBConnection dbCon)<br/>
+        throws Exception<br/>
+    {<br/>
+        Connection con = dbCon.getConnection();<br/>
+        int id = -1;<br/>
+        String key = getIdTableKey();<br/>
+        DatabaseMap dbMap = IssuePeer.getTableMap().getDatabaseMap();<br/>
+        IDBroker idbroker = dbMap.getIDBroker();<br/>
+        try<br/>
+        {<br/>
+            id = idbroker.getIdAsInt(con, key);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            synchronized (idbroker)<br/>
+            {<br/>
+                try<br/>
+                {<br/>
+                    id = idbroker.getIdAsInt(con, key);<br/>
+                }<br/>
+                catch (Exception idRetrievalErr)<br/>
+                {<br/>
+                    // a module code entry in the id_table was likely not <br/>
+                    // entered, insert a row into the id_table and try again.<br/>
+                    try<br/>
+                    {<br/>
+                        saveIdTableKey(dbCon);<br/>
+                        id = 1;<br/>
+                    }<br/>
+                    catch (Exception badException)<br/>
+                    {<br/>
+                        log().error("Could not get an id, even after "<br/>
+                            +"trying to add a module entry into the ID_TABLE", <br/>
+                            e);<br/>
+                        log()<br/>
+                            .error("Error trying to create ID_TABLE entry for "<br/>
+                                   + getIdTableKey(), badException);<br/>
+                        // throw the original<br/>
+                        throw new ScarabException(<br/>
+                            "Error retrieving an id for the new issue.  " + <br/>
+                            "Please check turbine.log for reasons.", <br/>
+                            badException);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return id;<br/>
+    }<br/>
+<br/>
+    private String getIdTableKey()<br/>
+        throws Exception<br/>
+    {<br/>
+        Module module = getModule();        <br/>
+        String prefix = module.getCode();<br/>
+<br/>
+        String domain = module.getDomain();            <br/>
+        if ( domain != null &amp;&amp; domain.length() &gt; 0 ) <br/>
+        { <br/>
+            prefix = domain + "-" + prefix;<br/>
+        }<br/>
+        return prefix;<br/>
+    }<br/>
+<br/>
+    private void saveIdTableKey(DBConnection dbCon)<br/>
+        throws Exception<br/>
+    {<br/>
+        int id = 0;<br/>
+        DatabaseMap dbMap = IssuePeer.getTableMap().getDatabaseMap();<br/>
+        IDBroker idbroker = dbMap.getIDBroker();<br/>
+        String idTable = IDBroker.TABLE_NAME.substring(0, <br/>
+             IDBroker.TABLE_NAME.indexOf('.'));<br/>
+        id = idbroker.getIdAsInt(dbCon.getConnection(), idTable);<br/>
+<br/>
+        String key = getIdTableKey();<br/>
+<br/>
+        // FIXME: UGLY! IDBroker doesn't have a Peer yet.<br/>
+        String sql = "insert into " + idTable <br/>
+         + " (ID_TABLE_ID,TABLE_NAME,NEXT_ID,QUANTITY) "<br/>
+         + " VALUES (" + id + ",'" + key + "',2,1)" ;<br/>
+        BasePeer.executeStatement(sql, dbCon);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Performs a search over an issue's attribute values.<br/>
+     * FIXME! remove<br/>
+     *<br/>
+     * @param keywords a &lt;code&gt;String[]&lt;/code&gt; value<br/>
+     * @param useAnd, an AND search if true, otherwise OR<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    public static List searchKeywords(String[] keywords, boolean useAnd)<br/>
+        throws Exception<br/>
+    {<br/>
+        Criteria c = new Criteria(0);<br/>
+        return IssuePeer.doSelect(c);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns list of issue template types.<br/>
+     */<br/>
+    public List getTemplateTypes() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_TEMPLATE_TYPES); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(IssueTypePeer.ISSUE_TYPE_ID, <br/>
+                     IssueType.ISSUE__PK, Criteria.NOT_EQUAL);<br/>
+            result = IssueTypePeer.doSelect(crit);<br/>
+            ScarabCache.put(result, this, GET_TEMPLATE_TYPES);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get IssueTemplateInfo by Issue Id.<br/>
+     */<br/>
+    public IssueTemplateInfo getTemplateInfo() <br/>
+          throws Exception<br/>
+    {<br/>
+        IssueTemplateInfo result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_TEMPLATEINFO); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(1);<br/>
+            crit.add(IssueTemplateInfoPeer.ISSUE_ID, getIssueId());<br/>
+            result = (IssueTemplateInfo)IssueTemplateInfoPeer<br/>
+                .doSelect(crit).get(0);<br/>
+            ScarabCache.put(result, this, GET_TEMPLATEINFO);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (IssueTemplateInfo)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *  Move or copy issue to destination module.<br/>
+     */<br/>
+    public Issue move(Module newModule, String action, ScarabUser user)<br/>
+          throws Exception<br/>
+    {<br/>
+        NumberKey newIssueId;<br/>
+        Issue newIssue;<br/>
+        StringBuffer descBuf = null;<br/>
+        Attachment attachment = new Attachment();<br/>
+<br/>
+        Transaction transaction = new Transaction();<br/>
+        Module oldModule = getModule();<br/>
+        newIssue = newModule.getNewIssue(getIssueType());<br/>
+        newIssue.save();<br/>
+        List matchingAttributes = getMatchingAttributeValuesList(newModule);<br/>
+        List orphanAttributes = getOrphanAttributeValuesList(newModule);<br/>
+        List userAttributes = getUserAttributeValues();<br/>
+<br/>
+        // Save transaction record<br/>
+        transaction.create(TransactionTypePeer.CREATE_ISSUE__PK,<br/>
+                           getCreatedBy(), null);<br/>
+        <br/>
+        // Copy over attributes<br/>
+        for (int i=0;i&lt;matchingAttributes.size();i++)<br/>
+        {<br/>
+           AttributeValue attVal = (AttributeValue) matchingAttributes<br/>
+                                                    .get(i);<br/>
+           AttributeValue newAttVal = attVal.copy();<br/>
+           newAttVal.setIssueId(newIssue.getIssueId());<br/>
+           newAttVal.startTransaction(transaction);<br/>
+           newAttVal.save();<br/>
+        }<br/>
+<br/>
+        // Generate comment to deal with attributes that do not<br/>
+        // Exist in destination module, as well as the user attributes.<br/>
+        // Later will find another solution for user attributes.<br/>
+        if (!orphanAttributes.isEmpty() || !userAttributes.isEmpty())<br/>
+        {<br/>
+            // Save comment<br/>
+            StringBuffer delAttrsBuf = new StringBuffer("Did not copy over the "<br/>
+                 + "following attribute info: ");<br/>
+            for (int i=0;i&lt;orphanAttributes.size();i++)<br/>
+            {<br/>
+                AttributeValue attVal = (AttributeValue) orphanAttributes.get(i);<br/>
+                String field = null;<br/>
+                if (attVal.getAttribute().isOptionAttribute())<br/>
+                {<br/>
+                    delAttrsBuf.append(attVal.getAttribute().getName());<br/>
+                    field = attVal.getAttributeOption().getName();<br/>
+                    delAttrsBuf.append("=").append(field).append(". ");<br/>
+                } <br/>
+           }<br/>
+           // Add user attributes to comment.<br/>
+           for (int i=0;i&lt;userAttributes.size();i++)<br/>
+           {<br/>
+               AttributeValue attVal = (AttributeValue)userAttributes.get(i);<br/>
+               delAttrsBuf.append(attVal.getAttribute().getName());<br/>
+               delAttrsBuf.append("=").append(attVal.getValue());<br/>
+               delAttrsBuf.append(". ");<br/>
+           }<br/>
+           attachment.setDataAsString(delAttrsBuf.toString()); <br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            attachment.setDataAsString("All attributes were copied.");<br/>
+        }<br/>
+            <br/>
+        if (action.equals("move"))<br/>
+        {<br/>
+            attachment.setName("Moved issue note");<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            attachment.setName("Copied issue note");<br/>
+        }<br/>
+        attachment.setTextFields(user, newIssue, Attachment.MODIFICATION__PK);<br/>
+        attachment.save();<br/>
+<br/>
+        // Create transaction for the MoveIssue activity<br/>
+        Transaction transaction2 = new Transaction();<br/>
+        transaction2.create(TransactionTypePeer.MOVE_ISSUE__PK,<br/>
+                           user, null);<br/>
+        transaction2.setAttachment(attachment);<br/>
+        transaction2.save();<br/>
+<br/>
+        // Generate comment<br/>
+        // If moving issue, delete original<br/>
+        String comment = null;<br/>
+        if (action.equals("copy"))<br/>
+        {<br/>
+            comment = " copied from issue ";<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            comment = " moved from issue ";<br/>
+            // delete original issue<br/>
+            delete(user);<br/>
+        }<br/>
+        descBuf = new StringBuffer(comment).append(getUniqueId());<br/>
+        descBuf.append(" in module ").append(oldModule.getName());<br/>
+<br/>
+        // Save activity record<br/>
+        Activity activity = new Activity();<br/>
+        Attribute zeroAttribute = AttributeManager<br/>
+            .getInstance(new NumberKey("0"));<br/>
+        activity.create(newIssue, zeroAttribute, descBuf.toString(),<br/>
+                        transaction2, oldModule.getName(), newModule.getName());<br/>
+<br/>
+        return newIssue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The Date when this issue was closed.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value, null if status has not been<br/>
+     * set to Closed<br/>
+     */<br/>
+    public Date getClosedDate()<br/>
+        throws Exception<br/>
+    {<br/>
+        Date result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_CLOSED_DATE); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            AttributeValue status = getAttributeValue(<br/>
+                AttributeManager.getInstance(AttributePeer.STATUS__PK));<br/>
+            if ( status != null &amp;&amp; status.getOptionId()<br/>
+                 .equals(AttributeOption.STATUS__CLOSED__PK) ) <br/>
+            {<br/>
+                // the issue is currently closed, we can get the date<br/>
+                Criteria crit = new Criteria()<br/>
+                    .add(ActivityPeer.ISSUE_ID, getIssueId())<br/>
+                    .add(ActivityPeer.ATTRIBUTE_ID, AttributePeer.STATUS__PK)<br/>
+                    .addJoin(ActivityPeer.TRANSACTION_ID, <br/>
+                             TransactionPeer.TRANSACTION_ID)<br/>
+                    .add( ActivityPeer.NEW_OPTION_ID, <br/>
+                      AttributeOption.STATUS__CLOSED__PK )<br/>
+                    .addDescendingOrderByColumn(TransactionPeer.CREATED_DATE);<br/>
+                <br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                if ( transactions.size() &gt; 0 ) <br/>
+                {<br/>
+                    result = ((Transaction)transactions.get(0))<br/>
+                        .getCreatedDate();<br/>
+                    ScarabCache.put(result, this, GET_CLOSED_DATE);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    throw new ScarabException("Issue " + getIssueId() + <br/>
+                        " was in a closed state, but" +<br/>
+                        "no transaction is associated with the change.");   <br/>
+                }<br/>
+            }          <br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (Date)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public void addVote(ScarabUser user)<br/>
+        throws ScarabException, Exception<br/>
+    {<br/>
+        // check to see if the user has voted for this issue<br/>
+        int previousVotes = 0;<br/>
+        IssueVote issueVote = null;<br/>
+        Criteria crit = new Criteria()<br/>
+            .add(IssueVotePeer.ISSUE_ID, getIssueId())<br/>
+            .add(IssueVotePeer.USER_ID, user.getUserId());<br/>
+        List votes = IssueVotePeer.doSelect(crit);<br/>
+        if ( votes != null &amp;&amp; votes.size() != 0 ) <br/>
+        {<br/>
+            issueVote = (IssueVote)votes.get(0);<br/>
+            previousVotes = issueVote.getVotes();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            issueVote = new IssueVote();<br/>
+            issueVote.setIssueId(getIssueId());<br/>
+            issueVote.setUserId(user.getUserId());<br/>
+        }<br/>
+<br/>
+        // check if the module accepts multiple votes<br/>
+        if ( !getModule().allowsMultipleVoting() &amp;&amp; previousVotes &gt; 0 )<br/>
+        {<br/>
+            throw new ScarabException("User " + user.getUserName() + <br/>
+                " attempted to vote multiple times for issue " + getUniqueId()<br/>
+                + " which was not allowed in this project.");<br/>
+        }<br/>
+        <br/>
+        // save the user's vote<br/>
+        issueVote.setVotes(previousVotes+1);<br/>
+        issueVote.save();<br/>
+<br/>
+        // update the total votes for the issue<br/>
+        crit = new Criteria()<br/>
+            .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                 AttributePeer.TOTAL_VOTES__PK);<br/>
+        List voteValues = getAttributeValues(crit);<br/>
+        TotalVotesAttribute voteValue = null;<br/>
+        if ( voteValues.size() == 0 ) <br/>
+        {<br/>
+            voteValue = new TotalVotesAttribute();<br/>
+            voteValue.setIssue(this);<br/>
+            voteValue.setAttributeId(AttributePeer.TOTAL_VOTES__PK);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            voteValue = (TotalVotesAttribute)voteValues.get(0);<br/>
+        }<br/>
+        // Updating attribute values requires a transaction<br/>
+        Transaction transaction = new Transaction();<br/>
+        transaction<br/>
+            .create(TransactionTypePeer.RETOTAL_ISSUE_VOTE__PK, user, null);<br/>
+        voteValue.startTransaction(transaction);<br/>
+        voteValue.addVote();<br/>
+        voteValue.save();<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Gets a list of non-user AttributeValues which match a given Module.<br/>
+     * It is used in the MoveIssue2.vm template<br/>
+     */<br/>
+    public List getMatchingAttributeValuesList(Module newModule)<br/>
+          throws Exception<br/>
+    {<br/>
+        AttributeValue aval = null;<br/>
+        List matchingAttributes = new ArrayList();<br/>
+<br/>
+        HashMap setMap = this.getAttributeValuesMap();<br/>
+        Iterator iter = setMap.keySet().iterator();<br/>
+        while ( iter.hasNext() ) <br/>
+        {<br/>
+            aval = (AttributeValue)setMap.get(iter.next());<br/>
+            if (!aval.getAttribute().isUserAttribute())<br/>
+            {<br/>
+            RModuleAttribute modAttr = newModule.<br/>
+                getRModuleAttribute(aval.getAttribute(), getIssueType());<br/>
+            <br/>
+            // If this attribute is active for the destination module,<br/>
+            // Add to matching attributes list<br/>
+            if (modAttr != null &amp;&amp; modAttr.getActive()) <br/>
+            {<br/>
+                // If attribute is an option attribute,<br/>
+                // Check if attribute option is active for destination module.<br/>
+                if (aval instanceof OptionAttribute)<br/>
+                {<br/>
+                    Criteria crit2 = new Criteria(1)<br/>
+                        .add(RModuleOptionPeer.ACTIVE, true);<br/>
+                    RModuleOption modOpt = (RModuleOption)RModuleOptionPeer<br/>
+                                            .doSelect(crit2).get(0);<br/>
+                    if (modOpt.getActive())<br/>
+                    {<br/>
+                        matchingAttributes.add(aval);<br/>
+                    } <br/>
+                }<br/>
+                else<br/>
+                {<br/>
+                    matchingAttributes.add(aval);<br/>
+                }<br/>
+            } <br/>
+            }<br/>
+        }<br/>
+        return matchingAttributes;<br/>
+    }<br/>
+<br/>
+    public List getMatchingAttributeValuesList(String moduleId)<br/>
+          throws Exception<br/>
+    {<br/>
+         Module module = ModuleManager.getInstance(new NumberKey(moduleId)); <br/>
+         return getMatchingAttributeValuesList(module);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets a list AttributeValues which the source module has,<br/>
+     * But the destination module does not have, when doing a copy.<br/>
+     * It is used in the MoveIssue2.vm template<br/>
+     */<br/>
+    public List getOrphanAttributeValuesList(Module newModule)<br/>
+          throws Exception<br/>
+    {<br/>
+        List orphanAttributes = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ORPHAN_ATTRIBUTEVALUES_LIST); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            AttributeValue aval = null;<br/>
+            orphanAttributes = new ArrayList();<br/>
+            <br/>
+            HashMap setMap = this.getAttributeValuesMap();<br/>
+            Iterator iter = setMap.keySet().iterator();<br/>
+            while ( iter.hasNext() ) <br/>
+            {<br/>
+                aval = (AttributeValue)setMap.get(iter.next());<br/>
+                RModuleAttribute modAttr = newModule.<br/>
+                    getRModuleAttribute(aval.getAttribute(), getIssueType());<br/>
+                <br/>
+                // If this attribute is not active for the destination module,<br/>
+                // Add to orphanAttributes list<br/>
+                if (modAttr == null || !modAttr.getActive())<br/>
+                {<br/>
+                    orphanAttributes.add(aval);<br/>
+                } <br/>
+                else<br/>
+                {<br/>
+                    // If attribute is an option attribute, Check if <br/>
+                    // attribute option is active for destination module.<br/>
+                    if (aval instanceof OptionAttribute) <br/>
+                    {<br/>
+                        Criteria crit2 = new Criteria(1)<br/>
+                            .add(RModuleOptionPeer.ACTIVE, true);<br/>
+                        RModuleOption modOpt = (RModuleOption)RModuleOptionPeer<br/>
+                            .doSelect(crit2).get(0);<br/>
+                        if (!modOpt.getActive())<br/>
+                        {<br/>
+                            orphanAttributes.add(aval);<br/>
+                        } <br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            ScarabCache.put(orphanAttributes, this, <br/>
+                            GET_ORPHAN_ATTRIBUTEVALUES_LIST);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            orphanAttributes = (List)obj;<br/>
+        }<br/>
+        return orphanAttributes;<br/>
+    }<br/>
+<br/>
+    public List getOrphanAttributeValuesList(String moduleId)<br/>
+          throws Exception<br/>
+    {<br/>
+         Module module = ModuleManager.getInstance(new NumberKey(moduleId)); <br/>
+         return getOrphanAttributeValuesList(module);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Brings the current list of users assigned to this issue in<br/>
+     * line with the list given by newAssignees.  Users currently<br/>
+     * assigned will be deleted, if not in the new list.  This method<br/>
+     * will cause this issue to be saved.<br/>
+     *<br/>
+     * @param newAssignees a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @param attachmentText a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @param assigner a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public void assignUsers(List newAssignees, String attachmentText, <br/>
+                            ScarabUser assigner, Attribute attribute)<br/>
+        throws Exception<br/>
+    {                <br/>
+        Attachment attachment = new Attachment();<br/>
+        attachment.setDataAsString(attachmentText);<br/>
+        attachment.setName("Assignee Note");<br/>
+        attachment.setTextFields(assigner, this, <br/>
+                                 Attachment.MODIFICATION__PK);<br/>
+        attachment.save();<br/>
+<br/>
+        // Save transaction record<br/>
+        Transaction transaction = new Transaction();<br/>
+        transaction.create(TransactionTypePeer.EDIT_ISSUE__PK, <br/>
+                           assigner, attachment);<br/>
+<br/>
+        // we might modify the list and we do not want to affect other<br/>
+        // uses of the list<br/>
+        List newAssigneesCopy = null;<br/>
+        if ( newAssignees != null ) <br/>
+        {<br/>
+            newAssigneesCopy = new ArrayList(newAssignees);<br/>
+        }<br/>
+        // take care of users who were removed or already assigned<br/>
+        List assignees = getAttributeValues(attribute);<br/>
+        Iterator iter = assignees.iterator();<br/>
+        while ( iter.hasNext() ) <br/>
+        {<br/>
+            AttributeValue oldAV = (AttributeValue)iter.next();<br/>
+            oldAV.startTransaction(transaction);<br/>
+            boolean deleted = true;<br/>
+            if ( newAssigneesCopy != null ) <br/>
+            {<br/>
+                for ( int i=newAssigneesCopy.size()-1; i&gt;=0; i-- ) <br/>
+                {<br/>
+                    if ( oldAV.getValue().equals( <br/>
+                        ((ScarabUser)newAssigneesCopy.get(i)).getUserName() ))<br/>
+                    {<br/>
+                        // a current user was left in the list of assignees<br/>
+                        // so remove from list of new assignees and mark as<br/>
+                        // not to be deleted.<br/>
+                        newAssigneesCopy.remove(i);<br/>
+                        deleted = false;<br/>
+                        break;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            oldAV.setDeleted(deleted);<br/>
+        }<br/>
+<br/>
+        // add new values<br/>
+        if ( newAssigneesCopy != null ) <br/>
+        {        <br/>
+            for ( int i=0; i&lt;newAssigneesCopy.size(); i++ ) <br/>
+            {<br/>
+                ScarabUser user = (ScarabUser)newAssigneesCopy.get(i);<br/>
+                AttributeValue av = AttributeValue<br/>
+                    .getNewInstance(attribute.getAttributeId(), this);<br/>
+                av.startTransaction(transaction);<br/>
+                av.setUserId(user.getUserId());<br/>
+                av.setValue(user.getUserName());<br/>
+                assignees.add(av);<br/>
+            }<br/>
+        }<br/>
+        save();<br/>
+    }<br/>
+<br/>
+ <br/>
+    /**<br/>
+     * Checks permission and approves or rejects issue template. <br/>
+     * If template is approved, template type set to "global", else set to "personal".<br/>
+     */<br/>
+    public void approve( ScarabUser user, boolean approved )<br/>
+         throws Exception, ScarabException<br/>
+<br/>
+    {                <br/>
+        Module module = getModule();<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ITEM__APPROVE, module))<br/>
+        {<br/>
+            IssueTemplateInfo templateInfo = getTemplateInfo();<br/>
+            templateInfo.setApproved(true);<br/>
+            templateInfo.save();<br/>
+            if (approved)<br/>
+            {        <br/>
+                setTypeId(IssueType.GLOBAL_TEMPLATE__PK);<br/>
+            }<br/>
+            save();<br/>
+        } <br/>
+        else<br/>
+        {<br/>
+            throw new ScarabException(ScarabConstants.NO_PERMISSION_MESSAGE);<br/>
+        }            <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to delete issue template.<br/>
+     * Only the creating user can delete a personal template.<br/>
+     * Only project owner or admin can delete a project-wide template.<br/>
+     */<br/>
+    public void delete( ScarabUser user )<br/>
+         throws Exception, ScarabException<br/>
+    {                <br/>
+        Module module = getModule();<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ITEM__APPROVE, module)<br/>
+          || (user.equals(getCreatedBy()) <br/>
+             &amp;&amp; getTypeId().equals(IssueType.USER_TEMPLATE__PK)))<br/>
+        {<br/>
+            setDeleted(true);<br/>
+            save();<br/>
+        } <br/>
+        else<br/>
+        {<br/>
+            throw new ScarabException(ScarabConstants.NO_PERMISSION_MESSAGE);<br/>
+        }            <br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * if this RMA is the chosen attribute for email subjects then return<br/>
+     * true.  if not explicitly chosen, check the other RMA's for this module<br/>
+     * and if none is chosen as the email attribute, choose the highest<br/>
+     * ordered text attribute.<br/>
+     *<br/>
+     * @return the AttributeValue to use as the email subject, or null<br/>
+     * or null if no suitable AttributeValue could be found. <br/>
+     */<br/>
+    public AttributeValue getDefaultTextAttributeValue()<br/>
+        throws Exception<br/>
+    {<br/>
+        AttributeValue result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_DEFAULT_TEXT_ATTRIBUTEVALUE); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Attribute defaultTextAttribute = <br/>
+                getModule().getDefaultTextAttribute(getIssueType());<br/>
+            <br/>
+            if ( defaultTextAttribute != null ) <br/>
+            {<br/>
+                ObjectKey attributeId = defaultTextAttribute.getAttributeId();<br/>
+                List avs = getAttributeValues();<br/>
+                for ( int i=0; i&lt;avs.size(); i++ ) <br/>
+                {<br/>
+                    AttributeValue testAV = (AttributeValue)avs.get(i);<br/>
+                    if ( attributeId.equals(testAV.getAttributeId()) ) <br/>
+                    {<br/>
+                        result = testAV;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_DEFAULT_TEXT_ATTRIBUTEVALUE);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (AttributeValue)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    public String getDefaultText()<br/>
+        throws Exception<br/>
+    {<br/>
+        String result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_DEFAULT_TEXT); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            AttributeValue emailAV = getDefaultTextAttributeValue();<br/>
+            if ( emailAV != null ) <br/>
+            {<br/>
+                result = emailAV.getValue();<br/>
+            }        <br/>
+            result = (result == null ? "" : result);<br/>
+            ScarabCache.put(result, this, GET_DEFAULT_TEXT);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (String)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    private MethodResultCache getMethodResult()<br/>
+    {<br/>
+        return IssueManager.getMethodResult();<br/>
+    }<br/>
+<br/>
+    // *******************************************************************<br/>
+    // Permissions methods - these are deprecated<br/>
+    // *******************************************************************<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to enter issue.<br/>
+     * @deprecated user.hasPermission(ScarabSecurity.ISSUE__ENTER, module)<br/>
+     */<br/>
+    public boolean hasEnterPermission( ScarabUser user, Module module)<br/>
+        throws Exception<br/>
+    {                <br/>
+        boolean hasPerm = false;<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ISSUE__ENTER, module))<br/>
+        {<br/>
+             hasPerm = true;<br/>
+        } <br/>
+        return hasPerm;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to edit issue.<br/>
+     * @deprecated user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+     */<br/>
+    public boolean hasEditPermission( ScarabUser user, Module module)<br/>
+        throws Exception<br/>
+    {                <br/>
+        boolean hasPerm = false;<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+            || user.equals(getCreatedBy()))<br/>
+        {<br/>
+            hasPerm = true;<br/>
+        } <br/>
+        return hasPerm;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to move issue to destination module.<br/>
+     * @deprecated user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+     */<br/>
+    public boolean hasMovePermission( ScarabUser user, Module module)<br/>
+        throws Exception<br/>
+    {                <br/>
+        boolean hasPerm = false;<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+            || user.equals(getCreatedBy()))<br/>
+        {<br/>
+            hasPerm = true;<br/>
+        } <br/>
+        return hasPerm;<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Issue_1.141.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.om;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2002 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */ <br/>
+<br/>
+// JDK classes<br/>
+import java.io.Serializable;<br/>
+import java.util.Map;<br/>
+import java.util.HashMap;<br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+import java.util.ArrayList;<br/>
+import java.util.LinkedList;<br/>
+import java.util.Date;<br/>
+import java.sql.Connection;<br/>
+<br/>
+// Turbine classes<br/>
+import org.apache.turbine.TemplateContext;<br/>
+import org.apache.torque.TorqueException;<br/>
+import org.apache.torque.om.ObjectKey;<br/>
+import org.apache.torque.om.NumberKey;<br/>
+import org.apache.torque.om.Persistent;<br/>
+import org.apache.torque.manager.MethodResultCache;<br/>
+import org.apache.torque.util.Criteria;<br/>
+import org.apache.commons.collections.SequencedHashMap;<br/>
+import org.apache.torque.pool.DBConnection;<br/>
+import org.apache.torque.map.DatabaseMap;<br/>
+import org.apache.torque.oid.IDBroker;<br/>
+import org.apache.torque.util.BasePeer;<br/>
+<br/>
+// Scarab classes<br/>
+import org.tigris.scarab.om.Module;<br/>
+import org.tigris.scarab.om.ModuleManager;<br/>
+import org.tigris.scarab.services.security.ScarabSecurity;<br/>
+import org.tigris.scarab.services.cache.ScarabCache;<br/>
+import org.tigris.scarab.om.ScarabUserManager;<br/>
+import org.tigris.scarab.util.ScarabException;<br/>
+import org.tigris.scarab.attribute.TotalVotesAttribute;<br/>
+import org.tigris.scarab.attribute.OptionAttribute;<br/>
+import org.tigris.scarab.util.ScarabConstants;<br/>
+import org.tigris.scarab.tools.ScarabRequestTool;<br/>
+<br/>
+/** <br/>
+  * The skeleton for this class was autogenerated by Torque on:<br/>
+  *<br/>
+  * [Wed Feb 28 16:36:26 PST 2001]<br/>
+  *<br/>
+  * You should add additional methods to this class to meet the<br/>
+  * application requirements.  This class will only be generated as<br/>
+  * long as it does not already exist in the output directory.<br/>
+<br/>
+  */<br/>
+public class Issue <br/>
+    extends BaseIssue<br/>
+    implements Persistent<br/>
+{<br/>
+    // the following Strings are method names that are used in caching results<br/>
+    private static final String ISSUE = <br/>
+        "Issue";<br/>
+    protected static final String GET_ISSUE_BY_ID = <br/>
+        "getIssueById";<br/>
+    protected static final String GET_ATTRIBUTE_VALUES_MAP = <br/>
+        "getAttributeValuesMap";<br/>
+    protected static final String GET_ASSOCIATED_USERS = <br/>
+        "getAssociatedUsers";<br/>
+    protected static final String GET_MODULE_ATTRVALUES_MAP = <br/>
+        "getModuleAttributeValuesMap";<br/>
+    protected static final String GET_ATTRVALUE = <br/>
+        "getAttributeValue";<br/>
+    protected static final String GET_ATTRVALUES = <br/>
+        "getAttributeValues";<br/>
+    protected static final String GET_USERS_TO_EMAIL = <br/>
+        "getUsersToEmail";<br/>
+    protected static final String GET_USER_ATTRIBUTEVALUES = <br/>
+        "getUserAttributeValues";<br/>
+    protected static final String GET_CREATED_DATE = <br/>
+        "getCreatedDate";<br/>
+    protected static final String GET_CREATED_BY = <br/>
+        "getCreatedBy";<br/>
+    protected static final String GET_LAST_TRANSACTION = <br/>
+        "getLastTransaction";<br/>
+    protected static final String GET_MODIFIED_BY = <br/>
+        "getModifiedBy";<br/>
+    protected static final String GET_MODIFIED_DATE = <br/>
+        "getModifiedDate";<br/>
+    protected static final String GET_COMMENTS = <br/>
+        "getComments";<br/>
+    protected static final String GET_URLS = <br/>
+        "getUrls";<br/>
+    protected static final String GET_EXISTING_ATTACHMENTS = <br/>
+        "getExistingAttachments";<br/>
+    protected static final String GET_ACTIVITY = <br/>
+        "getActivity";<br/>
+    protected static final String GET_CHILDREN = <br/>
+        "getChildren";<br/>
+    protected static final String GET_PARENTS = <br/>
+        "getParents";<br/>
+    protected static final String GET_ALL_DEPENDENCY_TYPES = <br/>
+        "getAllDependencyTypes";<br/>
+    protected static final String GET_DEPENDENCY = <br/>
+        "getDependency";<br/>
+    protected static final String GET_TEMPLATE_TYPES = <br/>
+        "getTemplateTypes";<br/>
+    protected static final String GET_TEMPLATEINFO = <br/>
+        "getTemplateInfo";<br/>
+    protected static final String GET_CLOSED_DATE = <br/>
+        "getClosedDate";<br/>
+    protected static final String GET_ORPHAN_ATTRIBUTEVALUES_LIST = <br/>
+        "getOrphanAttributeValuesList";<br/>
+    protected static final String GET_DEFAULT_TEXT_ATTRIBUTEVALUE = <br/>
+        "getDefaultTextAttributeValue";<br/>
+    protected static final String GET_DEFAULT_TEXT = <br/>
+        "getDefaultText";<br/>
+<br/>
+    /**<br/>
+     * new issues are created only when the issuetype and module are known<br/>
+     * Or by the Peer when retrieving from db<br/>
+     */<br/>
+    Issue()<br/>
+    {<br/>
+    }<br/>
+<br/>
+    protected Issue(Module module, IssueType issueType)<br/>
+        throws Exception<br/>
+    {<br/>
+        this();<br/>
+        setModule(module);<br/>
+        setIssueType(issueType);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets an issue associated to a Module<br/>
+     */<br/>
+    public static Issue getNewInstance(Module module, <br/>
+                                       IssueType issueType)<br/>
+        throws Exception<br/>
+    {<br/>
+        Issue issue = new Issue(module, issueType);<br/>
+        return issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets the UniqueId for this Issue.<br/>
+     */<br/>
+    public String getUniqueId()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        if (getIdPrefix() == null)<br/>
+        {<br/>
+            setIdPrefix(getModule().getCode());<br/>
+        }<br/>
+        return getIdPrefix() + getIdCount();<br/>
+    }<br/>
+<br/>
+    public String getFederatedId()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        if ( getIdDomain() != null ) <br/>
+        {<br/>
+            return getIdDomain() + '-' + getUniqueId();<br/>
+        }<br/>
+        return getUniqueId();<br/>
+    }<br/>
+<br/>
+    public void setFederatedId(String id)<br/>
+    {<br/>
+        FederatedId fid = new FederatedId(id);<br/>
+        setIdDomain(fid.getDomain());<br/>
+        setIdPrefix(fid.getPrefix());<br/>
+        setIdCount(fid.getCount());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A FederatedId has this format: {Domain}-{Code}{Id}<br/>
+     * For example: collab.net-PACS1<br/>
+     * The domain can also be null.<br/>
+     */<br/>
+    public static class FederatedId<br/>
+        implements Serializable<br/>
+    {<br/>
+        String domainId;<br/>
+        String prefix;<br/>
+        int count;<br/>
+<br/>
+        public FederatedId(String id)<br/>
+        {<br/>
+            int dash = id.indexOf('-');<br/>
+            if ( dash &gt; 0 ) <br/>
+            {<br/>
+                domainId = id.substring(0, dash);<br/>
+                setUniqueId(id.substring(dash+1));<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                setUniqueId(id);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        public FederatedId(String domain, String prefix, int count)<br/>
+        {<br/>
+            domainId = domain;<br/>
+            this.prefix = prefix;<br/>
+            this.count = count;<br/>
+        }<br/>
+<br/>
+        public void setUniqueId(String id)<br/>
+        {<br/>
+            // we could start at 1 here, if the spec says one char is <br/>
+            // required, will keep it safe for now.<br/>
+            StringBuffer code = new StringBuffer(4);<br/>
+            int max = id.length() &lt; 4 ? id.length() : 4;<br/>
+            for ( int i=0; i&lt;max; i++) <br/>
+            {<br/>
+                char c = id.charAt(i);<br/>
+                if ( c != '0' &amp;&amp; c != '1' &amp;&amp; c != '2' &amp;&amp; c != '3' &amp;&amp; c != '4'<br/>
+                     &amp;&amp; c != '5' &amp;&amp; c != '6' &amp;&amp; c != '7' &amp;&amp; c!='8' &amp;&amp; c!='9' )<br/>
+                {<br/>
+                    code.append(c);<br/>
+                }<br/>
+            }<br/>
+            if ( code.length() != 0 ) <br/>
+            {<br/>
+                prefix = code.toString();                 <br/>
+            }<br/>
+            count = Integer.parseInt( id.substring(code.length()) );<br/>
+            <br/>
+        }<br/>
+<br/>
+        <br/>
+        /**<br/>
+         * Get the IdInstance<br/>
+         * @return String<br/>
+         */<br/>
+        public String getDomain()<br/>
+        {<br/>
+            return domainId;<br/>
+        }<br/>
+<br/>
+        /**<br/>
+         * Get the Prefix<br/>
+         * @return String<br/>
+         */<br/>
+        public String getPrefix()<br/>
+        {<br/>
+            return prefix;<br/>
+        }<br/>
+                <br/>
+        /**<br/>
+         * Get the Count<br/>
+         * @return int<br/>
+         */<br/>
+        public int getCount()<br/>
+        {<br/>
+            return count;<br/>
+        }<br/>
+        <br/>
+        /**<br/>
+         * Set the IdInstance<br/>
+         * @return String<br/>
+         */<br/>
+        public void setDomain(String domainId)<br/>
+        {<br/>
+            this.domainId = domainId;<br/>
+        }<br/>
+        /**<br/>
+         * Set the Prefix<br/>
+         * @param String<br/>
+         */<br/>
+        public void setPrefix(String prefix)<br/>
+        {<br/>
+            this.prefix = prefix;<br/>
+        }<br/>
+        <br/>
+        /**<br/>
+         * Set the Count<br/>
+         * @param int<br/>
+         */<br/>
+        public void setCount(int count)<br/>
+        {<br/>
+            this.count = count;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Whether this issue is an enter issue template.<br/>
+     */<br/>
+    public boolean isTemplate() throws Exception<br/>
+    {<br/>
+       return !getIssueType().equals(IssueType.ISSUE__PK);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Adds a comment to this issue.<br/>
+     */<br/>
+    public void addComment(Attachment attachment, ScarabUser user)<br/>
+        throws Exception<br/>
+    {<br/>
+        attachment.setIssue(this);<br/>
+        attachment.setTypeId(Attachment.COMMENT__PK);<br/>
+        attachment.setName("");<br/>
+        attachment.setCreatedBy(user.getUserId());<br/>
+        attachment.setMimeType("text/plain");<br/>
+        attachment.save();<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds an attachment file to this issue<br/>
+     */<br/>
+    public void addFile(Attachment attachment)<br/>
+        throws Exception<br/>
+    {<br/>
+        attachment.setIssue(this);<br/>
+        attachment.setTypeId(Attachment.FILE__PK);<br/>
+        addAttachment(attachment);<br/>
+    }<br/>
+    <br/>
+    /** <br/>
+     * Remove an attachment file<br/>
+     * @param index starts with 1 because velocityCount start from 1<br/>
+     * but Vector starts from 0<br/>
+     */<br/>
+    public void removeFile(String index)<br/>
+        throws Exception<br/>
+    {<br/>
+        getAttachments().remove(Integer.parseInt(index) - 1);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Throws UnsupportedOperationException.  Use<br/>
+     * &lt;code&gt;getModule()&lt;/code&gt; instead.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabModule&lt;/code&gt; value<br/>
+     */<br/>
+    public ScarabModule getScarabModule()<br/>
+    {<br/>
+        throw new UnsupportedOperationException(<br/>
+            "Should use getModule");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Throws UnsupportedOperationException.  Use<br/>
+     * &lt;code&gt;setModule(Module)&lt;/code&gt; instead.<br/>
+     *<br/>
+     */<br/>
+    public void setScarabModule(ScarabModule module)<br/>
+    {<br/>
+        throw new UnsupportedOperationException(<br/>
+            "Should use setModule(Module). Note module cannot be new.");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Use this instead of setScarabModule.  Note: module cannot be new.<br/>
+     */<br/>
+    public void setModule(Module me)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        NumberKey id = me.getModuleId();<br/>
+        if (id == null) <br/>
+        {<br/>
+            throw new TorqueException("Modules must be saved prior to " +<br/>
+                                      "being associated with other objects.");<br/>
+        }<br/>
+        setModuleId(id);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Module getter.  Use this method instead of getScarabModule().<br/>
+     *<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     */<br/>
+    public Module getModule()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        Module module = null;<br/>
+        ObjectKey id = getModuleId();<br/>
+        if ( id != null ) <br/>
+        {<br/>
+            module = ModuleManager.getInstance(id);<br/>
+        }<br/>
+        <br/>
+        return module;<br/>
+    }<br/>
+<br/>
+    public static Issue getIssueById(String id)<br/>
+    {<br/>
+        FederatedId fid = new FederatedId(id);<br/>
+        return getIssueById(fid);<br/>
+    }<br/>
+<br/>
+    public static Issue getIssueById(FederatedId fid)<br/>
+    {<br/>
+        Issue result = null;<br/>
+        Object obj = ScarabCache.get(ISSUE, GET_ISSUE_BY_ID, fid); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(5)<br/>
+                .add(IssuePeer.ID_PREFIX, fid.getPrefix())<br/>
+                .add(IssuePeer.ID_COUNT, fid.getCount());<br/>
+            <br/>
+            if (  fid.getDomain() != null ) <br/>
+            {<br/>
+                crit.add(IssuePeer.ID_DOMAIN, fid.getDomain());    <br/>
+            }<br/>
+            <br/>
+            Issue issue = null;<br/>
+            try<br/>
+            {<br/>
+                result = (Issue)IssuePeer.doSelect(crit).get(0);<br/>
+                IssueManager.putInstance(result);<br/>
+                ScarabCache.put(result, ISSUE, GET_ISSUE_BY_ID, fid);<br/>
+            }<br/>
+            catch (Exception e) <br/>
+            {<br/>
+                // return null<br/>
+            }<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (Issue)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are relevant to the issue's current module.<br/>
+     * Empty AttributeValues that are relevant for the module, but have <br/>
+     * not been set for the issue are included.  The values are ordered<br/>
+     * according to the module's preference<br/>
+     */<br/>
+    public SequencedHashMap getModuleAttributeValuesMap() <br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_MODULE_ATTRVALUES_MAP); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Attribute[] attributes = null;<br/>
+            HashMap siaValuesMap = null;<br/>
+<br/>
+            attributes = getModule().getActiveAttributes(getIssueType());<br/>
+            siaValuesMap = getAttributeValuesMap();<br/>
+<br/>
+            result = new SequencedHashMap((int)(1.25*attributes.length + 1));<br/>
+            for ( int i=0; i&lt;attributes.length; i++ ) <br/>
+            {<br/>
+                String key = attributes[i].getName().toUpperCase();<br/>
+                if ( siaValuesMap.containsKey(key) ) <br/>
+                {<br/>
+                    result.put( key, siaValuesMap.get(key) );<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    AttributeValue aval = AttributeValue<br/>
+                        .getNewInstance(attributes[i], this);<br/>
+                    addAttributeValue(aval);<br/>
+                    result.put(key, aval);<br/>
+                }<br/>
+            }<br/>
+            getMethodResult().put(result, this, GET_MODULE_ATTRVALUES_MAP);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (SequencedHashMap)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    public AttributeValue getAttributeValue(Attribute attribute)<br/>
+       throws Exception<br/>
+    {<br/>
+        AttributeValue result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ATTRVALUE, attribute); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            if ( isNew() ) <br/>
+            {<br/>
+                List avals = getAttributeValues();<br/>
+                if ( avals != null ) <br/>
+                {<br/>
+                    Iterator i = avals.iterator();<br/>
+                    while (i.hasNext()) <br/>
+                    {<br/>
+                        AttributeValue tempAval = (AttributeValue)i.next();<br/>
+                        if ( tempAval.getAttribute().equals(attribute)) <br/>
+                        {<br/>
+                            result = tempAval;<br/>
+                            break;<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {            <br/>
+                Criteria crit = new Criteria(2)<br/>
+                    .add(AttributeValuePeer.ISSUE_ID, getIssueId())        <br/>
+                    .add(AttributeValuePeer.DELETED, false)        <br/>
+                    .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                         attribute.getAttributeId());<br/>
+                <br/>
+                List avals = getAttributeValues(crit);               <br/>
+                if (avals.size() == 1) <br/>
+                {<br/>
+                    result = (AttributeValue)avals.get(0);<br/>
+                }<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_ATTRVALUE, attribute);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (AttributeValue)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns AttributeValues for the Attribute (which have not been deleted.)<br/>
+     * Warning: does not work for a new issue.<br/>
+     * FIXME! this method should be similar to getAttributeValue and<br/>
+     * getAttributeValue should call this method.<br/>
+     */<br/>
+    public List getAttributeValues(Attribute attribute)<br/>
+       throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ATTRVALUES, attribute); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            // FIXME!  needs a isNew() check for alternative logic.<br/>
+            Criteria crit = new Criteria(2)<br/>
+                .add(AttributeValuePeer.DELETED, false)        <br/>
+                .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                     attribute.getAttributeId());<br/>
+            <br/>
+            result = getAttributeValues(crit);<br/>
+            ScarabCache.put(result, this, GET_ATTRVALUES, attribute);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public boolean isAttributeValue(AttributeValue attVal)<br/>
+       throws Exception<br/>
+    {<br/>
+        boolean isValue = false;<br/>
+        List attValues = getAttributeValues(attVal.getAttribute());<br/>
+        if (attValues.contains(attVal))<br/>
+        {<br/>
+            isValue = true;<br/>
+        }<br/>
+        return isValue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are set for this Issue in the order<br/>
+     * that is preferred for this module<br/>
+     */<br/>
+    public AttributeValue[] getOrderedAttributeValues()<br/>
+        throws Exception<br/>
+    {        <br/>
+        Map values = getAttributeValuesMap();<br/>
+        Attribute[] attributes = getModule()<br/>
+            .getActiveAttributes(getIssueType());<br/>
+<br/>
+        return orderAttributeValues(values, attributes);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Extract the AttributeValues from the Map according to the <br/>
+     * order in the Attribute[]<br/>
+     */<br/>
+    private AttributeValue[] orderAttributeValues(Map values, <br/>
+                                                  Attribute[] attributes) <br/>
+        throws Exception<br/>
+    {<br/>
+        AttributeValue[] orderedValues = new AttributeValue[values.size()];<br/>
+<br/>
+        int i=0;<br/>
+        for ( int j=0; j&lt;attributes.length; j++ ) <br/>
+        {<br/>
+            AttributeValue av = (AttributeValue) values<br/>
+                .remove( attributes[j].getName().toUpperCase() );<br/>
+            if ( av != null ) <br/>
+            {<br/>
+                orderedValues[i++] = av;                <br/>
+            }<br/>
+        }<br/>
+        Iterator iter = values.values().iterator();<br/>
+        while ( iter.hasNext() ) <br/>
+        {<br/>
+            orderedValues[i++] = (AttributeValue)iter.next();<br/>
+        }<br/>
+<br/>
+        return orderedValues;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are set for this Issue<br/>
+     */<br/>
+    public HashMap getAttributeValuesMap() throws Exception<br/>
+    {<br/>
+        HashMap result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ATTRIBUTE_VALUES_MAP); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(2)<br/>
+                .add(AttributeValuePeer.DELETED, false);        <br/>
+            List siaValues = getAttributeValues(crit);<br/>
+            result = new HashMap( (int)(1.25*siaValues.size() + 1) );<br/>
+            for ( int i=0; i&lt;siaValues.size(); i++ ) <br/>
+            {<br/>
+                AttributeValue att = (AttributeValue) siaValues.get(i);<br/>
+                String name = att.getAttribute().getName();<br/>
+                result.put(name.toUpperCase(), att);<br/>
+            }<br/>
+<br/>
+            ScarabCache.put(result, this, GET_ATTRIBUTE_VALUES_MAP);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (HashMap)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are set for this issue and<br/>
+     * Empty AttributeValues that are relevant for the module, but have <br/>
+     * not been set for the issue are included.<br/>
+     */<br/>
+    public HashMap getAllAttributeValuesMap() <br/>
+        throws Exception<br/>
+    {<br/>
+        Map moduleAtts = getModuleAttributeValuesMap();<br/>
+        Map issueAtts = getAttributeValuesMap();<br/>
+        HashMap allValuesMap = new HashMap( (int)(1.25*(moduleAtts.size() + <br/>
+                                            issueAtts.size())+1) );<br/>
+<br/>
+        allValuesMap.putAll(moduleAtts);<br/>
+        allValuesMap.putAll(issueAtts);<br/>
+        return allValuesMap;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Describe &lt;code&gt;containsMinimumAttributeValues&lt;/code&gt; method here.<br/>
+     *<br/>
+     * @return a &lt;code&gt;boolean&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public boolean containsMinimumAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        List attributes = getModule()<br/>
+            .getRequiredAttributes(getIssueType());<br/>
+<br/>
+        boolean result = true;<br/>
+        SequencedHashMap avMap = getModuleAttributeValuesMap();<br/>
+        Iterator i = avMap.iterator();<br/>
+        while (i.hasNext()) <br/>
+        {<br/>
+            AttributeValue aval = (AttributeValue)avMap.get(i.next());<br/>
+            <br/>
+            if ( aval.getOptionId() == null &amp;&amp; aval.getValue() == null ) <br/>
+            {<br/>
+                for ( int j=attributes.size()-1; j&gt;=0; j-- ) <br/>
+                {<br/>
+                    if ( aval.getAttribute().getPrimaryKey().equals(<br/>
+                         ((Attribute)attributes.get(j)).getPrimaryKey() )) <br/>
+                    {<br/>
+                        result = false;<br/>
+                        break;<br/>
+                    }                    <br/>
+                }<br/>
+                if ( !result ) <br/>
+                {<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return result;<br/>
+    }       <br/>
+<br/>
+<br/>
+    /**<br/>
+     * Users who are valid values to the attribute this issue.  <br/>
+     * if a user has already<br/>
+     * been assigned to this issue, they will not show up in this list.<br/>
+     * use module.getEligibleUsers(Attribute) to get a complete list.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    public List getEligibleUsers(Attribute attribute)<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser[] users = getModule().getEligibleUsers(attribute);<br/>
+        // remove those already assigned<br/>
+        List assigneeAVs = getAttributeValues(attribute);<br/>
+        if ( users != null &amp;&amp; assigneeAVs != null ) <br/>
+        {        <br/>
+            for ( int i=users.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                for ( int j=assigneeAVs.size()-1; j&gt;=0; j-- ) <br/>
+                {<br/>
+                    AttributeValue av = (AttributeValue)assigneeAVs.get(j);<br/>
+                    NumberKey avUserId = av.getUserId();<br/>
+                    NumberKey userUserId = users[i].getUserId();<br/>
+                    if ( av != null &amp;&amp; avUserId != null &amp;&amp; <br/>
+                         userUserId != null &amp;&amp; <br/>
+                         avUserId.equals( userUserId ) )<br/>
+                    {<br/>
+                        users[i] = null;<br/>
+                        break;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        List eligibleUsers = new ArrayList(users.length);<br/>
+        for ( int i=0; i&lt;users.length; i++ ) <br/>
+        {<br/>
+            if ( users[i] != null )<br/>
+            {<br/>
+                eligibleUsers.add(users[i]);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return eligibleUsers;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns users assigned to user attributes that get emailed <br/>
+     * When issue is modified. Plus creating user.<br/>
+     */<br/>
+    public List getUsersToEmail(String action) throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_USERS_TO_EMAIL, action); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            List users = new ArrayList();<br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttributeValuePeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttributeValuePeer.ATTRIBUTE_ID,<br/>
+                         AttributePeer.ATTRIBUTE_ID)<br/>
+                .add(AttributePeer.ACTION, action)<br/>
+                .add(AttributeValuePeer.DELETED, 0);<br/>
+            List userAttVals = AttributeValuePeer.doSelect(crit);<br/>
+            for (int i=0;i&lt;userAttVals.size();i++)<br/>
+            {<br/>
+                AttributeValue attVal = (AttributeValue)userAttVals.get(i);<br/>
+                try<br/>
+                {<br/>
+                    ScarabUser su = ScarabUserManager.getInstance(attVal.getUserId());<br/>
+                    users.add(su);<br/>
+                }<br/>
+                catch (Exception e)<br/>
+                {<br/>
+                    throw new Exception("Error in retrieving users.");<br/>
+                }<br/>
+            }<br/>
+            if (action.equals(AttributePeer.EMAIL_TO))<br/>
+            {<br/>
+                users.add(getCreatedBy());<br/>
+            }<br/>
+            result = users;<br/>
+            ScarabCache.put(result, this, GET_USERS_TO_EMAIL, action);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns users assigned to all user attributes.<br/>
+     */<br/>
+    public List getAssociatedUsers() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ASSOCIATED_USERS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            List attributeList = getModule()<br/>
+                .getUserAttributes(getIssueType(), true);<br/>
+            List attributeIdList = new ArrayList();<br/>
+            <br/>
+            for ( int i=0; i&lt;attributeList.size(); i++ ) <br/>
+            {<br/>
+                Attribute att = (Attribute) attributeList.get(i);<br/>
+                RModuleAttribute modAttr = getModule().<br/>
+                    getRModuleAttribute(att, getIssueType());<br/>
+                if (modAttr.getActive())<br/>
+                {<br/>
+                    attributeIdList.add(att.getAttributeId());<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            if (!attributeIdList.isEmpty())<br/>
+            {<br/>
+                Criteria crit = new Criteria()<br/>
+                    .addIn(AttributeValuePeer.ATTRIBUTE_ID, attributeIdList)<br/>
+                    .add(AttributeValuePeer.DELETED, false);<br/>
+                crit.setDistinct();<br/>
+                <br/>
+                List attValues = getAttributeValues(crit);<br/>
+                for ( int i=0; i&lt;attValues.size(); i++ ) <br/>
+                {<br/>
+                    AttributeValue attVal = (AttributeValue) attValues.get(i);<br/>
+                    ScarabUser su = ScarabUserManager.getInstance(attVal.getUserId());<br/>
+                    result.add(su);<br/>
+                }<br/>
+            }<br/>
+            <br/>
+            ScarabUser createdBy = getCreatedBy();<br/>
+            if (!result.contains(createdBy))<br/>
+            { <br/>
+                result.add(createdBy);<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_ASSOCIATED_USERS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns attribute values for user attributes.<br/>
+     */<br/>
+    public List getUserAttributeValues() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_USER_ATTRIBUTEVALUES); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            List attributeList = getModule().getUserAttributes(getIssueType(), true);<br/>
+            List attributeIdList = new ArrayList();<br/>
+            <br/>
+            for ( int i=0; i&lt;attributeList.size(); i++ ) <br/>
+            {<br/>
+                Attribute att = (Attribute) attributeList.get(i);<br/>
+                attributeIdList.add(att.getAttributeId());<br/>
+            }<br/>
+            <br/>
+            if(!attributeIdList.isEmpty())<br/>
+            {<br/>
+                Criteria crit = new Criteria()<br/>
+                    .addIn(AttributeValuePeer.ATTRIBUTE_ID, attributeIdList)<br/>
+                    .add(AttributeValuePeer.ISSUE_ID, getIssueId())<br/>
+                    .add(AttributeValuePeer.DELETED, 0);<br/>
+                result = AttributeValuePeer.doSelect(crit);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = new ArrayList(0);<br/>
+            }<br/>
+            getMethodResult().put(result, this, GET_USER_ATTRIBUTEVALUES);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+     <br/>
+    /**<br/>
+     * The date the issue was created.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public Date getCreatedDate()<br/>
+        throws Exception<br/>
+    {<br/>
+        Date result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Object obj = ScarabCache.get(this, GET_CREATED_DATE); <br/>
+            if ( obj == null ) <br/>
+            {        <br/>
+                Criteria crit = new Criteria();<br/>
+                crit.addJoin(TransactionPeer.TRANSACTION_ID, <br/>
+                             ActivityPeer.TRANSACTION_ID);<br/>
+                crit.add(ActivityPeer.ISSUE_ID, getIssueId());<br/>
+                crit.add(TransactionPeer.TYPE_ID, <br/>
+                         TransactionTypePeer.CREATE_ISSUE__PK);<br/>
+                // there could be multiple attributes modified during the <br/>
+                // creation which will lead to duplicates<br/>
+                crit.setDistinct();<br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                Transaction t = (Transaction)transactions.get(0);<br/>
+                result = t.getCreatedDate();<br/>
+                ScarabCache.put(result, this, GET_CREATED_DATE);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = (Date)obj;<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * The user that created the issue.<br/>
+     * FIXME: Not sure if this is the best way to get created user.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public ScarabUser getCreatedBy()<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Object obj = ScarabCache.get(this, GET_CREATED_BY); <br/>
+            if ( obj == null ) <br/>
+            {        <br/>
+                Criteria crit = new Criteria();<br/>
+                crit.addJoin(TransactionPeer.TRANSACTION_ID, <br/>
+                             ActivityPeer.TRANSACTION_ID);<br/>
+                crit.add(ActivityPeer.ISSUE_ID, getIssueId());<br/>
+                crit.add(TransactionPeer.TYPE_ID, <br/>
+                         TransactionTypePeer.CREATE_ISSUE__PK);<br/>
+                /*<br/>
+                  // there could be multiple attributes modified during the <br/>
+                  // creation which will lead to duplicates<br/>
+                  crit.setDistinct();<br/>
+                */<br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                if (transactions.size() &gt; 0)<br/>
+                {<br/>
+                    Transaction t = (Transaction)transactions.get(0);<br/>
+                    result = ScarabUserManager.getInstance(t.getCreatedBy());<br/>
+                }<br/>
+                ScarabCache.put(result, this, GET_CREATED_BY);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = (ScarabUser)obj;<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The last modification made to the issue.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     */<br/>
+    public Transaction getLastTransaction()<br/>
+        throws Exception<br/>
+    {<br/>
+        Transaction t = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Object obj = ScarabCache.get(this, GET_LAST_TRANSACTION); <br/>
+            if ( obj == null ) <br/>
+            {        <br/>
+                Criteria crit = new Criteria();<br/>
+                crit.addJoin(TransactionPeer.TRANSACTION_ID, <br/>
+                         ActivityPeer.TRANSACTION_ID);<br/>
+                crit.add(ActivityPeer.ISSUE_ID, getIssueId());<br/>
+                crit.add(TransactionPeer.TYPE_ID, <br/>
+                         TransactionTypePeer.EDIT_ISSUE__PK);<br/>
+                // there could be multiple attributes modified during the <br/>
+                // creation which will lead to duplicates<br/>
+                crit.setDistinct();<br/>
+                crit.addDescendingOrderByColumn(TransactionPeer.CREATED_DATE);<br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                if ( transactions.size() &gt; 0 ) <br/>
+                {<br/>
+                    t = (Transaction)transactions.get(0);<br/>
+                }<br/>
+                ScarabCache.put(t, this, GET_LAST_TRANSACTION);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                t = (Transaction)obj;<br/>
+            }<br/>
+        }<br/>
+        return t;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * The date issue was last modified.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     */<br/>
+    public Date getModifiedDate()<br/>
+        throws Exception<br/>
+    {<br/>
+        Date result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Transaction t = getLastTransaction();<br/>
+            if ( t == null)<br/>
+            {<br/>
+                result = getCreatedDate();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = t.getCreatedDate();<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The last user to modify the issue.<br/>
+     *<br/>
+     * @return a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     */<br/>
+    public ScarabUser getModifiedBy()<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser result = null;<br/>
+        if ( !isNew() ) <br/>
+        {<br/>
+            Transaction t = getLastTransaction();<br/>
+            if ( t == null)<br/>
+            {<br/>
+                result = getCreatedBy();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = ScarabUserManager.getInstance(t.getCreatedBy());<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Determines whether the comments list is longer than<br/>
+     * The default limit.<br/>
+     */<br/>
+    public boolean isCommentsLong() throws Exception<br/>
+    {<br/>
+        return (getComments(true).size() &gt; getCommentsLimit());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets default comments limit for this module-issue type.<br/>
+     */<br/>
+    private int getCommentsLimit() throws Exception<br/>
+    {<br/>
+        int limit=0;<br/>
+        try<br/>
+        {<br/>
+            limit = getModule().getRModuleIssueType(getIssueType())<br/>
+                    .getComments();<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {}<br/>
+        return limit;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns a list of Attachment objects with type "Comment"<br/>
+     * That are associated with this issue.<br/>
+     */<br/>
+    public List getComments(boolean full) throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Boolean fullBool = (full ? Boolean.TRUE : Boolean.FALSE);<br/>
+        Object obj = getMethodResult().get(this, GET_COMMENTS, fullBool); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttachmentPeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttachmentTypePeer.ATTACHMENT_TYPE_ID,<br/>
+                         AttachmentPeer.ATTACHMENT_TYPE_ID)<br/>
+                .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, <br/>
+                     Attachment.COMMENT__PK)<br/>
+                .<span class="upd">addDescendingOrderByColumn</span>(AttachmentPeer.CREATED_DATE);<br/>
+            if (!full)<br/>
+            {<br/>
+                crit.setLimit(getCommentsLimit());<br/>
+            }<br/>
+            result = AttachmentPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_COMMENTS, fullBool);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns a list of Attachment objects with type "URL"<br/>
+     * That are associated with this issue.<br/>
+     */<br/>
+    public List getUrls() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_URLS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttachmentPeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttachmentTypePeer.ATTACHMENT_TYPE_ID,<br/>
+                         AttachmentPeer.ATTACHMENT_TYPE_ID)<br/>
+                .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, <br/>
+                     Attachment.URL__PK)<br/>
+                .add(AttachmentPeer.DELETED, 0);<br/>
+            result = AttachmentPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_URLS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    <br/>
+<br/>
+    /**<br/>
+     * Get attachments that are not deleted<br/>
+     */<br/>
+    public List getExistingAttachments() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_EXISTING_ATTACHMENTS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(AttachmentPeer.ISSUE_ID, getIssueId())<br/>
+                .addJoin(AttachmentTypePeer.ATTACHMENT_TYPE_ID,<br/>
+                         AttachmentPeer.ATTACHMENT_TYPE_ID)<br/>
+                .add(AttachmentTypePeer.ATTACHMENT_TYPE_ID, <br/>
+                     Attachment.FILE__PK)<br/>
+                .add(AttachmentPeer.DELETED, 0);<br/>
+            result = AttachmentPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_EXISTING_ATTACHMENTS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;        <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets default history limit for this module-issue type.<br/>
+     */<br/>
+    public int getHistoryLimit() throws Exception<br/>
+    {<br/>
+        int limit=0;<br/>
+        try<br/>
+        {<br/>
+            limit = getModule().getRModuleIssueType(getIssueType())<br/>
+                    .getHistory();<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {}<br/>
+        <br/>
+        return limit;<br/>
+    }<br/>
+        <br/>
+    /**<br/>
+     * Determines whether the history list is longer than<br/>
+     * The default limit.<br/>
+     */<br/>
+    public boolean isHistoryLong() throws Exception<br/>
+    {<br/>
+        return isHistoryLong(getHistoryLimit());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Determines whether the history list is longer than<br/>
+     * The limit.<br/>
+     */<br/>
+    public boolean isHistoryLong(int limit) throws Exception<br/>
+    {<br/>
+        return (getActivity(true).size() &gt; limit);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    public List getActivity() throws Exception  <br/>
+    {<br/>
+        return getActivity(false, getHistoryLimit());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns limited list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    public List getActivity(int limit) throws Exception  <br/>
+    {<br/>
+        return getActivity(false, limit);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns limited list of Activity objects associated with this Issue.<br/>
+     * If fullHistory is false, it limits it,<br/>
+     * (this is the default)<br/>
+     */<br/>
+    public List getActivity(boolean fullHistory) throws Exception  <br/>
+    {<br/>
+        return getActivity(fullHistory, getHistoryLimit());<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns full list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    private List getActivity(boolean fullHistory, int limit) throws Exception  <br/>
+    {<br/>
+        List result = null;<br/>
+        Boolean fullHistoryObj = fullHistory ? Boolean.TRUE : Boolean.FALSE;<br/>
+        Object obj = getMethodResult().get(this, GET_ACTIVITY, fullHistoryObj,<br/>
+                                     new Integer(limit)); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(ActivityPeer.ISSUE_ID, getIssueId())<br/>
+                .addAscendingOrderByColumn(ActivityPeer.TRANSACTION_ID);<br/>
+            if (!fullHistory)<br/>
+            {<br/>
+                crit.setLimit(limit);<br/>
+            }<br/>
+            result = ActivityPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_ACTIVITY, fullHistoryObj,<br/>
+                            new Integer(limit));<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns limited list of Activity objects associated with this Issue.<br/>
+     */<br/>
+    public void addActivity(Activity activity) throws TorqueException  <br/>
+    {<br/>
+        List activityList = null;<br/>
+        try<br/>
+        {<br/>
+            activityList = getActivity(true);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            throw new TorqueException(e);<br/>
+        }<br/>
+        super.addActivity(activity);<br/>
+        if (!activityList.contains(activity))<br/>
+        {<br/>
+            activityList.add(activity);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns list of child dependencies<br/>
+     * i.e., related to this issue through the DEPEND table.<br/>
+     */<br/>
+    public List getChildren() throws Exception  <br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_CHILDREN); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(DependPeer.OBSERVED_ID, getIssueId())<br/>
+                .add(DependPeer.DELETED, false);<br/>
+            result = DependPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_CHILDREN);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns list of parent dependencies<br/>
+     * i.e., related to this issue through the DEPEND table.<br/>
+     */<br/>
+    public List getParents() throws Exception  <br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = getMethodResult().get(this, GET_PARENTS); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(DependPeer.OBSERVER_ID, getIssueId())<br/>
+                .add(DependPeer.DELETED, false);<br/>
+            result = DependPeer.doSelect(crit);<br/>
+            getMethodResult().put(result, this, GET_PARENTS);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+        <br/>
+<br/>
+    /**<br/>
+     * Returns list of all types of dependencies an issue can have<br/>
+     * On another issue.<br/>
+     * @deprecated use DependencyTypeManager.getAll();<br/>
+     */<br/>
+    public List getAllDependencyTypes() throws Exception<br/>
+    {<br/>
+        return DependTypeManager.getAll();<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns type of dependency the passed-in issue has on<br/>
+     * This issue.<br/>
+     */<br/>
+    public Depend getDependency(Issue childIssue) throws Exception<br/>
+    {<br/>
+        Depend result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_DEPENDENCY, childIssue); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(2)<br/>
+                .add(DependPeer.OBSERVED_ID, getIssueId() )        <br/>
+                .add(DependPeer.OBSERVER_ID, childIssue.getIssueId() );<br/>
+            List depends = (List) DependPeer.doSelect(crit);<br/>
+            <br/>
+            Criteria crit2 = new Criteria(2)<br/>
+                .add(DependPeer.OBSERVER_ID, getIssueId() )        <br/>
+                .add(DependPeer.OBSERVED_ID, childIssue.getIssueId() );<br/>
+            List depends2 = (List) DependPeer.doSelect(crit2);<br/>
+            <br/>
+            if (depends.size() &gt; 0 )<br/>
+            {<br/>
+                result = (Depend)depends.get(0);<br/>
+            }<br/>
+            else if (depends2.size() &gt; 0 )<br/>
+            {<br/>
+                result = (Depend)depends2.get(0);<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_DEPENDENCY, childIssue);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (Depend)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Removes any unset attributes and sets the issue # prior to saving<br/>
+     * for the first time.  Calls super.save()<br/>
+     *<br/>
+     * @param dbCon a &lt;code&gt;DBConnection&lt;/code&gt; value<br/>
+     * @exception TorqueException if an error occurs<br/>
+     */<br/>
+    public void save(DBConnection dbCon)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        Module module = getModule();<br/>
+        if (!module.allowsIssues() || (isNew() &amp;&amp; !module.allowsNewIssues())) <br/>
+        {<br/>
+            throw new UnsupportedOperationException(module.getName() + <br/>
+                " does not allow issues.");<br/>
+        }<br/>
+        <br/>
+        // remove unset AttributeValues before saving<br/>
+        List attValues = getAttributeValues();<br/>
+        // reverse order since removing from list<br/>
+        for ( int i=attValues.size()-1; i&gt;=0; i-- ) <br/>
+        {<br/>
+            AttributeValue attVal = (AttributeValue) attValues.get(i);<br/>
+            if ( !attVal.isSet() ) <br/>
+            {<br/>
+                attValues.remove(i);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        if ( isNew() ) <br/>
+        {<br/>
+            // set the issue id<br/>
+            setIdDomain(module.getDomain());<br/>
+            setIdPrefix(module.getCode());<br/>
+            try<br/>
+            {<br/>
+                setIdCount(getNextIssueId(dbCon));<br/>
+            }<br/>
+            catch (Exception e)<br/>
+            {<br/>
+                throw new TorqueException(e);<br/>
+            }<br/>
+        }<br/>
+        super.save(dbCon);<br/>
+    }<br/>
+<br/>
+<br/>
+    private int getNextIssueId(DBConnection dbCon)<br/>
+        throws Exception<br/>
+    {<br/>
+        Connection con = dbCon.getConnection();<br/>
+        int id = -1;<br/>
+        String key = getIdTableKey();<br/>
+        DatabaseMap dbMap = IssuePeer.getTableMap().getDatabaseMap();<br/>
+        IDBroker idbroker = dbMap.getIDBroker();<br/>
+        try<br/>
+        {<br/>
+            id = idbroker.getIdAsInt(con, key);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            synchronized (idbroker)<br/>
+            {<br/>
+                try<br/>
+                {<br/>
+                    id = idbroker.getIdAsInt(con, key);<br/>
+                }<br/>
+                catch (Exception idRetrievalErr)<br/>
+                {<br/>
+                    // a module code entry in the id_table was likely not <br/>
+                    // entered, insert a row into the id_table and try again.<br/>
+                    try<br/>
+                    {<br/>
+                        saveIdTableKey(dbCon);<br/>
+                        id = 1;<br/>
+                    }<br/>
+                    catch (Exception badException)<br/>
+                    {<br/>
+                        log().error("Could not get an id, even after "<br/>
+                            +"trying to add a module entry into the ID_TABLE", <br/>
+                            e);<br/>
+                        log()<br/>
+                            .error("Error trying to create ID_TABLE entry for "<br/>
+                                   + getIdTableKey(), badException);<br/>
+                        // throw the original<br/>
+                        throw new ScarabException(<br/>
+                            "Error retrieving an id for the new issue.  " + <br/>
+                            "Please check turbine.log for reasons.", <br/>
+                            badException);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return id;<br/>
+    }<br/>
+<br/>
+    private String getIdTableKey()<br/>
+        throws Exception<br/>
+    {<br/>
+        Module module = getModule();        <br/>
+        String prefix = module.getCode();<br/>
+<br/>
+        String domain = module.getDomain();            <br/>
+        if ( domain != null &amp;&amp; domain.length() &gt; 0 ) <br/>
+        { <br/>
+            prefix = domain + "-" + prefix;<br/>
+        }<br/>
+        return prefix;<br/>
+    }<br/>
+<br/>
+    private void saveIdTableKey(DBConnection dbCon)<br/>
+        throws Exception<br/>
+    {<br/>
+        int id = 0;<br/>
+        DatabaseMap dbMap = IssuePeer.getTableMap().getDatabaseMap();<br/>
+        IDBroker idbroker = dbMap.getIDBroker();<br/>
+        String idTable = IDBroker.TABLE_NAME.substring(0, <br/>
+             IDBroker.TABLE_NAME.indexOf('.'));<br/>
+        id = idbroker.getIdAsInt(dbCon.getConnection(), idTable);<br/>
+<br/>
+        String key = getIdTableKey();<br/>
+<br/>
+        // FIXME: UGLY! IDBroker doesn't have a Peer yet.<br/>
+        String sql = "insert into " + idTable <br/>
+         + " (ID_TABLE_ID,TABLE_NAME,NEXT_ID,QUANTITY) "<br/>
+         + " VALUES (" + id + ",'" + key + "',2,1)" ;<br/>
+        BasePeer.executeStatement(sql, dbCon);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Performs a search over an issue's attribute values.<br/>
+     * FIXME! remove<br/>
+     *<br/>
+     * @param keywords a &lt;code&gt;String[]&lt;/code&gt; value<br/>
+     * @param useAnd, an AND search if true, otherwise OR<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    public static List searchKeywords(String[] keywords, boolean useAnd)<br/>
+        throws Exception<br/>
+    {<br/>
+        Criteria c = new Criteria(0);<br/>
+        return IssuePeer.doSelect(c);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns list of issue template types.<br/>
+     */<br/>
+    public List getTemplateTypes() throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_TEMPLATE_TYPES); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria()<br/>
+                .add(IssueTypePeer.ISSUE_TYPE_ID, <br/>
+                     IssueType.ISSUE__PK, Criteria.NOT_EQUAL);<br/>
+            result = IssueTypePeer.doSelect(crit);<br/>
+            ScarabCache.put(result, this, GET_TEMPLATE_TYPES);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (List)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get IssueTemplateInfo by Issue Id.<br/>
+     */<br/>
+    public IssueTemplateInfo getTemplateInfo() <br/>
+          throws Exception<br/>
+    {<br/>
+        IssueTemplateInfo result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_TEMPLATEINFO); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Criteria crit = new Criteria(1);<br/>
+            crit.add(IssueTemplateInfoPeer.ISSUE_ID, getIssueId());<br/>
+            result = (IssueTemplateInfo)IssueTemplateInfoPeer<br/>
+                .doSelect(crit).get(0);<br/>
+            ScarabCache.put(result, this, GET_TEMPLATEINFO);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (IssueTemplateInfo)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *  Move or copy issue to destination module.<br/>
+     */<br/>
+    public Issue move(Module newModule, String action, ScarabUser user)<br/>
+          throws Exception<br/>
+    {<br/>
+        NumberKey newIssueId;<br/>
+        Issue newIssue;<br/>
+        StringBuffer descBuf = null;<br/>
+        Attachment attachment = new Attachment();<br/>
+<br/>
+        Transaction transaction = new Transaction();<br/>
+        Module oldModule = getModule();<br/>
+        newIssue = newModule.getNewIssue(getIssueType());<br/>
+        newIssue.save();<br/>
+        List matchingAttributes = getMatchingAttributeValuesList(newModule);<br/>
+        List orphanAttributes = getOrphanAttributeValuesList(newModule);<br/>
+        List userAttributes = getUserAttributeValues();<br/>
+<br/>
+        // Save transaction record<br/>
+        transaction.create(TransactionTypePeer.CREATE_ISSUE__PK,<br/>
+                           getCreatedBy(), null);<br/>
+        <br/>
+        // Copy over attributes<br/>
+        for (int i=0;i&lt;matchingAttributes.size();i++)<br/>
+        {<br/>
+           AttributeValue attVal = (AttributeValue) matchingAttributes<br/>
+                                                    .get(i);<br/>
+           AttributeValue newAttVal = attVal.copy();<br/>
+           newAttVal.setIssueId(newIssue.getIssueId());<br/>
+           newAttVal.startTransaction(transaction);<br/>
+           newAttVal.save();<br/>
+        }<br/>
+<br/>
+        // Generate comment to deal with attributes that do not<br/>
+        // Exist in destination module, as well as the user attributes.<br/>
+        // Later will find another solution for user attributes.<br/>
+        if (!orphanAttributes.isEmpty() || !userAttributes.isEmpty())<br/>
+        {<br/>
+            // Save comment<br/>
+            StringBuffer delAttrsBuf = new StringBuffer("Did not copy over the "<br/>
+                 + "following attribute info: ");<br/>
+            for (int i=0;i&lt;orphanAttributes.size();i++)<br/>
+            {<br/>
+                AttributeValue attVal = (AttributeValue) orphanAttributes.get(i);<br/>
+                String field = null;<br/>
+                if (attVal.getAttribute().isOptionAttribute())<br/>
+                {<br/>
+                    delAttrsBuf.append(attVal.getAttribute().getName());<br/>
+                    field = attVal.getAttributeOption().getName();<br/>
+                    delAttrsBuf.append("=").append(field).append(". ");<br/>
+                } <br/>
+           }<br/>
+           // Add user attributes to comment.<br/>
+           for (int i=0;i&lt;userAttributes.size();i++)<br/>
+           {<br/>
+               AttributeValue attVal = (AttributeValue)userAttributes.get(i);<br/>
+               delAttrsBuf.append(attVal.getAttribute().getName());<br/>
+               delAttrsBuf.append("=").append(attVal.getValue());<br/>
+               delAttrsBuf.append(". ");<br/>
+           }<br/>
+           attachment.setDataAsString(delAttrsBuf.toString()); <br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            attachment.setDataAsString("All attributes were copied.");<br/>
+        }<br/>
+            <br/>
+        if (action.equals("move"))<br/>
+        {<br/>
+            attachment.setName("Moved issue note");<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            attachment.setName("Copied issue note");<br/>
+        }<br/>
+        attachment.setTextFields(user, newIssue, Attachment.MODIFICATION__PK);<br/>
+        attachment.save();<br/>
+<br/>
+        // Create transaction for the MoveIssue activity<br/>
+        Transaction transaction2 = new Transaction();<br/>
+        transaction2.create(TransactionTypePeer.MOVE_ISSUE__PK,<br/>
+                           user, null);<br/>
+        transaction2.setAttachment(attachment);<br/>
+        transaction2.save();<br/>
+<br/>
+        // Generate comment<br/>
+        // If moving issue, delete original<br/>
+        String comment = null;<br/>
+        if (action.equals("copy"))<br/>
+        {<br/>
+            comment = " copied from issue ";<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            comment = " moved from issue ";<br/>
+            // delete original issue<br/>
+            delete(user);<br/>
+        }<br/>
+        descBuf = new StringBuffer(comment).append(getUniqueId());<br/>
+        descBuf.append(" in module ").append(oldModule.getName());<br/>
+<br/>
+        // Save activity record<br/>
+        Activity activity = new Activity();<br/>
+        Attribute zeroAttribute = AttributeManager<br/>
+            .getInstance(new NumberKey("0"));<br/>
+        activity.create(newIssue, zeroAttribute, descBuf.toString(),<br/>
+                        transaction2, oldModule.getName(), newModule.getName());<br/>
+<br/>
+        return newIssue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The Date when this issue was closed.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value, null if status has not been<br/>
+     * set to Closed<br/>
+     */<br/>
+    public Date getClosedDate()<br/>
+        throws Exception<br/>
+    {<br/>
+        Date result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_CLOSED_DATE); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            AttributeValue status = getAttributeValue(<br/>
+                AttributeManager.getInstance(AttributePeer.STATUS__PK));<br/>
+            if ( status != null &amp;&amp; status.getOptionId()<br/>
+                 .equals(AttributeOption.STATUS__CLOSED__PK) ) <br/>
+            {<br/>
+                // the issue is currently closed, we can get the date<br/>
+                Criteria crit = new Criteria()<br/>
+                    .add(ActivityPeer.ISSUE_ID, getIssueId())<br/>
+                    .add(ActivityPeer.ATTRIBUTE_ID, AttributePeer.STATUS__PK)<br/>
+                    .addJoin(ActivityPeer.TRANSACTION_ID, <br/>
+                             TransactionPeer.TRANSACTION_ID)<br/>
+                    .add( ActivityPeer.NEW_OPTION_ID, <br/>
+                      AttributeOption.STATUS__CLOSED__PK )<br/>
+                    .addDescendingOrderByColumn(TransactionPeer.CREATED_DATE);<br/>
+                <br/>
+                List transactions = TransactionPeer.doSelect(crit);<br/>
+                if ( transactions.size() &gt; 0 ) <br/>
+                {<br/>
+                    result = ((Transaction)transactions.get(0))<br/>
+                        .getCreatedDate();<br/>
+                    ScarabCache.put(result, this, GET_CLOSED_DATE);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    throw new ScarabException("Issue " + getIssueId() + <br/>
+                        " was in a closed state, but" +<br/>
+                        "no transaction is associated with the change.");   <br/>
+                }<br/>
+            }          <br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (Date)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public void addVote(ScarabUser user)<br/>
+        throws ScarabException, Exception<br/>
+    {<br/>
+        // check to see if the user has voted for this issue<br/>
+        int previousVotes = 0;<br/>
+        IssueVote issueVote = null;<br/>
+        Criteria crit = new Criteria()<br/>
+            .add(IssueVotePeer.ISSUE_ID, getIssueId())<br/>
+            .add(IssueVotePeer.USER_ID, user.getUserId());<br/>
+        List votes = IssueVotePeer.doSelect(crit);<br/>
+        if ( votes != null &amp;&amp; votes.size() != 0 ) <br/>
+        {<br/>
+            issueVote = (IssueVote)votes.get(0);<br/>
+            previousVotes = issueVote.getVotes();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            issueVote = new IssueVote();<br/>
+            issueVote.setIssueId(getIssueId());<br/>
+            issueVote.setUserId(user.getUserId());<br/>
+        }<br/>
+<br/>
+        // check if the module accepts multiple votes<br/>
+        if ( !getModule().allowsMultipleVoting() &amp;&amp; previousVotes &gt; 0 )<br/>
+        {<br/>
+            throw new ScarabException("User " + user.getUserName() + <br/>
+                " attempted to vote multiple times for issue " + getUniqueId()<br/>
+                + " which was not allowed in this project.");<br/>
+        }<br/>
+        <br/>
+        // save the user's vote<br/>
+        issueVote.setVotes(previousVotes+1);<br/>
+        issueVote.save();<br/>
+<br/>
+        // update the total votes for the issue<br/>
+        crit = new Criteria()<br/>
+            .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                 AttributePeer.TOTAL_VOTES__PK);<br/>
+        List voteValues = getAttributeValues(crit);<br/>
+        TotalVotesAttribute voteValue = null;<br/>
+        if ( voteValues.size() == 0 ) <br/>
+        {<br/>
+            voteValue = new TotalVotesAttribute();<br/>
+            voteValue.setIssue(this);<br/>
+            voteValue.setAttributeId(AttributePeer.TOTAL_VOTES__PK);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            voteValue = (TotalVotesAttribute)voteValues.get(0);<br/>
+        }<br/>
+        // Updating attribute values requires a transaction<br/>
+        Transaction transaction = new Transaction();<br/>
+        transaction<br/>
+            .create(TransactionTypePeer.RETOTAL_ISSUE_VOTE__PK, user, null);<br/>
+        voteValue.startTransaction(transaction);<br/>
+        voteValue.addVote();<br/>
+        voteValue.save();<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Gets a list of non-user AttributeValues which match a given Module.<br/>
+     * It is used in the MoveIssue2.vm template<br/>
+     */<br/>
+    public List getMatchingAttributeValuesList(Module newModule)<br/>
+          throws Exception<br/>
+    {<br/>
+        AttributeValue aval = null;<br/>
+        List matchingAttributes = new ArrayList();<br/>
+<br/>
+        HashMap setMap = this.getAttributeValuesMap();<br/>
+        Iterator iter = setMap.keySet().iterator();<br/>
+        while ( iter.hasNext() ) <br/>
+        {<br/>
+            aval = (AttributeValue)setMap.get(iter.next());<br/>
+            if (!aval.getAttribute().isUserAttribute())<br/>
+            {<br/>
+            RModuleAttribute modAttr = newModule.<br/>
+                getRModuleAttribute(aval.getAttribute(), getIssueType());<br/>
+            <br/>
+            // If this attribute is active for the destination module,<br/>
+            // Add to matching attributes list<br/>
+            if (modAttr != null &amp;&amp; modAttr.getActive()) <br/>
+            {<br/>
+                // If attribute is an option attribute,<br/>
+                // Check if attribute option is active for destination module.<br/>
+                if (aval instanceof OptionAttribute)<br/>
+                {<br/>
+                    Criteria crit2 = new Criteria(1)<br/>
+                        .add(RModuleOptionPeer.ACTIVE, true);<br/>
+                    RModuleOption modOpt = (RModuleOption)RModuleOptionPeer<br/>
+                                            .doSelect(crit2).get(0);<br/>
+                    if (modOpt.getActive())<br/>
+                    {<br/>
+                        matchingAttributes.add(aval);<br/>
+                    } <br/>
+                }<br/>
+                else<br/>
+                {<br/>
+                    matchingAttributes.add(aval);<br/>
+                }<br/>
+            } <br/>
+            }<br/>
+        }<br/>
+        return matchingAttributes;<br/>
+    }<br/>
+<br/>
+    public List getMatchingAttributeValuesList(String moduleId)<br/>
+          throws Exception<br/>
+    {<br/>
+         Module module = ModuleManager.getInstance(new NumberKey(moduleId)); <br/>
+         return getMatchingAttributeValuesList(module);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets a list AttributeValues which the source module has,<br/>
+     * But the destination module does not have, when doing a copy.<br/>
+     * It is used in the MoveIssue2.vm template<br/>
+     */<br/>
+    public List getOrphanAttributeValuesList(Module newModule)<br/>
+          throws Exception<br/>
+    {<br/>
+        List orphanAttributes = null;<br/>
+        Object obj = ScarabCache.get(this, GET_ORPHAN_ATTRIBUTEVALUES_LIST); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            AttributeValue aval = null;<br/>
+            orphanAttributes = new ArrayList();<br/>
+            <br/>
+            HashMap setMap = this.getAttributeValuesMap();<br/>
+            Iterator iter = setMap.keySet().iterator();<br/>
+            while ( iter.hasNext() ) <br/>
+            {<br/>
+                aval = (AttributeValue)setMap.get(iter.next());<br/>
+                RModuleAttribute modAttr = newModule.<br/>
+                    getRModuleAttribute(aval.getAttribute(), getIssueType());<br/>
+                <br/>
+                // If this attribute is not active for the destination module,<br/>
+                // Add to orphanAttributes list<br/>
+                if (modAttr == null || !modAttr.getActive())<br/>
+                {<br/>
+                    orphanAttributes.add(aval);<br/>
+                } <br/>
+                else<br/>
+                {<br/>
+                    // If attribute is an option attribute, Check if <br/>
+                    // attribute option is active for destination module.<br/>
+                    if (aval instanceof OptionAttribute) <br/>
+                    {<br/>
+                        Criteria crit2 = new Criteria(1)<br/>
+                            .add(RModuleOptionPeer.ACTIVE, true);<br/>
+                        RModuleOption modOpt = (RModuleOption)RModuleOptionPeer<br/>
+                            .doSelect(crit2).get(0);<br/>
+                        if (!modOpt.getActive())<br/>
+                        {<br/>
+                            orphanAttributes.add(aval);<br/>
+                        } <br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            ScarabCache.put(orphanAttributes, this, <br/>
+                            GET_ORPHAN_ATTRIBUTEVALUES_LIST);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            orphanAttributes = (List)obj;<br/>
+        }<br/>
+        return orphanAttributes;<br/>
+    }<br/>
+<br/>
+    public List getOrphanAttributeValuesList(String moduleId)<br/>
+          throws Exception<br/>
+    {<br/>
+         Module module = ModuleManager.getInstance(new NumberKey(moduleId)); <br/>
+         return getOrphanAttributeValuesList(module);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Brings the current list of users assigned to this issue in<br/>
+     * line with the list given by newAssignees.  Users currently<br/>
+     * assigned will be deleted, if not in the new list.  This method<br/>
+     * will cause this issue to be saved.<br/>
+     *<br/>
+     * @param newAssignees a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @param attachmentText a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @param assigner a &lt;code&gt;ScarabUser&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public void assignUsers(List newAssignees, String attachmentText, <br/>
+                            ScarabUser assigner, Attribute attribute)<br/>
+        throws Exception<br/>
+    {                <br/>
+        Attachment attachment = new Attachment();<br/>
+        attachment.setDataAsString(attachmentText);<br/>
+        attachment.setName("Assignee Note");<br/>
+        attachment.setTextFields(assigner, this, <br/>
+                                 Attachment.MODIFICATION__PK);<br/>
+        attachment.save();<br/>
+<br/>
+        // Save transaction record<br/>
+        Transaction transaction = new Transaction();<br/>
+        transaction.create(TransactionTypePeer.EDIT_ISSUE__PK, <br/>
+                           assigner, attachment);<br/>
+<br/>
+        // we might modify the list and we do not want to affect other<br/>
+        // uses of the list<br/>
+        List newAssigneesCopy = null;<br/>
+        if ( newAssignees != null ) <br/>
+        {<br/>
+            newAssigneesCopy = new ArrayList(newAssignees);<br/>
+        }<br/>
+        // take care of users who were removed or already assigned<br/>
+        List assignees = getAttributeValues(attribute);<br/>
+        Iterator iter = assignees.iterator();<br/>
+        while ( iter.hasNext() ) <br/>
+        {<br/>
+            AttributeValue oldAV = (AttributeValue)iter.next();<br/>
+            oldAV.startTransaction(transaction);<br/>
+            boolean deleted = true;<br/>
+            if ( newAssigneesCopy != null ) <br/>
+            {<br/>
+                for ( int i=newAssigneesCopy.size()-1; i&gt;=0; i-- ) <br/>
+                {<br/>
+                    if ( oldAV.getValue().equals( <br/>
+                        ((ScarabUser)newAssigneesCopy.get(i)).getUserName() ))<br/>
+                    {<br/>
+                        // a current user was left in the list of assignees<br/>
+                        // so remove from list of new assignees and mark as<br/>
+                        // not to be deleted.<br/>
+                        newAssigneesCopy.remove(i);<br/>
+                        deleted = false;<br/>
+                        break;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            oldAV.setDeleted(deleted);<br/>
+        }<br/>
+<br/>
+        // add new values<br/>
+        if ( newAssigneesCopy != null ) <br/>
+        {        <br/>
+            for ( int i=0; i&lt;newAssigneesCopy.size(); i++ ) <br/>
+            {<br/>
+                ScarabUser user = (ScarabUser)newAssigneesCopy.get(i);<br/>
+                AttributeValue av = AttributeValue<br/>
+                    .getNewInstance(attribute.getAttributeId(), this);<br/>
+                av.startTransaction(transaction);<br/>
+                av.setUserId(user.getUserId());<br/>
+                av.setValue(user.getUserName());<br/>
+                assignees.add(av);<br/>
+            }<br/>
+        }<br/>
+        save();<br/>
+    }<br/>
+<br/>
+ <br/>
+    /**<br/>
+     * Checks permission and approves or rejects issue template. <br/>
+     * If template is approved, template type set to "global", else set to "personal".<br/>
+     */<br/>
+    public void approve( ScarabUser user, boolean approved )<br/>
+         throws Exception, ScarabException<br/>
+<br/>
+    {                <br/>
+        Module module = getModule();<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ITEM__APPROVE, module))<br/>
+        {<br/>
+            IssueTemplateInfo templateInfo = getTemplateInfo();<br/>
+            templateInfo.setApproved(true);<br/>
+            templateInfo.save();<br/>
+            if (approved)<br/>
+            {        <br/>
+                setTypeId(IssueType.GLOBAL_TEMPLATE__PK);<br/>
+            }<br/>
+            save();<br/>
+        } <br/>
+        else<br/>
+        {<br/>
+            throw new ScarabException(ScarabConstants.NO_PERMISSION_MESSAGE);<br/>
+        }            <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to delete issue template.<br/>
+     * Only the creating user can delete a personal template.<br/>
+     * Only project owner or admin can delete a project-wide template.<br/>
+     */<br/>
+    public void delete( ScarabUser user )<br/>
+         throws Exception, ScarabException<br/>
+    {                <br/>
+        Module module = getModule();<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ITEM__APPROVE, module)<br/>
+          || (user.equals(getCreatedBy()) <br/>
+             &amp;&amp; getTypeId().equals(IssueType.USER_TEMPLATE__PK)))<br/>
+        {<br/>
+            setDeleted(true);<br/>
+            save();<br/>
+        } <br/>
+        else<br/>
+        {<br/>
+            throw new ScarabException(ScarabConstants.NO_PERMISSION_MESSAGE);<br/>
+        }            <br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * if this RMA is the chosen attribute for email subjects then return<br/>
+     * true.  if not explicitly chosen, check the other RMA's for this module<br/>
+     * and if none is chosen as the email attribute, choose the highest<br/>
+     * ordered text attribute.<br/>
+     *<br/>
+     * @return the AttributeValue to use as the email subject, or null<br/>
+     * or null if no suitable AttributeValue could be found. <br/>
+     */<br/>
+    public AttributeValue getDefaultTextAttributeValue()<br/>
+        throws Exception<br/>
+    {<br/>
+        AttributeValue result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_DEFAULT_TEXT_ATTRIBUTEVALUE); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            Attribute defaultTextAttribute = <br/>
+                getModule().getDefaultTextAttribute(getIssueType());<br/>
+            <br/>
+            if ( defaultTextAttribute != null ) <br/>
+            {<br/>
+                ObjectKey attributeId = defaultTextAttribute.getAttributeId();<br/>
+                List avs = getAttributeValues();<br/>
+                for ( int i=0; i&lt;avs.size(); i++ ) <br/>
+                {<br/>
+                    AttributeValue testAV = (AttributeValue)avs.get(i);<br/>
+                    if ( attributeId.equals(testAV.getAttributeId()) ) <br/>
+                    {<br/>
+                        result = testAV;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            ScarabCache.put(result, this, GET_DEFAULT_TEXT_ATTRIBUTEVALUE);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (AttributeValue)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    public String getDefaultText()<br/>
+        throws Exception<br/>
+    {<br/>
+        String result = null;<br/>
+        Object obj = ScarabCache.get(this, GET_DEFAULT_TEXT); <br/>
+        if ( obj == null ) <br/>
+        {        <br/>
+            AttributeValue emailAV = getDefaultTextAttributeValue();<br/>
+            if ( emailAV != null ) <br/>
+            {<br/>
+                result = emailAV.getValue();<br/>
+            }        <br/>
+            result = (result == null ? "" : result);<br/>
+            ScarabCache.put(result, this, GET_DEFAULT_TEXT);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = (String)obj;<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    private MethodResultCache getMethodResult()<br/>
+    {<br/>
+        return IssueManager.getMethodResult();<br/>
+    }<br/>
+<br/>
+    // *******************************************************************<br/>
+    // Permissions methods - these are deprecated<br/>
+    // *******************************************************************<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to enter issue.<br/>
+     * @deprecated user.hasPermission(ScarabSecurity.ISSUE__ENTER, module)<br/>
+     */<br/>
+    public boolean hasEnterPermission( ScarabUser user, Module module)<br/>
+        throws Exception<br/>
+    {                <br/>
+        boolean hasPerm = false;<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ISSUE__ENTER, module))<br/>
+        {<br/>
+             hasPerm = true;<br/>
+        } <br/>
+        return hasPerm;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to edit issue.<br/>
+     * @deprecated user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+     */<br/>
+    public boolean hasEditPermission( ScarabUser user, Module module)<br/>
+        throws Exception<br/>
+    {                <br/>
+        boolean hasPerm = false;<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+            || user.equals(getCreatedBy()))<br/>
+        {<br/>
+            hasPerm = true;<br/>
+        } <br/>
+        return hasPerm;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Checks if user has permission to move issue to destination module.<br/>
+     * @deprecated user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+     */<br/>
+    public boolean hasMovePermission( ScarabUser user, Module module)<br/>
+        throws Exception<br/>
+    {                <br/>
+        boolean hasPerm = false;<br/>
+<br/>
+        if (user.hasPermission(ScarabSecurity.ISSUE__EDIT, module)<br/>
+            || user.equals(getCreatedBy()))<br/>
+        {<br/>
+            hasPerm = true;<br/>
+        } <br/>
+        return hasPerm;<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

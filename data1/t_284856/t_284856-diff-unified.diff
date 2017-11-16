@@ -1,0 +1,11 @@
+--- t_284856/left_ThrowableInformation_1.15.java	2013-03-17 15:47:08.000000000 +0100
++++ t_284856/right_ThrowableInformation_1.16.java	2013-03-17 15:47:08.000000000 +0100
+@@ -174,7 +174,7 @@
+   }
+ 
+   public void println(Object o) {
+-    v.addElement(o.toString());
++      v.addElement(String.valueOf(o));
+   }
+ 
+   // JDK 1.1.x apprenly uses this form of println while in

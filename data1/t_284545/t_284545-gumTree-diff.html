@@ -1,0 +1,520 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_JoranConfigurator_1.27.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.joran;<br/>
+<br/>
+import org.apache.joran.ExecutionContext;<br/>
+import org.apache.joran.Interpreter;<br/>
+import org.apache.joran.Pattern;<br/>
+import org.apache.joran.RuleStore;<br/>
+import org.apache.joran.action.NestComponentIA;<br/>
+import org.apache.joran.action.NewRuleAction;<br/>
+import org.apache.joran.action.ParamAction;<br/>
+import org.apache.joran.helper.SimpleRuleStore;<br/>
+<br/>
+import org.apache.log4j.config.ConfiguratorBase;<br/>
+import org.apache.log4j.joran.action.ActionConst;<br/>
+import org.apache.log4j.joran.action.AppenderAction;<br/>
+import org.apache.log4j.joran.action.AppenderRefAction;<br/>
+import org.apache.log4j.joran.action.ConfigurationAction;<br/>
+import org.apache.log4j.joran.action.ConversionRuleAction;<br/>
+import org.apache.log4j.joran.action.JndiSubstitutionPropertyAction;<br/>
+import org.apache.log4j.joran.action.LayoutAction;<br/>
+import org.apache.log4j.joran.action.LevelAction;<br/>
+import org.apache.log4j.joran.action.LoggerAction;<br/>
+import org.apache.log4j.joran.action.PluginAction;<br/>
+import org.apache.log4j.joran.action.PriorityAction;<br/>
+import org.apache.log4j.joran.action.RepositoryPropertyAction;<br/>
+import org.apache.log4j.joran.action.RootLoggerAction;<br/>
+import org.apache.log4j.joran.action.SubstitutionPropertyAction;<br/>
+import org.apache.log4j.joran.util.JoranDocument;<br/>
+import org.apache.log4j.spi.ErrorItem;<br/>
+import org.apache.log4j.spi.LoggerRepository;<br/>
+<br/>
+import org.xml.sax.InputSource;<br/>
+import org.xml.sax.SAXException;<br/>
+import org.xml.sax.helpers.DefaultHandler;<br/>
+<br/>
+import java.io.File;<br/>
+import java.io.IOException;<br/>
+import java.io.InputStream;<br/>
+<br/>
+import java.net.URL;<br/>
+<br/>
+import java.util.HashMap;<br/>
+import java.util.List;<br/>
+<br/>
+import javax.xml.parsers.SAXParser;<br/>
+import javax.xml.parsers.SAXParserFactory;<br/>
+<br/>
+<br/>
+/**<br/>
+ *<br/>
+ * A JoranConfigurator instance should not be used more than once to<br/>
+ * configure a LoggerRepository.<br/>
+ *<br/>
+ * @author Curt Arnold<br/>
+ * @author Ceki G&amp;uuml;lc&amp;uuml;  <br/>
+ */<br/>
+public class JoranConfigurator extends ConfiguratorBase {<br/>
+  Interpreter joranInterpreter;<br/>
+  LoggerRepository repository;<br/>
+  boolean listAppnderAttached = false;<br/>
+<br/>
+  public JoranConfigurator() {<br/>
+    selfInitialize();<br/>
+  }<br/>
+  <br/>
+  protected interface ParseAction {<br/>
+      void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException;<br/>
+  }<br/>
+  <br/>
+  final public void doConfigure(final URL url, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(url.toString(), handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+  <br/>
+  final public void doConfigure(final String filename, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(new File(filename), handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+<br/>
+  final public void doConfigure(final File file, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(file, handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+<br/>
+  final public void doConfigure(final InputSource source, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(source, handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+<br/>
+  final public void doConfigure(final InputStream stream, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(stream, handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+  <br/>
+  protected void doConfigure(final ParseAction action, final LoggerRepository repository) {<br/>
+    // This line is needed here because there is logging from inside this method.<br/>
+    this.repository = repository;<br/>
+<br/>
+    ExecutionContext ec = joranInterpreter.getExecutionContext();<br/>
+    List errorList = ec.getErrorList();<br/>
+<br/>
+    SAXParser saxParser = null;<br/>
+    try {<br/>
+        SAXParserFactory spf = SAXParserFactory.newInstance();<br/>
+        spf.setValidating(false);<br/>
+        spf.setNamespaceAware(true);<br/>
+        saxParser = spf.newSAXParser();<br/>
+    } catch (Exception pce) {<br/>
+      final String errMsg = "Parser configuration error occured";<br/>
+      getLogger(repository).error(errMsg, pce);<br/>
+      ec.addError(new ErrorItem(errMsg, pce));<br/>
+      return;<br/>
+    }<br/>
+    <br/>
+    JoranDocument document = new JoranDocument(errorList);<br/>
+    <br/>
+    try {<br/>
+        action.parse(saxParser, document);<br/>
+    } catch(IOException ie) {<br/>
+      final String errMsg = "I/O error occured while parsing xml file";<br/>
+      getLogger(repository).error(errMsg, ie);<br/>
+      ec.addError(new ErrorItem(errMsg, ie));<br/>
+    } catch (Exception ex) {<br/>
+      final String errMsg = "Problem parsing XML document. See previously reported errors. Abandoning all further processing.";<br/>
+      getLogger(repository).error(errMsg, ex);<br/>
+      errorList.add(<br/>
+        new ErrorItem(errMsg));<br/>
+      return;<br/>
+    }<br/>
+    <br/>
+    ec.pushObject(repository);<br/>
+    String errMsg;<br/>
+    try {<br/>
+      attachListAppender(repository);<br/>
+      <br/>
+      document.replay(joranInterpreter);<br/>
+<br/>
+      getLogger(repository).debug("Finished parsing.");<br/>
+    } catch (SAXException e) {<br/>
+      // all exceptions should have been recorded already.<br/>
+    } finally {<br/>
+      detachListAppender(repository);<br/>
+    }<br/>
+    <br/>
+    <br/>
+  }<br/>
+<br/>
+  public List getErrorList() {<br/>
+    return getExecutionContext().getErrorList();<br/>
+  }<br/>
+<br/>
+<br/>
+  protected void selfInitialize() {<br/>
+    RuleStore rs = new SimpleRuleStore();<br/>
+    rs.addRule(new Pattern("configuration"), new ConfigurationAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/substitutionProperty"),<br/>
+      new SubstitutionPropertyAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/repositoryProperty"),<br/>
+      new RepositoryPropertyAction());<br/>
+    rs.addRule(new Pattern("configuration/plugin"), new PluginAction());<br/>
+    rs.addRule(new Pattern("configuration/logger"), new LoggerAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/logger/level"), new LevelAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/logger/priority"), new PriorityAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root"), new RootLoggerAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root/level"), new LevelAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root/priority"), new PriorityAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/logger/appender-ref"),<br/>
+      new AppenderRefAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root/appender-ref"),<br/>
+      new AppenderRefAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/appender"), new AppenderAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/appender/layout"), new LayoutAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/appender/layout/conversionRule"),<br/>
+      new ConversionRuleAction());<br/>
+    rs.addRule( <br/>
+         new Pattern(<span class="upd">"log4j:configuration/jndiSubstitutionProperty"</span>), <br/>
+         new JndiSubstitutionPropertyAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/newRule"), new NewRuleAction());<br/>
+    rs.addRule(new Pattern("*/param"), new ParamAction());<br/>
+<br/>
+    joranInterpreter = new Interpreter(rs);<br/>
+<br/>
+    // The following line adds the capability to parse nested components<br/>
+    joranInterpreter.addImplicitAction(new NestComponentIA());<br/>
+    ExecutionContext ec = joranInterpreter.getExecutionContext();<br/>
+<br/>
+    HashMap omap = ec.getObjectMap();<br/>
+    omap.put(ActionConst.APPENDER_BAG, new HashMap());<br/>
+  }<br/>
+<br/>
+  public ExecutionContext getExecutionContext() {<br/>
+    return joranInterpreter.getExecutionContext();<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_JoranConfigurator_1.28.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.joran;<br/>
+<br/>
+import org.apache.joran.ExecutionContext;<br/>
+import org.apache.joran.Interpreter;<br/>
+import org.apache.joran.Pattern;<br/>
+import org.apache.joran.RuleStore;<br/>
+import org.apache.joran.action.NestComponentIA;<br/>
+import org.apache.joran.action.NewRuleAction;<br/>
+import org.apache.joran.action.ParamAction;<br/>
+import org.apache.joran.helper.SimpleRuleStore;<br/>
+<br/>
+import org.apache.log4j.config.ConfiguratorBase;<br/>
+import org.apache.log4j.joran.action.ActionConst;<br/>
+import org.apache.log4j.joran.action.AppenderAction;<br/>
+import org.apache.log4j.joran.action.AppenderRefAction;<br/>
+import org.apache.log4j.joran.action.ConfigurationAction;<br/>
+import org.apache.log4j.joran.action.ConversionRuleAction;<br/>
+import org.apache.log4j.joran.action.JndiSubstitutionPropertyAction;<br/>
+import org.apache.log4j.joran.action.LayoutAction;<br/>
+import org.apache.log4j.joran.action.LevelAction;<br/>
+import org.apache.log4j.joran.action.LoggerAction;<br/>
+import org.apache.log4j.joran.action.PluginAction;<br/>
+import org.apache.log4j.joran.action.PriorityAction;<br/>
+import org.apache.log4j.joran.action.RepositoryPropertyAction;<br/>
+import org.apache.log4j.joran.action.RootLoggerAction;<br/>
+import org.apache.log4j.joran.action.SubstitutionPropertyAction;<br/>
+import org.apache.log4j.joran.util.JoranDocument;<br/>
+import org.apache.log4j.spi.ErrorItem;<br/>
+import org.apache.log4j.spi.LoggerRepository;<br/>
+<br/>
+import org.xml.sax.InputSource;<br/>
+import org.xml.sax.SAXException;<br/>
+import org.xml.sax.helpers.DefaultHandler;<br/>
+<br/>
+import java.io.File;<br/>
+import java.io.IOException;<br/>
+import java.io.InputStream;<br/>
+<br/>
+import java.net.URL;<br/>
+<br/>
+import java.util.HashMap;<br/>
+import java.util.List;<br/>
+<br/>
+import javax.xml.parsers.SAXParser;<br/>
+import javax.xml.parsers.SAXParserFactory;<br/>
+<br/>
+<br/>
+/**<br/>
+ *<br/>
+ * A JoranConfigurator instance should not be used more than once to<br/>
+ * configure a LoggerRepository.<br/>
+ *<br/>
+ * @author Curt Arnold<br/>
+ * @author Ceki G&amp;uuml;lc&amp;uuml;  <br/>
+ */<br/>
+public class JoranConfigurator extends ConfiguratorBase {<br/>
+  Interpreter joranInterpreter;<br/>
+  LoggerRepository repository;<br/>
+  boolean listAppnderAttached = false;<br/>
+<br/>
+  public JoranConfigurator() {<br/>
+    selfInitialize();<br/>
+  }<br/>
+  <br/>
+  protected interface ParseAction {<br/>
+      void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException;<br/>
+  }<br/>
+  <br/>
+  final public void doConfigure(final URL url, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(url.toString(), handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+  <br/>
+  final public void doConfigure(final String filename, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(new File(filename), handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+<br/>
+  final public void doConfigure(final File file, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(file, handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+<br/>
+  final public void doConfigure(final InputSource source, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(source, handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+<br/>
+  final public void doConfigure(final InputStream stream, final LoggerRepository repository) {<br/>
+      ParseAction action = new ParseAction() {<br/>
+          public void parse(final SAXParser parser, final DefaultHandler handler) throws SAXException, IOException {<br/>
+              parser.parse(stream, handler);<br/>
+          }<br/>
+      };<br/>
+      doConfigure(action, repository);<br/>
+  }<br/>
+  <br/>
+  protected void doConfigure(final ParseAction action, final LoggerRepository repository) {<br/>
+    // This line is needed here because there is logging from inside this method.<br/>
+    this.repository = repository;<br/>
+<br/>
+    ExecutionContext ec = joranInterpreter.getExecutionContext();<br/>
+    List errorList = ec.getErrorList();<br/>
+<br/>
+    SAXParser saxParser = null;<br/>
+    try {<br/>
+        SAXParserFactory spf = SAXParserFactory.newInstance();<br/>
+        spf.setValidating(false);<br/>
+        spf.setNamespaceAware(true);<br/>
+        saxParser = spf.newSAXParser();<br/>
+    } catch (Exception pce) {<br/>
+      final String errMsg = "Parser configuration error occured";<br/>
+      getLogger(repository).error(errMsg, pce);<br/>
+      ec.addError(new ErrorItem(errMsg, pce));<br/>
+      return;<br/>
+    }<br/>
+    <br/>
+    JoranDocument document = new JoranDocument(errorList);<br/>
+    <br/>
+    try {<br/>
+        action.parse(saxParser, document);<br/>
+    } catch(IOException ie) {<br/>
+      final String errMsg = "I/O error occured while parsing xml file";<br/>
+      getLogger(repository).error(errMsg, ie);<br/>
+      ec.addError(new ErrorItem(errMsg, ie));<br/>
+    } catch (Exception ex) {<br/>
+      final String errMsg = "Problem parsing XML document. See previously reported errors. Abandoning all further processing.";<br/>
+      getLogger(repository).error(errMsg, ex);<br/>
+      errorList.add(<br/>
+        new ErrorItem(errMsg));<br/>
+      return;<br/>
+    }<br/>
+    <br/>
+    ec.pushObject(repository);<br/>
+    String errMsg;<br/>
+    try {<br/>
+      attachListAppender(repository);<br/>
+      <br/>
+      document.replay(joranInterpreter);<br/>
+<br/>
+      getLogger(repository).debug("Finished parsing.");<br/>
+    } catch (SAXException e) {<br/>
+      // all exceptions should have been recorded already.<br/>
+    } finally {<br/>
+      detachListAppender(repository);<br/>
+    }<br/>
+    <br/>
+    <br/>
+  }<br/>
+<br/>
+  public List getErrorList() {<br/>
+    return getExecutionContext().getErrorList();<br/>
+  }<br/>
+<br/>
+<br/>
+  protected void selfInitialize() {<br/>
+    RuleStore rs = new SimpleRuleStore();<br/>
+    rs.addRule(new Pattern("configuration"), new ConfigurationAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/substitutionProperty"),<br/>
+      new SubstitutionPropertyAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/repositoryProperty"),<br/>
+      new RepositoryPropertyAction());<br/>
+    rs.addRule(new Pattern("configuration/plugin"), new PluginAction());<br/>
+    rs.addRule(new Pattern("configuration/logger"), new LoggerAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/logger/level"), new LevelAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/logger/priority"), new PriorityAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root"), new RootLoggerAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root/level"), new LevelAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root/priority"), new PriorityAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/logger/appender-ref"),<br/>
+      new AppenderRefAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/root/appender-ref"),<br/>
+      new AppenderRefAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/appender"), new AppenderAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/appender/layout"), new LayoutAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/appender/layout/conversionRule"),<br/>
+      new ConversionRuleAction());<br/>
+    rs.addRule( <br/>
+         new Pattern(<span class="upd">"configuration/jndiSubstitutionProperty"</span>), <br/>
+         new JndiSubstitutionPropertyAction());<br/>
+    rs.addRule(<br/>
+      new Pattern("configuration/newRule"), new NewRuleAction());<br/>
+    rs.addRule(new Pattern("*/param"), new ParamAction());<br/>
+<br/>
+    joranInterpreter = new Interpreter(rs);<br/>
+<br/>
+    // The following line adds the capability to parse nested components<br/>
+    joranInterpreter.addImplicitAction(new NestComponentIA());<br/>
+    ExecutionContext ec = joranInterpreter.getExecutionContext();<br/>
+<br/>
+    HashMap omap = ec.getObjectMap();<br/>
+    omap.put(ActionConst.APPENDER_BAG, new HashMap());<br/>
+  }<br/>
+<br/>
+  public ExecutionContext getExecutionContext() {<br/>
+    return joranInterpreter.getExecutionContext();<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

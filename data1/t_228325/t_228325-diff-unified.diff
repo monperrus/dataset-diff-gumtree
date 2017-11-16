@@ -1,0 +1,11 @@
+--- t_228325/left_ForgotPassword_1.10.java	2013-03-17 15:47:24.000000000 +0100
++++ t_228325/right_ForgotPassword_1.11.java	2013-03-17 15:47:24.000000000 +0100
+@@ -150,7 +150,7 @@
+             te.setTemplate(
+                 Turbine.getConfiguration()
+                     .getString("scarab.email.forgotpassword.template",
+-                               "ForgotPassword.vm"));
++                               "email/ForgotPassword.vm"));
+             te.send();
+         }
+         catch (TurbineSecurityException e)

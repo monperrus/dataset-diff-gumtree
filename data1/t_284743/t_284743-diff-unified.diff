@@ -1,0 +1,18 @@
+--- t_284743/left_ComponentBase_1.5.java	2013-03-17 15:47:08.000000000 +0100
++++ t_284743/right_ComponentBase_1.6.java	2013-03-17 15:47:08.000000000 +0100
+@@ -46,6 +46,15 @@
+   }
+   
+   /**
++   * Return the {@link LoggerRepository} this component is attached to.
++   * 
++   * @return Owning LoggerRepository
++   */
++  protected LoggerRepository getLoggerRepository() {
++    return repository;
++  }
++  
++  /**
+    * Return an instance specific logger to be used by the component itself.
+    * This logger is not intended to be accessed by the end-user, hence the 
+    * protected keyword.

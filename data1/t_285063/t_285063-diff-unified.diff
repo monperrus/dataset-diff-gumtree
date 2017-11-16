@@ -1,0 +1,11 @@
+--- t_285063/left_DrawApplication_1.14.java	2013-03-17 15:47:04.000000000 +0100
++++ t_285063/right_DrawApplication_1.15.java	2013-03-17 15:47:04.000000000 +0100
+@@ -137,7 +137,7 @@
+ 			window.open();
+ 		}
+ 		else {
+-			window.open(createDrawingView(initialDrawing));
++			window.open(window.createDrawingView(initialDrawing));
+ 		}
+ 	}
+ 

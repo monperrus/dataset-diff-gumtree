@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Assume_1.8.java</h1>
+<div class="code">
+<div class="id">
+package org.junit;<br/>
+<br/>
+import static java.util.Arrays.asList;<br/>
+import static org.hamcrest.CoreMatchers.is;<br/>
+import static org.hamcrest.CoreMatchers.notNullValue;<br/>
+import static org.hamcrest.CoreMatchers.nullValue;<br/>
+import org.hamcrest.Matcher;<br/>
+import org.junit.internal.AssumptionViolatedException;<br/>
+import org.junit.internal.matchers.Each;<br/>
+<br/>
+/**<br/>
+ * A set of methods useful for stating assumptions about the conditions in which a test is meaningful.<br/>
+ * A failed assumption does not mean the code is broken, but that the test provides no useful information.<br/>
+ * The default JUnit runner treats tests with failing assumptions as ignored.  Custom runners may behave differently.<br/>
+ * <br/>
+ * For example:<br/>
+ * &lt;pre&gt;<br/>
+ * // only provides information if database is reachable.<br/>
+ * \@Test public void calculateTotalSalary() {<br/>
+ *    DBConnection dbc = Database.connect();<br/>
+ *    assumeNotNull(dbc);<br/>
+ *    // ...<br/>
+ * }<br/>
+ * &lt;/pre&gt;<br/>
+ * These methods can be used directly: &lt;code&gt;Assume.assumeTrue(...)&lt;/code&gt;, however, they<br/>
+ * read better if they are referenced through static import:&lt;br/&gt;<br/>
+ * &lt;pre&gt;<br/>
+ * import static org.junit.Assume.*;<br/>
+ *    ...<br/>
+ *    assumeTrue(...);<br/>
+ * &lt;/pre&gt;<br/>
+ */<br/>
+public class Assume {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If called with an expression evaluating to {@code false}, the test will halt and be ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param b<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static void assumeTrue(boolean b) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assumeThat(b, is(true));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If called with one or more null elements in &lt;code&gt;objects&lt;/code&gt;, the test will halt and be ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param objects<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public static void assumeNotNull(Object... objects) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assumeThat(asList(objects), Each.each(notNullValue()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * Call to assume that &lt;code&gt;actual&lt;/code&gt; satisfies the condition specified by &lt;code&gt;matcher&lt;/code&gt;.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * If not, the test halts and is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * Example:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * &lt;pre&gt;:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   assumeThat(1, is(1)); // passes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   foo(); // will execute<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   assumeThat(0, is(1)); // assumption failure! test halts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   int x = 1 / 0; // will never execute<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * &lt;/pre&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @param &lt;T&gt; the static type accepted by the matcher (this can flag obvious compile-time problems such as {@code assumeThat(1, is("a"))}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @param actual the computed value being compared<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @param matcher an expression, built of {@link Matcher}s, specifying allowed values<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @see org.hamcrest.CoreMatchers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @see org.junit.matchers.JUnitMatchers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static &lt;T&gt; void assumeThat(T actual, Matcher&lt;T&gt; matcher) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!matcher.matches(actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new AssumptionViolatedException(actual, matcher); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Use to assume that an operation completes normally.  If {@code t} is non-null, the test will halt and be ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * For example:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;pre&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * \@Test public void parseDataFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   DataFile file;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *     file = DataFile.open("sampledata.txt");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   } catch (IOException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *     // stop test and ignore if data can't be opened<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *     assumeNoException(e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   // ...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;/pre&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param t if non-null, the offending exception<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static void assumeNoException(Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assumeThat(t, nullValue());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    // TODO: once the last (erroneous) reference is removed, remove this.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del">public</span> <span class="del">static</span> <span class="del">void</span> <span class="del">fail</span>(<span class="del"><span class="del"><span class="del">String</span></span> <span class="del">string</span></span>) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">throw <span class="del">new <span class="del"><span class="del">AssumptionViolatedException</span></span>(<span class="del">string</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Assume_1.9.java</h1>
+<div class="code">
+<div class="id">
+package org.junit;<br/>
+<br/>
+import static java.util.Arrays.asList;<br/>
+import static org.hamcrest.CoreMatchers.is;<br/>
+import static org.hamcrest.CoreMatchers.notNullValue;<br/>
+import static org.hamcrest.CoreMatchers.nullValue;<br/>
+import org.hamcrest.Matcher;<br/>
+import org.junit.internal.AssumptionViolatedException;<br/>
+import org.junit.internal.matchers.Each;<br/>
+<br/>
+/**<br/>
+ * A set of methods useful for stating assumptions about the conditions in which a test is meaningful.<br/>
+ * A failed assumption does not mean the code is broken, but that the test provides no useful information.<br/>
+ * The default JUnit runner treats tests with failing assumptions as ignored.  Custom runners may behave differently.<br/>
+ * <br/>
+ * For example:<br/>
+ * &lt;pre&gt;<br/>
+ * // only provides information if database is reachable.<br/>
+ * \@Test public void calculateTotalSalary() {<br/>
+ *    DBConnection dbc = Database.connect();<br/>
+ *    assumeNotNull(dbc);<br/>
+ *    // ...<br/>
+ * }<br/>
+ * &lt;/pre&gt;<br/>
+ * These methods can be used directly: &lt;code&gt;Assume.assumeTrue(...)&lt;/code&gt;, however, they<br/>
+ * read better if they are referenced through static import:&lt;br/&gt;<br/>
+ * &lt;pre&gt;<br/>
+ * import static org.junit.Assume.*;<br/>
+ *    ...<br/>
+ *    assumeTrue(...);<br/>
+ * &lt;/pre&gt;<br/>
+ */<br/>
+public class Assume {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If called with an expression evaluating to {@code false}, the test will halt and be ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param b<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static void assumeTrue(boolean b) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assumeThat(b, is(true));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If called with one or more null elements in &lt;code&gt;objects&lt;/code&gt;, the test will halt and be ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param objects<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public static void assumeNotNull(Object... objects) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assumeThat(asList(objects), Each.each(notNullValue()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * Call to assume that &lt;code&gt;actual&lt;/code&gt; satisfies the condition specified by &lt;code&gt;matcher&lt;/code&gt;.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * If not, the test halts and is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * Example:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * &lt;pre&gt;:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   assumeThat(1, is(1)); // passes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   foo(); // will execute<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   assumeThat(0, is(1)); // assumption failure! test halts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   int x = 1 / 0; // will never execute<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * &lt;/pre&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @param &lt;T&gt; the static type accepted by the matcher (this can flag obvious compile-time problems such as {@code assumeThat(1, is("a"))}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @param actual the computed value being compared<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @param matcher an expression, built of {@link Matcher}s, specifying allowed values<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @see org.hamcrest.CoreMatchers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * @see org.junit.matchers.JUnitMatchers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static &lt;T&gt; void assumeThat(T actual, Matcher&lt;T&gt; matcher) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!matcher.matches(actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new AssumptionViolatedException(actual, matcher); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    /**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Use to assume that an operation completes normally.  If {@code t} is non-null, the test will halt and be ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * For example:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;pre&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * \@Test public void parseDataFile() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   DataFile file;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *     file = DataFile.open("sampledata.txt");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   } catch (IOException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *     // stop test and ignore if data can't be opened<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *     assumeNoException(e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *   // ...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;/pre&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param t if non-null, the offending exception<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public static void assumeNoException(Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assumeThat(t, nullValue());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

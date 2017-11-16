@@ -1,0 +1,12 @@
+diff --git a/t_222884/left_MechView_1.21.java b/t_222884/right_MechView_1.22.java
+index c593cde..32b09a9 100644
+--- a/t_222884/left_MechView_1.21.java
++++ b/t_222884/right_MechView_1.22.java
+@@ -193,6 +193,7 @@ public class MechView {
+                     .append(mounted.getLinked().getDesc())
+                     .append(">");
+             }
++            sWeapons.append(" ").append(wtype.getHeat()).append(" Heat");
+             sWeapons.append("\n");
+         }
+         return sWeapons.toString();

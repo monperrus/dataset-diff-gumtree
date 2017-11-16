@@ -1,0 +1,11 @@
+--- t_284559/left_SMTPAppender_1.36.java	2013-03-17 15:47:08.000000000 +0100
++++ t_284559/right_SMTPAppender_1.37.java	2013-03-17 15:47:08.000000000 +0100
+@@ -255,7 +255,7 @@
+       msg.setSentDate(new Date());
+       Transport.send(msg);
+     } catch (Exception e) {
+-      errorHandler.error("Error occured while sending e-mail notification.", e);
++      errorHandler.error("Error occured while sending e-mail notification.", e, ErrorCode.GENERIC_FAILURE);
+     }
+   }
+ 

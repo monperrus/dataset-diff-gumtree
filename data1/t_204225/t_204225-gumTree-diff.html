@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_UMLModelElementStereotypeComboBoxModel_1.3.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+// $header$<br/>
+package org.argouml.uml.ui.foundation.core;<br/>
+<br/>
+import org.argouml.model.uml.foundation.extensionmechanisms.ExtensionMechanismsHelper;<br/>
+import org.argouml.model.uml.modelmanagement.ModelManagementHelper;<br/>
+import org.argouml.uml.ui.UMLComboBoxModel2;<br/>
+import org.argouml.uml.ui.UMLUserInterfaceContainer;<br/>
+import ru.novosoft.uml.MElementEvent;<br/>
+import ru.novosoft.uml.foundation.core.MModelElement;<br/>
+import ru.novosoft.uml.foundation.extension_mechanisms.MStereotype;<br/>
+<br/>
+/**<br/>
+ * @since Oct 10, 2002<br/>
+ * @author jaap.branderhorst@xs4all.nl<br/>
+ */<br/>
+public class UMLModelElementStereotypeComboBoxModel extends UMLComboBoxModel2 {<br/>
+<br/>
+    /**<br/>
+     * Constructor for UMLModelElementStereotypeComboBoxModel.<br/>
+     * @param container<br/>
+     */<br/>
+    public UMLModelElementStereotypeComboBoxModel(UMLUserInterfaceContainer container) {<br/>
+        super(container, true);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#isValidRoleAdded(ru.novosoft.uml.MElementEvent)<br/>
+     */<br/>
+    protected boolean isValidRoleAdded(MElementEvent e) {<br/>
+        Object o = getChangedElement(e);<br/>
+        return o instanceof MStereotype <br/>
+            &amp;&amp; ExtensionMechanismsHelper.getHelper().isValidStereoType((MModelElement)getTarget(), (MStereotype)o);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#isValidPropertySet(ru.novosoft.uml.MElementEvent)<br/>
+     */<br/>
+    protected boolean isValidPropertySet(MElementEvent e) <span class="del">{<br/>
+        <span class="del">return <span class="mv">e.getSource() == getTarget() &amp;&amp; e.getName().equals("stereotype")</span>;</span><br/>
+    }</span><br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#buildModelList()<br/>
+     */<br/>
+    protected void buildModelList() {<br/>
+        MModelElement elem = (MModelElement)getTarget();<br/>
+        setElements(ExtensionMechanismsHelper.getHelper().getAllPossibleStereotypes(elem));<br/>
+    }   <br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#getSelectedModelElement()<br/>
+     */<br/>
+    protected Object getSelectedModelElement() {<br/>
+        if (getTarget() != null) {<br/>
+            return ((MModelElement)getTarget()).getStereotype();<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_UMLModelElementStereotypeComboBoxModel_1.4.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+// $header$<br/>
+package org.argouml.uml.ui.foundation.core;<br/>
+<br/>
+import org.argouml.model.uml.foundation.extensionmechanisms.ExtensionMechanismsHelper;<br/>
+import org.argouml.model.uml.modelmanagement.ModelManagementHelper;<br/>
+import org.argouml.uml.ui.UMLComboBoxModel2;<br/>
+import org.argouml.uml.ui.UMLUserInterfaceContainer;<br/>
+import ru.novosoft.uml.MElementEvent;<br/>
+import ru.novosoft.uml.foundation.core.MModelElement;<br/>
+import ru.novosoft.uml.foundation.extension_mechanisms.MStereotype;<br/>
+<br/>
+/**<br/>
+ * @since Oct 10, 2002<br/>
+ * @author jaap.branderhorst@xs4all.nl<br/>
+ */<br/>
+public class UMLModelElementStereotypeComboBoxModel extends UMLComboBoxModel2 {<br/>
+<br/>
+    /**<br/>
+     * Constructor for UMLModelElementStereotypeComboBoxModel.<br/>
+     * @param container<br/>
+     */<br/>
+    public UMLModelElementStereotypeComboBoxModel(UMLUserInterfaceContainer container) {<br/>
+        super(container, true);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#isValidRoleAdded(ru.novosoft.uml.MElementEvent)<br/>
+     */<br/>
+    protected boolean isValidRoleAdded(MElementEvent e) {<br/>
+        Object o = getChangedElement(e);<br/>
+        return o instanceof MStereotype <br/>
+            &amp;&amp; ExtensionMechanismsHelper.getHelper().isValidStereoType((MModelElement)getTarget(), (MStereotype)o);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#isValidPropertySet(ru.novosoft.uml.MElementEvent)<br/>
+     */<br/>
+    protected boolean isValidPropertySet(MElementEvent e) <span class="add">{<br/>
+        <span class="add">return <span class="add">(<span class="add"><span class="add"><span class="mv">e.getSource() == getTarget() &amp;&amp; e.getName().equals("stereotype")</span> ||<br/>
+            <span class="add">(<span class="add"><span class="add"><span class="add"><span class="add">e</span>.<span class="add">getSource</span>()</span> instanceof <span class="add"><span class="add">MStereotype</span></span></span> &amp;&amp; <span class="add"><span class="add"><span class="add">e</span>.<span class="add">getName</span>()</span>.<span class="add">equals</span>(<span class="add">"base"</span>)</span></span>)</span></span> ||<br/>
+            <span class="add">(<span class="add"><span class="add"><span class="add"><span class="add">e</span>.<span class="add">getSource</span>()</span> instanceof <span class="add"><span class="add">MStereotype</span></span></span> &amp;&amp; <span class="add"><span class="add"><span class="add">e</span>.<span class="add">getName</span>()</span>.<span class="add">equals</span>(<span class="add">"name"</span>)</span></span>)</span></span>)</span>;</span><br/>
+    }</span><br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#buildModelList()<br/>
+     */<br/>
+    protected void buildModelList() {<br/>
+        MModelElement elem = (MModelElement)getTarget();<br/>
+        setElements(ExtensionMechanismsHelper.getHelper().getAllPossibleStereotypes(elem));<br/>
+    }   <br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.ui.UMLComboBoxModel2#getSelectedModelElement()<br/>
+     */<br/>
+    protected Object getSelectedModelElement() {<br/>
+        if (getTarget() != null) {<br/>
+            return ((MModelElement)getTarget()).getStereotype();<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

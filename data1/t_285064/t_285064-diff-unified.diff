@@ -1,0 +1,11 @@
+--- t_285064/left_DrawApplication_1.15.java	2013-03-17 15:47:04.000000000 +0100
++++ t_285064/right_DrawApplication_1.16.java	2013-03-17 15:47:04.000000000 +0100
+@@ -336,7 +336,7 @@
+ 		CommandMenu menu = new CommandMenu("Debug");
+ 
+ 		Command cmd = new AbstractCommand("Simple Update", this) {
+-			public void executable() {
++			public void execute() {
+ 				this.view().setDisplayUpdate(new SimpleUpdateStrategy());
+ 			}
+ 		};

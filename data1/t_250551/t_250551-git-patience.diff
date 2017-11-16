@@ -1,0 +1,13 @@
+diff --git a/t_250551/left_MetricsInterceptor_1.18.java b/t_250551/right_MetricsInterceptor_1.19.java
+index 09a48a4..dfaba41 100644
+--- a/t_250551/left_MetricsInterceptor_1.18.java
++++ b/t_250551/right_MetricsInterceptor_1.19.java
+@@ -206,7 +206,7 @@ public class MetricsInterceptor extends AbstractInterceptor
+ 
+             // lookup the connection factory and topic and create a JMS session
+             Context namingContext       = new InitialContext();
+-            TopicConnectionFactory fact = (TopicConnectionFactory)namingContext.lookup("TopicConnectionFactory");
++            TopicConnectionFactory fact = (TopicConnectionFactory)namingContext.lookup("ConnectionFactory");
+ 
+             connection  = fact.createTopicConnection();
+ 

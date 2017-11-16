@@ -1,0 +1,13 @@
+diff --git a/t_286509/left_CarolDefaultValues_1.9.java b/t_286509/right_CarolDefaultValues_1.10.java
+index 218a8fb..ba88516 100644
+--- a/t_286509/left_CarolDefaultValues_1.9.java
++++ b/t_286509/right_CarolDefaultValues_1.10.java
+@@ -169,7 +169,7 @@ public class CarolDefaultValues {
+      */
+     public static String getRMIProtocol(String url) {
+ 	if (url != null) {
+-	    StringTokenizer st = new StringTokenizer(url, ":");
++	    StringTokenizer st = new StringTokenizer(url, "://");
+ 	    String pref = st.nextToken().trim();
+ 	    return mapping.getProperty(pref,pref);
+ 	} else {

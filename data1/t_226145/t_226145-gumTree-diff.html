@@ -1,0 +1,2636 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ScarabRequestTool_1.90.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.tools;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2001 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */ <br/>
+<br/>
+import java.util.List;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Iterator;<br/>
+<br/>
+// Turbine<br/>
+import org.apache.turbine.Log;<br/>
+import org.apache.torque.om.NumberKey;<br/>
+import org.apache.torque.om.ObjectKey;<br/>
+import org.apache.torque.om.ComboKey;<br/>
+import org.apache.turbine.RunData;<br/>
+import org.apache.turbine.modules.Module;<br/>
+import org.apache.turbine.tool.IntakeTool;<br/>
+import org.apache.fulcrum.intake.Intake;<br/>
+import org.apache.fulcrum.intake.model.Group;<br/>
+import org.apache.fulcrum.pool.RecyclableSupport;<br/>
+import org.apache.fulcrum.util.parser.StringValueParser;<br/>
+import org.apache.fulcrum.util.parser.ValueParser;<br/>
+import org.apache.commons.util.SequencedHashtable;<br/>
+<br/>
+// Scarab<br/>
+import org.tigris.scarab.om.ScarabUser;<br/>
+import org.tigris.scarab.services.user.UserManager;<br/>
+import org.tigris.scarab.om.Issue;<br/>
+import org.tigris.scarab.om.IssuePeer;<br/>
+import org.tigris.scarab.om.IssueType;<br/>
+import org.tigris.scarab.om.IssueTypePeer;<br/>
+import org.tigris.scarab.om.Query;<br/>
+import org.tigris.scarab.om.QueryPeer;<br/>
+import org.tigris.scarab.om.IssueTemplateInfo;<br/>
+import org.tigris.scarab.om.IssueTemplateInfoPeer;<br/>
+import org.tigris.scarab.om.Depend;<br/>
+import org.tigris.scarab.om.DependPeer;<br/>
+import org.tigris.scarab.om.ScopePeer;<br/>
+import org.tigris.scarab.om.FrequencyPeer;<br/>
+import org.tigris.scarab.om.Attribute;<br/>
+import org.tigris.scarab.om.AttributeGroup;<br/>
+import org.tigris.scarab.om.AttributeGroupPeer;<br/>
+import org.tigris.scarab.om.Attachment;<br/>
+import org.tigris.scarab.om.AttachmentPeer;<br/>
+import org.tigris.scarab.om.AttributeOption;<br/>
+import org.tigris.scarab.om.ROptionOption;<br/>
+import org.tigris.scarab.om.AttributeOptionPeer;<br/>
+import org.tigris.scarab.om.RModuleAttribute;<br/>
+import org.tigris.scarab.om.RModuleAttributePeer;<br/>
+import org.tigris.scarab.om.AttributeValue;<br/>
+import org.tigris.scarab.om.ParentChildAttributeOption;<br/>
+import org.tigris.scarab.services.module.ModuleEntity;<br/>
+import org.tigris.scarab.services.module.ModuleManager;<br/>
+import org.tigris.scarab.util.ScarabConstants;<br/>
+import org.tigris.scarab.util.word.IssueSearch;<br/>
+import org.tigris.scarab.om.Report;<br/>
+import org.tigris.scarab.om.ReportPeer;<br/>
+<br/>
+/**<br/>
+ * This class is used by the Scarab API<br/>
+ */<br/>
+public class ScarabRequestTool<br/>
+    extends RecyclableSupport<br/>
+    implements ScarabRequestScope<br/>
+{<br/>
+    /** the object containing request specific data */<br/>
+    private RunData data;<br/>
+<br/>
+    /**<br/>
+     * A User object for use within the Scarab API.<br/>
+     */<br/>
+    private ScarabUser user = null;<br/>
+<br/>
+    /**<br/>
+     * A Issue object for use within the Scarab API.<br/>
+     */<br/>
+    private Issue issue = null;<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    private Attribute attribute = null;<br/>
+<br/>
+    /**<br/>
+     * A Attachment object for use within the Scarab API.<br/>
+     */<br/>
+    private Attachment attachment = null;<br/>
+<br/>
+    /**<br/>
+     * A Depend object for use within the Scarab API.<br/>
+     */<br/>
+    private Depend depend = null;<br/>
+<br/>
+    /**<br/>
+     * A Query object for use within the Scarab API.<br/>
+     */<br/>
+    private Query query = null;<br/>
+<br/>
+    /**<br/>
+     * An IssueTemplateInfo object for use within the Scarab API.<br/>
+     */<br/>
+    private IssueTemplateInfo templateInfo = null;<br/>
+<br/>
+    /**<br/>
+     * An IssueType object for use within the Scarab API.<br/>
+     */<br/>
+    private IssueType issueType = null;<br/>
+<br/>
+    /**<br/>
+     * An AttributeGroup object<br/>
+     */<br/>
+    private AttributeGroup group = null;<br/>
+<br/>
+    /**<br/>
+     * A ModuleEntity object which represents the current module<br/>
+     * selected by the user within a request.<br/>
+     */<br/>
+    private ModuleEntity currentModule = null;<br/>
+<br/>
+    /**<br/>
+     * A IssueType object which represents the current issue type<br/>
+     * selected by the user within a request.<br/>
+     */<br/>
+    private IssueType currentIssueType = null;<br/>
+<br/>
+    /**<br/>
+     * The issue that is currently being entered.<br/>
+     */<br/>
+    private Issue reportingIssue = null;<br/>
+<br/>
+    /**<br/>
+     * The most recent query.<br/>
+     */<br/>
+    private String currentQuery = null;<br/>
+<br/>
+    /**<br/>
+     * A ModuleEntity object<br/>
+     */<br/>
+    private ModuleEntity module = null;<br/>
+<br/>
+    /**<br/>
+     * A AttributeOption object for use within the Scarab API.<br/>
+     */<br/>
+    private AttributeOption attributeOption = null;<br/>
+<br/>
+    /**<br/>
+     * A ROptionOption<br/>
+     */<br/>
+    private ROptionOption roo = null;<br/>
+<br/>
+    /**<br/>
+     * A ParentChildAttributeOption<br/>
+     */<br/>
+    private ParentChildAttributeOption pcao = null;<br/>
+    <br/>
+    /**<br/>
+     * A list of Issues<br/>
+     */<br/>
+    private List issueList;<br/>
+    <br/>
+    /**<br/>
+     * A ReportGenerator<br/>
+     */<br/>
+    private Report reportGenerator = null;<br/>
+<br/>
+    /**<br/>
+     * A AttributeOption object for use within the Scarab API.<br/>
+     */<br/>
+    private int nbrPages = 0;<br/>
+    private int prevPage = 0;<br/>
+    private int nextPage = 0;<br/>
+    <br/>
+    public void init(Object data)<br/>
+    {<br/>
+        this.data = (RunData)data;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * nulls out the issue and user objects<br/>
+     */<br/>
+    public void refresh()<br/>
+    {<br/>
+        this.user = null;<br/>
+        this.issue = null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor does initialization stuff<br/>
+     */    <br/>
+    public ScarabRequestTool()<br/>
+    {<br/>
+        //intake = new IntakeSystem();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public void setAttribute (Attribute attribute)<br/>
+    {<br/>
+        this.attribute = attribute;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Depend object for use within the Scarab API.<br/>
+     */<br/>
+    public void setDepend (Depend depend)<br/>
+    {<br/>
+        this.depend = depend;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Query object for use within the Scarab API.<br/>
+     */<br/>
+    public void setQuery (Query query)<br/>
+    {<br/>
+        this.query = query;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the intake tool. FIXME: why is it getting it<br/>
+     * from the Module and not from the IntakeService?<br/>
+     */<br/>
+    private IntakeTool getIntakeTool()<br/>
+    {<br/>
+        return (IntakeTool)Module.getTemplateContext(data)<br/>
+            .get(ScarabConstants.INTAKE_TOOL);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets an instance of a ROptionOption from this tool.<br/>
+     * if it is null it will return a new instance of an <br/>
+     * empty ROptionOption and set it within this tool.<br/>
+     */<br/>
+    public ROptionOption getROptionOption()<br/>
+    {<br/>
+        if (roo == null)<br/>
+        {<br/>
+            roo = ROptionOption.getInstance();<br/>
+        }<br/>
+        return roo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets an instance of a ROptionOption<br/>
+     */<br/>
+    public void setROptionOption(ROptionOption roo)<br/>
+    {<br/>
+        this.roo = roo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A IssueTemplateInfo object for use within the Scarab API.<br/>
+     */<br/>
+    public void setIssueTemplateInfo (IssueTemplateInfo templateInfo)<br/>
+    {<br/>
+        this.templateInfo = templateInfo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A IssueType object for use within the Scarab API.<br/>
+     */<br/>
+    public void setIssueType (IssueType issuetype)<br/>
+    {<br/>
+        this.issueType = issueType;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Gets an instance of a ParentChildAttributeOption from this tool.<br/>
+     * if it is null it will return a new instance of an <br/>
+     * empty ParentChildAttributeOption and set it within this tool.<br/>
+     */<br/>
+    public ParentChildAttributeOption getParentChildAttributeOption()<br/>
+    {<br/>
+        if (pcao == null)<br/>
+        {<br/>
+            pcao = ParentChildAttributeOption.getInstance();<br/>
+        }<br/>
+        return pcao;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets an instance of a ParentChildAttributeOption<br/>
+     */<br/>
+    public void setParentChildAttributeOption(ParentChildAttributeOption roo)<br/>
+    {<br/>
+        this.pcao = pcao;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public void setAttributeOption (AttributeOption option)<br/>
+    {<br/>
+        this.attributeOption = option;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public AttributeOption getAttributeOption()<br/>
+        throws Exception<br/>
+    {<br/>
+try{<br/>
+        if (attributeOption == null)<br/>
+        {<br/>
+            String optId = getIntakeTool()<br/>
+                .get("AttributeOption", IntakeTool.DEFAULT_KEY)<br/>
+                .get("OptionId").toString();<br/>
+            if ( optId == null || optId.length() == 0 )<br/>
+            {<br/>
+                attributeOption = AttributeOption.getInstance();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                attributeOption = AttributeOptionPeer<br/>
+                    .retrieveByPK(new NumberKey(optId));<br/>
+            }<br/>
+        }<br/>
+}catch(Exception e){e.printStackTrace();}<br/>
+        return attributeOption;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.tigris.scarab.tools.ScarabRequestScope#setUser(ScarabUser)<br/>
+     */<br/>
+    public void setUser (ScarabUser user)<br/>
+    {<br/>
+        this.user = user;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.tigris.scarab.tools.ScarabRequestScope#getUser()<br/>
+     */<br/>
+    public ScarabUser getUser()<br/>
+    {<br/>
+        return this.user;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return a specific User by ID from within the system.<br/>
+     * You can pass in either a NumberKey or something that<br/>
+     * will resolve to a String object as id.toString() is <br/>
+     * called on everything that isn't a NumberKey.<br/>
+     */<br/>
+    public ScarabUser getUser(Object id)<br/>
+     throws Exception<br/>
+    {<br/>
+        ScarabUser su = null;<br/>
+        try<br/>
+        {<br/>
+            ObjectKey pk = null;<br/>
+            if (id instanceof NumberKey)<br/>
+            {<br/>
+                pk = (ObjectKey) id;<br/>
+            }<br/>
+            else<br/>
+            {<br/>
+                pk = (ObjectKey)new NumberKey(id.toString());<br/>
+            }<br/>
+            su = UserManager.getInstance(pk);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return su;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public Attribute getAttribute()<br/>
+     throws Exception<br/>
+    {<br/>
+try{<br/>
+        if (attribute == null)<br/>
+        {<br/>
+            String attId = getIntakeTool()<br/>
+                .get("Attribute", IntakeTool.DEFAULT_KEY)<br/>
+                .get("Id").toString();<br/>
+            if ( attId == null || attId.length() == 0 )<br/>
+            {<br/>
+                attribute = Attribute.getInstance();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                attribute = Attribute.getInstance(new NumberKey(attId));<br/>
+            }<br/>
+        }        <br/>
+}catch(Exception e){e.printStackTrace();}<br/>
+        return attribute;<br/>
+ <br/>
+   }<br/>
+<br/>
+    /**<br/>
+     * A Query object for use within the Scarab API.<br/>
+     */<br/>
+    public Query getQuery()<br/>
+     throws Exception<br/>
+    {<br/>
+        try<br/>
+        {<br/>
+            if (query == null)<br/>
+            {<br/>
+                String queryId = data.getParameters()<br/>
+                    .getString("queryId"); <br/>
+                if ( queryId == null || queryId.length() == 0 )<br/>
+                {<br/>
+                    query = Query.getInstance();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    query = QueryPeer.retrieveByPK(new NumberKey(queryId));<br/>
+                }<br/>
+            }        <br/>
+        }        <br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return query;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A IssueTemplateInfo object for use within the Scarab API.<br/>
+     */<br/>
+    public IssueTemplateInfo getIssueTemplateInfo()<br/>
+     throws Exception<br/>
+    {<br/>
+        try<br/>
+        {<br/>
+            if (templateInfo == null)<br/>
+            {<br/>
+                String issueId = data.getParameters()<br/>
+                    .getString("issue_id"); <br/>
+<br/>
+                if ( issueId == null || issueId.length() == 0 )<br/>
+                {<br/>
+                    templateInfo = IssueTemplateInfo.getInstance();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    templateInfo = IssueTemplateInfoPeer<br/>
+                        .retrieveByPK(new NumberKey(issueId));<br/>
+                }<br/>
+            }        <br/>
+        }        <br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return templateInfo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Depend object for use within the Scarab API.<br/>
+     */<br/>
+    public Depend getDepend()<br/>
+     throws Exception<br/>
+    {<br/>
+        try<br/>
+        {<br/>
+            if (depend == null)<br/>
+            {<br/>
+                String dependId = getIntakeTool()<br/>
+                    .get("Depend", IntakeTool.DEFAULT_KEY).get("Id").toString();<br/>
+                if ( dependId == null || dependId.length() == 0 )<br/>
+                {<br/>
+                    depend = Depend.getInstance();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    depend = DependPeer.retrieveByPK(new NumberKey(dependId));<br/>
+                }<br/>
+            }        <br/>
+        }        <br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return depend;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attachment object for use within the Scarab API.<br/>
+     */<br/>
+    public Attachment getAttachment()<br/>
+     throws Exception<br/>
+    {<br/>
+try{<br/>
+        if (attachment == null)<br/>
+        {<br/>
+            Group att = getIntakeTool()<br/>
+                .get("Attachment", IntakeTool.DEFAULT_KEY, false);<br/>
+            if ( att != null ) <br/>
+            {            <br/>
+                String attId =  att.get("Id").toString();<br/>
+                if ( attId == null || attId.length() == 0 )<br/>
+                {<br/>
+                    attachment = new Attachment();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    attachment = AttachmentPeer<br/>
+                        .retrieveByPK(new NumberKey(attId));<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                attachment = new Attachment();<br/>
+            }<br/>
+        }        <br/>
+}catch(Exception e){e.printStackTrace(); throw e;}<br/>
+        return attachment;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a new AttributeGroup object.<br/>
+     */<br/>
+    public AttributeGroup getAttributeGroup()<br/>
+    {<br/>
+        return new AttributeGroup();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a AttributeGroup object.<br/>
+     */<br/>
+    public AttributeGroup getAttributeGroup(String key)<br/>
+    {<br/>
+        AttributeGroup group = null;<br/>
+        try<br/>
+        {<br/>
+            group = (AttributeGroup) <br/>
+                AttributeGroupPeer.retrieveByPK(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return group;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a specific issue type by key value. Returns null if<br/>
+     * the Issue Type could not be found<br/>
+     *<br/>
+     * @param key a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;IssueType&lt;/code&gt; value<br/>
+     */<br/>
+    public IssueType getIssueType(String key)<br/>
+    {<br/>
+        IssueType issueType = null;<br/>
+        try<br/>
+        {<br/>
+            issueType = (IssueType) <br/>
+                IssueTypePeer.retrieveByPK(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+        }<br/>
+        return issueType;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get an issue type object.<br/>
+     */<br/>
+    public IssueType getIssueType()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( issueType == null ) <br/>
+        {<br/>
+            String key = data.getParameters()<br/>
+                .getString("issuetypeid");<br/>
+            if ( key == null ) <br/>
+            {<br/>
+                // get new issue type<br/>
+                issueType = new IssueType();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                try<br/>
+                {<br/>
+                    issueType = (IssueType) IssueTypePeer<br/>
+                                 .retrieveByPK(new NumberKey(key));<br/>
+                }<br/>
+                catch (Exception e)<br/>
+                {<br/>
+                    e.printStackTrace();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return issueType;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get an RModuleAttribute object. <br/>
+     *<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     */<br/>
+    public RModuleAttribute getRModuleAttribute()<br/>
+        throws Exception<br/>
+    {<br/>
+        RModuleAttribute rma = null;<br/>
+      try{<br/>
+            ComboKey rModAttId = (ComboKey)getIntakeTool()<br/>
+                .get("RModuleAttribute", IntakeTool.DEFAULT_KEY)<br/>
+                .get("Id").getValue();<br/>
+            if ( rModAttId == null )<br/>
+            {<br/>
+                NumberKey attId = (NumberKey)getIntakeTool()<br/>
+                    .get("Attribute", IntakeTool.DEFAULT_KEY)<br/>
+                    .get("Id").getValue();<br/>
+                ModuleEntity currentModule = getCurrentModule();<br/>
+                if ( attId != null &amp;&amp; currentModule != null )<br/>
+                {<br/>
+                    NumberKey[] nka = {attId, currentModule.getModuleId()};<br/>
+                    rma = RModuleAttributePeer.retrieveByPK(new ComboKey(nka));<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    rma = new RModuleAttribute();<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                rma = RModuleAttributePeer.retrieveByPK(rModAttId);<br/>
+            }<br/>
+      }catch(Exception e){e.printStackTrace();}<br/>
+        return rma;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A AttributeGroup object for use within the Scarab API.<br/>
+     */<br/>
+    public void setAttributeGroup(AttributeGroup group)<br/>
+    {<br/>
+        this.group = group;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Module object for use within the Scarab API.<br/>
+     */<br/>
+    public void setModule(ModuleEntity module)<br/>
+    {<br/>
+        this.module = module;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get an Module object. <br/>
+     *<br/>
+     * @return a &lt;code&gt;ModuleEntity&lt;/code&gt; value<br/>
+     */<br/>
+    public ModuleEntity getModule()<br/>
+        throws Exception<br/>
+    {<br/>
+      try{<br/>
+        String modId = getIntakeTool()<br/>
+            .get("Module", IntakeTool.DEFAULT_KEY).get("Id").toString();<br/>
+        if ( modId == null || modId.length() == 0 )<br/>
+        {<br/>
+            module = ModuleManager.getInstance();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            module = ModuleManager.getInstance(new NumberKey(modId));<br/>
+        }<br/>
+      }catch(Exception e){e.printStackTrace();}<br/>
+       return module;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a specific module by key value. Returns null if<br/>
+     * the Module could not be found<br/>
+     *<br/>
+     * @param key a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     */<br/>
+    public ModuleEntity getModule(String key)<br/>
+    {<br/>
+        ModuleEntity me = null;<br/>
+        try<br/>
+        {<br/>
+            me = ModuleManager.getInstance(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+        }<br/>
+        return me;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets the ModuleEntity associated with the information<br/>
+     * passed around in the query string. Returns null if<br/>
+     * the Module could not be found.<br/>
+     */<br/>
+    public ModuleEntity getCurrentModule()<br/>
+    {<br/>
+        if (currentModule == null)<br/>
+        {<br/>
+            currentModule = getModule(<br/>
+                data.getParameters()<br/>
+                .getString(ScarabConstants.CURRENT_MODULE));<br/>
+        }<br/>
+        return currentModule;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets the IssueType associated with the information<br/>
+     * passed around in the query string. Returns null if<br/>
+     * the Module could not be found.<br/>
+     */<br/>
+    public IssueType getCurrentIssueType() throws Exception<br/>
+    {<br/>
+        if (currentIssueType == null)<br/>
+        {<br/>
+            currentIssueType = getIssueType(<br/>
+                data.getParameters()<br/>
+                .getString(ScarabConstants.CURRENT_ISSUE_TYPE));<br/>
+        }<br/>
+        return currentIssueType;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The issue that is currently being entered.<br/>
+     *<br/>
+     * @return an &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public Issue getReportingIssue()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( reportingIssue == null ) <br/>
+        {<br/>
+            String key = data.getParameters()<br/>
+                .getString(ScarabConstants.REPORTING_ISSUE);<br/>
+            if ( key == null ) <br/>
+            {<br/>
+                getNewReportingIssue();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                reportingIssue = ((ScarabUser)data.getUser())<br/>
+                    .getReportingIssue(key);<br/>
+<br/>
+                // if reportingIssue is still null, the parameter must have<br/>
+                // been stale, just get a new issue<br/>
+                if ( reportingIssue == null ) <br/>
+                {<br/>
+                    getNewReportingIssue();                    <br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return reportingIssue;<br/>
+    }<br/>
+<br/>
+    private void getNewReportingIssue()<br/>
+        throws Exception<br/>
+    {<br/>
+        reportingIssue = getCurrentModule().getNewIssue(getCurrentIssueType());<br/>
+        String key = ((ScarabUser)data.getUser())<br/>
+            .setReportingIssue(reportingIssue);<br/>
+        data.getParameters().add(ScarabConstants.REPORTING_ISSUE, key);<br/>
+    }<br/>
+<br/>
+    public void setReportingIssue(Issue issue)<br/>
+    {<br/>
+        reportingIssue = issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The most recent query entered.<br/>
+     *<br/>
+     * @return an &lt;code&gt;Issue&lt;/code&gt; value<br/>
+    public String getCurrentQuery()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( currentQuery == null ) <br/>
+        {<br/>
+            System.out.println("use default");<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            currentQuery = (String)((ScarabUser)data.getUser())<br/>
+                .getTemp(ScarabConstants.CURRENT_QUERY);<br/>
+        }<br/>
+        return currentQuery;<br/>
+    }<br/>
+<br/>
+    public void setCurrentQuery(String query)<br/>
+    {<br/>
+        currentQuery = query;<br/>
+    }<br/>
+     */<br/>
+<br/>
+    /**<br/>
+     * Sets the current ModuleEntity<br/>
+     */<br/>
+    public void setCurrentModule(ModuleEntity me)<br/>
+    {<br/>
+        currentModule = me;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the current ArtifactType<br/>
+     */<br/>
+    public void setCurrentIssueType(IssueType issueType)<br/>
+    {<br/>
+        currentIssueType = issueType;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Issue object for use within the Scarab API.<br/>
+     */<br/>
+    public void setIssue(Issue issue)<br/>
+    {<br/>
+        this.issue = issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get an Issue object. If it is the first time calling,<br/>
+     * it will be a new blank issue object.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public Issue getIssue()<br/>
+        throws Exception<br/>
+    {<br/>
+        if (issue == null)<br/>
+        {<br/>
+            String issueId = null;<br/>
+            Group issueGroup = getIntakeTool()<br/>
+                .get("Issue", IntakeTool.DEFAULT_KEY, false);<br/>
+            if ( issueGroup != null ) <br/>
+            {            <br/>
+                issueId =  issueGroup.get("Id").toString();<br/>
+            }<br/>
+            else if ( data.getParameters().getString("issue_id") != null ) <br/>
+            {                <br/>
+                issueId = data.getParameters().getString("issue_id");<br/>
+            }<br/>
+<br/>
+            if ( issueId == null || issueId.length() == 0 )<br/>
+            {<br/>
+                issue = getCurrentModule()<br/>
+                    .getNewIssue(getCurrentIssueType());<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                issue = IssuePeer<br/>
+                    .retrieveByPK(new NumberKey(issueId));<br/>
+            }<br/>
+        }<br/>
+        return issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The id may be a primary key or an issue id.<br/>
+     *<br/>
+     * @param key a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public Issue getIssue(String key)<br/>
+    {<br/>
+        Issue issue = null;<br/>
+        try<br/>
+        {<br/>
+            issue = IssuePeer.retrieveByPK(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            // was not a primary key, try fid<br/>
+            try<br/>
+            {<br/>
+                Issue.FederatedId fid = new Issue.FederatedId(key);<br/>
+                if ( fid.getDomain() == null ) <br/>
+                {<br/>
+                    // handle null (always null right now)<br/>
+                }<br/>
+                issue = Issue.getIssueById(fid);<br/>
+            }<br/>
+            catch (NumberFormatException nfe)<br/>
+            {<br/>
+                // invalid id, just return null<br/>
+            }<br/>
+        }<br/>
+        return issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a list of Issue objects.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public List getIssues()<br/>
+        throws Exception<br/>
+    {<br/>
+        List issues = null;<br/>
+<br/>
+        Group issueGroup = getIntakeTool()<br/>
+            .get("Issue", IntakeTool.DEFAULT_KEY, false);<br/>
+        if ( issueGroup != null ) <br/>
+        {            <br/>
+            NumberKey[] issueIds =  (NumberKey[])<br/>
+                issueGroup.get("Ids").getValue();<br/>
+            if ( issueIds != null ) <br/>
+            {            <br/>
+                issues = new ArrayList(issueIds.length);<br/>
+                for ( int i=0; i&lt;issueIds.length; i++ ) <br/>
+                {<br/>
+                    issues.add(IssuePeer.retrieveByPK(issueIds[i]));<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        else if ( data.getParameters().getString("issue_ids") != null ) <br/>
+        {                <br/>
+            String[] issueIdStrings = data.getParameters()<br/>
+                .getStrings("issue_ids");<br/>
+            issues = new ArrayList(issueIdStrings.length);<br/>
+            for ( int i=0; i&lt;issueIdStrings.length; i++ ) <br/>
+            {<br/>
+                issues.add(IssuePeer<br/>
+                           .retrieveByPK(new NumberKey(issueIdStrings[i])));<br/>
+            }<br/>
+        }<br/>
+        return issues;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get all scopes.<br/>
+     */<br/>
+    public List getScopes()<br/>
+        throws Exception<br/>
+    {<br/>
+        return ScopePeer.getAllScopes();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get all frequencies.<br/>
+     */<br/>
+    public List getFrequencies()<br/>
+        throws Exception<br/>
+    {<br/>
+        return FrequencyPeer.getFrequencies();<br/>
+    }<br/>
+<br/>
+    public Intake getConditionalIntake(String parameter)<br/>
+        throws Exception<br/>
+    {<br/>
+        Intake intake = null;<br/>
+        String param = data.getParameters().getString(parameter);<br/>
+        if ( param == null ) <br/>
+        {            <br/>
+            intake = getIntakeTool();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            intake = new Intake();<br/>
+            StringValueParser parser = new StringValueParser();<br/>
+            parser.parse(param, '&amp;', '=', true);<br/>
+            intake.init(parser);<br/>
+        }<br/>
+<br/>
+        return intake;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a new SearchIssue object. <br/>
+     *<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public IssueSearch getSearch()<br/>
+        throws Exception<br/>
+    {<br/>
+        return new IssueSearch(getCurrentModule(), getCurrentIssueType());<br/>
+    }<br/>
+<br/>
+    public Intake parseQuery(String query)<br/>
+        throws Exception<br/>
+    {<br/>
+        Intake intake = new Intake();<br/>
+        StringValueParser parser = new StringValueParser();<br/>
+        parser.parse(query, '&amp;', '=', true);<br/>
+        intake.init(parser);<br/>
+        return intake;<br/>
+    }<br/>
+<br/>
+    public List getCurrentSearchResults()<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser user = (ScarabUser)data.getUser();<br/>
+        Intake intake = new Intake();<br/>
+        if (user.getTemp(ScarabConstants.CURRENT_QUERY) == null)<br/>
+        {<br/>
+           // No query stored in session<br/>
+           // Check for default query.<br/>
+           Query query = user.getDefaultQuery(getCurrentModule(),<br/>
+                                              getCurrentIssueType());<br/>
+           String defaultQuery = null;<br/>
+           if (query == null)<br/>
+           {<br/>
+               // Use default query : all issues created by or<br/>
+               // Assigned to this user.<br/>
+               defaultQuery = user.getDefaultDefaultQuery();<br/>
+           }<br/>
+           else<br/>
+           {<br/>
+               defaultQuery = query.getValue();<br/>
+           } <br/>
+           intake = parseQuery(defaultQuery);<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+           String currentQuery = user.getTemp(ScarabConstants<br/>
+                                              .CURRENT_QUERY).toString();<br/>
+           intake = parseQuery(currentQuery);<br/>
+        }<br/>
+        <br/>
+        IssueSearch search = getSearch();<br/>
+        Group searchGroup = intake.get("SearchIssue", <br/>
+                                       getSearch().getQueryKey() );<br/>
+        searchGroup.setProperties(search);<br/>
+        SequencedHashtable avMap = search.getModuleAttributeValuesMap();<br/>
+        Iterator i = avMap.iterator();<br/>
+        while (i.hasNext()) <br/>
+        {<br/>
+            AttributeValue aval = (AttributeValue)avMap.get(i.next());<br/>
+            Group group = intake.get("AttributeValue", aval.getQueryKey());<br/>
+            if ( group != null ) <br/>
+            {<br/>
+                group.setProperties(aval);<br/>
+            }                <br/>
+        }<br/>
+        <br/>
+        return search.getMatchingIssues();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Convert paths with slashes to commas.<br/>
+     */<br/>
+    public String convertPath(String path)<br/>
+        throws Exception<br/>
+    {<br/>
+        return path.replace('/',',');<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * a report helper class<br/>
+     */<br/>
+    public Report getReport()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( reportGenerator == null ) <br/>
+        {<br/>
+            ValueParser parameters = data.getParameters();<br/>
+            String id = parameters.getString("report_id");<br/>
+            if ( id == null || id.length() == 0 ) <br/>
+            {<br/>
+                reportGenerator = new Report();<br/>
+                reportGenerator.setModule(getCurrentModule());<br/>
+                reportGenerator.setGeneratedBy((ScarabUser)data.getUser());<br/>
+                reportGenerator.setIssueType(getCurrentIssueType());<br/>
+                reportGenerator<br/>
+                    .setQueryString(getReportQueryString(parameters));<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                reportGenerator = ReportPeer.retrieveByPK(new NumberKey(id));<br/>
+                reportGenerator<br/>
+                    .setQueryString(getReportQueryString(parameters));<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        return reportGenerator;<br/>
+    }<br/>
+<br/>
+    public void setReport(Report report)<br/>
+    {<br/>
+        this.reportGenerator = report;<br/>
+    }<br/>
+    <br/>
+    private static String getReportQueryString(ValueParser params) <br/>
+    {<br/>
+        StringBuffer query = new StringBuffer();<br/>
+        Object[] keys =  params.getKeys();<br/>
+        for (int i =0; i&lt;keys.length; i++)<br/>
+        {<br/>
+            String key = keys[i].toString();<br/>
+            if (key.startsWith("rep") || key.startsWith("intake"))<br/>
+            {<br/>
+                String[] values = params.getStrings(key);<br/>
+                for (int j=0; j&lt;values.length; j++)<br/>
+                {<br/>
+                    query.append('&amp;').append(key);<br/>
+                    query.append('=').append(values[j]);<br/>
+                }<br/>
+            }<br/>
+         }<br/>
+         return query.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return a subset of the passed-in list.<br/>
+     */<br/>
+    public List getPaginatedList( List fullList, int pgNbr, <br/>
+                                  int nbrItemsPerPage)<br/>
+    {<br/>
+        this.nbrPages =  (int)Math.ceil((float)fullList.size() <br/>
+                                               / nbrItemsPerPage);<br/>
+        this.nextPage = pgNbr + 1;<br/>
+        this.prevPage = pgNbr - 1;<br/>
+        return fullList.subList<br/>
+           ((pgNbr - 1) * nbrItemsPerPage,<br/>
+            Math.min(pgNbr * nbrItemsPerPage, fullList.size()));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the cached list of issue id's resulting from a search<br/>
+     * And return the list of issues.<br/>
+     */<br/>
+    public List getIssueList() <br/>
+        throws Exception<br/>
+    {<br/>
+        if ( issueList == null ) <br/>
+        {<br/>
+            issueList = getCurrentSearchResults();<br/>
+        }<br/>
+        return issueList;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set the value of issueList.<br/>
+     * @param v  Value to assign to issueList.<br/>
+     */<br/>
+    public void setIssueList(List  v) <br/>
+    {<br/>
+        this.issueList = v;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Return the number of paginated pages.<br/>
+     *<br/>
+     */<br/>
+    public int getNbrPages()<br/>
+    {<br/>
+        return nbrPages;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the next page in the paginated list.<br/>
+     *<br/>
+     */<br/>
+    public int getNextPage()<br/>
+    {<br/>
+        if (nextPage &lt;= nbrPages)<br/>
+        {<br/>
+            return nextPage;<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            return 0;<br/>
+        }       <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the previous page in the paginated list.<br/>
+     *<br/>
+     */<br/>
+    public int getPrevPage()<br/>
+    {<br/>
+        return prevPage;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Determine if the user currently interacting with the scarab<br/>
+     * application has a permission within the user's currently<br/>
+     * selected module.<br/>
+     *<br/>
+     * @param permission a &lt;code&gt;String&lt;/code&gt; permission value, which should<br/>
+     * be a constant in this interface.<br/>
+     * @return true if the permission exists for the user within the<br/>
+     * current module, false otherwise<br/>
+     */<br/>
+    public boolean hasPermission(String permission)<br/>
+    {<br/>
+        boolean hasPermission = false;<br/>
+        try<br/>
+        {<br/>
+            ModuleEntity module = getCurrentModule();<br/>
+            hasPermission = hasPermission(permission, module);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            hasPermission = false;<br/>
+            Log.error("Permission check failed on:" + permission, e);<br/>
+        }<br/>
+        return hasPermission;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Determine if the user currently interacting with the scarab<br/>
+     * application has a permission within a module.<br/>
+     *<br/>
+     * @param permission a &lt;code&gt;String&lt;/code&gt; permission value, which should<br/>
+     * be a constant in this interface.<br/>
+     * @param module a &lt;code&gt;ModuleEntity&lt;/code&gt; value<br/>
+     * @return true if the permission exists for the user within the<br/>
+     * given module, false otherwise<br/>
+     */<br/>
+    public boolean hasPermission(String permission, ModuleEntity module)<br/>
+    {<br/>
+        boolean hasPermission = false;<br/>
+        try<br/>
+        {<br/>
+            hasPermission = ((ScarabUser)data.getUser())<br/>
+                .hasPermission(permission, module);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            hasPermission = false;<br/>
+            Log.error("Permission check failed on:" + permission, e);<br/>
+        }<br/>
+        return hasPermission;<br/>
+    }<br/>
+<br/>
+<br/>
+    // ****************** Recyclable implementation ************************<br/>
+<br/>
+    /**<br/>
+     * Disposes the object after use. The method is called when the<br/>
+     * object is returned to its pool.  The dispose method must call<br/>
+     * its super.<br/>
+     */<br/>
+    public void dispose()<br/>
+    {<br/>
+        super.dispose();<br/>
+<br/>
+        data = null;<br/>
+        user = null;<br/>
+        issue = null;<br/>
+        attribute = null;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ScarabRequestTool_1.91.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.tools;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2001 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */ <br/>
+<br/>
+import java.util.List;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Iterator;<br/>
+<br/>
+// Turbine<br/>
+import org.apache.turbine.Log;<br/>
+import org.apache.torque.om.NumberKey;<br/>
+import org.apache.torque.om.ObjectKey;<br/>
+import org.apache.torque.om.ComboKey;<br/>
+import org.apache.turbine.RunData;<br/>
+import org.apache.turbine.modules.Module;<br/>
+import org.apache.turbine.tool.IntakeTool;<br/>
+import org.apache.fulcrum.intake.Intake;<br/>
+import org.apache.fulcrum.intake.model.Group;<br/>
+import org.apache.fulcrum.pool.RecyclableSupport;<br/>
+import org.apache.fulcrum.util.parser.StringValueParser;<br/>
+import org.apache.fulcrum.util.parser.ValueParser;<br/>
+import org.apache.commons.util.SequencedHashtable;<br/>
+<br/>
+// Scarab<br/>
+import org.tigris.scarab.om.ScarabUser;<br/>
+import org.tigris.scarab.services.user.UserManager;<br/>
+import org.tigris.scarab.om.Issue;<br/>
+import org.tigris.scarab.om.IssuePeer;<br/>
+import org.tigris.scarab.om.IssueType;<br/>
+import org.tigris.scarab.om.IssueTypePeer;<br/>
+import org.tigris.scarab.om.Query;<br/>
+import org.tigris.scarab.om.QueryPeer;<br/>
+import org.tigris.scarab.om.IssueTemplateInfo;<br/>
+import org.tigris.scarab.om.IssueTemplateInfoPeer;<br/>
+import org.tigris.scarab.om.Depend;<br/>
+import org.tigris.scarab.om.DependPeer;<br/>
+import org.tigris.scarab.om.ScopePeer;<br/>
+import org.tigris.scarab.om.FrequencyPeer;<br/>
+import org.tigris.scarab.om.Attribute;<br/>
+import org.tigris.scarab.om.AttributeGroup;<br/>
+import org.tigris.scarab.om.AttributeGroupPeer;<br/>
+import org.tigris.scarab.om.Attachment;<br/>
+import org.tigris.scarab.om.AttachmentPeer;<br/>
+import org.tigris.scarab.om.AttributeOption;<br/>
+import org.tigris.scarab.om.ROptionOption;<br/>
+import org.tigris.scarab.om.AttributeOptionPeer;<br/>
+import org.tigris.scarab.om.RModuleAttribute;<br/>
+import org.tigris.scarab.om.RModuleAttributePeer;<br/>
+import org.tigris.scarab.om.AttributeValue;<br/>
+import org.tigris.scarab.om.ParentChildAttributeOption;<br/>
+import org.tigris.scarab.services.module.ModuleEntity;<br/>
+import org.tigris.scarab.services.module.ModuleManager;<br/>
+import org.tigris.scarab.util.ScarabConstants;<br/>
+import org.tigris.scarab.util.word.IssueSearch;<br/>
+import org.tigris.scarab.om.Report;<br/>
+import org.tigris.scarab.om.ReportPeer;<br/>
+<br/>
+/**<br/>
+ * This class is used by the Scarab API<br/>
+ */<br/>
+public class ScarabRequestTool<br/>
+    extends RecyclableSupport<br/>
+    implements ScarabRequestScope<br/>
+{<br/>
+    /** the object containing request specific data */<br/>
+    private RunData data;<br/>
+<br/>
+    /**<br/>
+     * A User object for use within the Scarab API.<br/>
+     */<br/>
+    private ScarabUser user = null;<br/>
+<br/>
+    /**<br/>
+     * A Issue object for use within the Scarab API.<br/>
+     */<br/>
+    private Issue issue = null;<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    private Attribute attribute = null;<br/>
+<br/>
+    /**<br/>
+     * A Attachment object for use within the Scarab API.<br/>
+     */<br/>
+    private Attachment attachment = null;<br/>
+<br/>
+    /**<br/>
+     * A Depend object for use within the Scarab API.<br/>
+     */<br/>
+    private Depend depend = null;<br/>
+<br/>
+    /**<br/>
+     * A Query object for use within the Scarab API.<br/>
+     */<br/>
+    private Query query = null;<br/>
+<br/>
+    /**<br/>
+     * An IssueTemplateInfo object for use within the Scarab API.<br/>
+     */<br/>
+    private IssueTemplateInfo templateInfo = null;<br/>
+<br/>
+    /**<br/>
+     * An IssueType object for use within the Scarab API.<br/>
+     */<br/>
+    private IssueType issueType = null;<br/>
+<br/>
+    /**<br/>
+     * An AttributeGroup object<br/>
+     */<br/>
+    private AttributeGroup group = null;<br/>
+<br/>
+    /**<br/>
+     * A ModuleEntity object which represents the current module<br/>
+     * selected by the user within a request.<br/>
+     */<br/>
+    private ModuleEntity currentModule = null;<br/>
+<br/>
+    /**<br/>
+     * A IssueType object which represents the current issue type<br/>
+     * selected by the user within a request.<br/>
+     */<br/>
+    private IssueType currentIssueType = null;<br/>
+<br/>
+    /**<br/>
+     * The issue that is currently being entered.<br/>
+     */<br/>
+    private Issue reportingIssue = null;<br/>
+<br/>
+    /**<br/>
+     * The most recent query.<br/>
+     */<br/>
+    private String currentQuery = null;<br/>
+<br/>
+    /**<br/>
+     * A ModuleEntity object<br/>
+     */<br/>
+    private ModuleEntity module = null;<br/>
+<br/>
+    /**<br/>
+     * A AttributeOption object for use within the Scarab API.<br/>
+     */<br/>
+    private AttributeOption attributeOption = null;<br/>
+<br/>
+    /**<br/>
+     * A ROptionOption<br/>
+     */<br/>
+    private ROptionOption roo = null;<br/>
+<br/>
+    /**<br/>
+     * A ParentChildAttributeOption<br/>
+     */<br/>
+    private ParentChildAttributeOption pcao = null;<br/>
+    <br/>
+    /**<br/>
+     * A list of Issues<br/>
+     */<br/>
+    private List issueList;<br/>
+    <br/>
+    /**<br/>
+     * A ReportGenerator<br/>
+     */<br/>
+    private Report reportGenerator = null;<br/>
+<br/>
+    /**<br/>
+     * A AttributeOption object for use within the Scarab API.<br/>
+     */<br/>
+    private int nbrPages = 0;<br/>
+    private int prevPage = 0;<br/>
+    private int nextPage = 0;<br/>
+    <br/>
+    public void init(Object data)<br/>
+    {<br/>
+        this.data = (RunData)data;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * nulls out the issue and user objects<br/>
+     */<br/>
+    public void refresh()<br/>
+    {<br/>
+        this.user = null;<br/>
+        this.issue = null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor does initialization stuff<br/>
+     */    <br/>
+    public ScarabRequestTool()<br/>
+    {<br/>
+        //intake = new IntakeSystem();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public void setAttribute (Attribute attribute)<br/>
+    {<br/>
+        this.attribute = attribute;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Depend object for use within the Scarab API.<br/>
+     */<br/>
+    public void setDepend (Depend depend)<br/>
+    {<br/>
+        this.depend = depend;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Query object for use within the Scarab API.<br/>
+     */<br/>
+    public void setQuery (Query query)<br/>
+    {<br/>
+        this.query = query;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the intake tool. FIXME: why is it getting it<br/>
+     * from the Module and not from the IntakeService?<br/>
+     */<br/>
+    private IntakeTool getIntakeTool()<br/>
+    {<br/>
+        return (IntakeTool)Module.getTemplateContext(data)<br/>
+            .get(ScarabConstants.INTAKE_TOOL);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets an instance of a ROptionOption from this tool.<br/>
+     * if it is null it will return a new instance of an <br/>
+     * empty ROptionOption and set it within this tool.<br/>
+     */<br/>
+    public ROptionOption getROptionOption()<br/>
+    {<br/>
+        if (roo == null)<br/>
+        {<br/>
+            roo = ROptionOption.getInstance();<br/>
+        }<br/>
+        return roo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets an instance of a ROptionOption<br/>
+     */<br/>
+    public void setROptionOption(ROptionOption roo)<br/>
+    {<br/>
+        this.roo = roo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A IssueTemplateInfo object for use within the Scarab API.<br/>
+     */<br/>
+    public void setIssueTemplateInfo (IssueTemplateInfo templateInfo)<br/>
+    {<br/>
+        this.templateInfo = templateInfo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A IssueType object for use within the Scarab API.<br/>
+     */<br/>
+    public void setIssueType (IssueType issuetype)<br/>
+    {<br/>
+        this.issueType = issueType;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Gets an instance of a ParentChildAttributeOption from this tool.<br/>
+     * if it is null it will return a new instance of an <br/>
+     * empty ParentChildAttributeOption and set it within this tool.<br/>
+     */<br/>
+    public ParentChildAttributeOption getParentChildAttributeOption()<br/>
+    {<br/>
+        if (pcao == null)<br/>
+        {<br/>
+            pcao = ParentChildAttributeOption.getInstance();<br/>
+        }<br/>
+        return pcao;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets an instance of a ParentChildAttributeOption<br/>
+     */<br/>
+    public void setParentChildAttributeOption(ParentChildAttributeOption roo)<br/>
+    {<br/>
+        this.pcao = pcao;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public void setAttributeOption (AttributeOption option)<br/>
+    {<br/>
+        this.attributeOption = option;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public AttributeOption getAttributeOption()<br/>
+        throws Exception<br/>
+    {<br/>
+try{<br/>
+        if (attributeOption == null)<br/>
+        {<br/>
+            String optId = getIntakeTool()<br/>
+                .get("AttributeOption", IntakeTool.DEFAULT_KEY)<br/>
+                .get("OptionId").toString();<br/>
+            if ( optId == null || optId.length() == 0 )<br/>
+            {<br/>
+                attributeOption = AttributeOption.getInstance();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                attributeOption = AttributeOptionPeer<br/>
+                    .retrieveByPK(new NumberKey(optId));<br/>
+            }<br/>
+        }<br/>
+}catch(Exception e){e.printStackTrace();}<br/>
+        return attributeOption;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.tigris.scarab.tools.ScarabRequestScope#setUser(ScarabUser)<br/>
+     */<br/>
+    public void setUser (ScarabUser user)<br/>
+    {<br/>
+        this.user = user;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.tigris.scarab.tools.ScarabRequestScope#getUser()<br/>
+     */<br/>
+    public ScarabUser getUser()<br/>
+    {<br/>
+        return this.user;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return a specific User by ID from within the system.<br/>
+     * You can pass in either a NumberKey or something that<br/>
+     * will resolve to a String object as id.toString() is <br/>
+     * called on everything that isn't a NumberKey.<br/>
+     */<br/>
+    public ScarabUser getUser(Object id)<br/>
+     throws Exception<br/>
+    {<br/>
+        ScarabUser su = null;<br/>
+        try<br/>
+        {<br/>
+            ObjectKey pk = null;<br/>
+            if (id instanceof NumberKey)<br/>
+            {<br/>
+                pk = (ObjectKey) id;<br/>
+            }<br/>
+            else<br/>
+            {<br/>
+                pk = (ObjectKey)new NumberKey(id.toString());<br/>
+            }<br/>
+            su = UserManager.getInstance(pk);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return su;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attribute object for use within the Scarab API.<br/>
+     */<br/>
+    public Attribute getAttribute()<br/>
+     throws Exception<br/>
+    {<br/>
+try{<br/>
+        if (attribute == null)<br/>
+        {<br/>
+            String attId = getIntakeTool()<br/>
+                .get("Attribute", IntakeTool.DEFAULT_KEY)<br/>
+                .get("Id").toString();<br/>
+            if ( attId == null || attId.length() == 0 )<br/>
+            {<br/>
+                attribute = Attribute.getInstance();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                attribute = Attribute.getInstance(new NumberKey(attId));<br/>
+            }<br/>
+        }        <br/>
+}catch(Exception e){e.printStackTrace();}<br/>
+        return attribute;<br/>
+ <br/>
+   }<br/>
+<br/>
+    /**<br/>
+     * A Query object for use within the Scarab API.<br/>
+     */<br/>
+    public Query getQuery()<br/>
+     throws Exception<br/>
+    {<br/>
+        try<br/>
+        {<br/>
+            if (query == null)<br/>
+            {<br/>
+                String queryId = data.getParameters()<br/>
+                    .getString("queryId"); <br/>
+                if ( queryId == null || queryId.length() == 0 )<br/>
+                {<br/>
+                    query = Query.getInstance();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    query = QueryPeer.retrieveByPK(new NumberKey(queryId));<br/>
+                }<br/>
+            }        <br/>
+        }        <br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return query;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A IssueTemplateInfo object for use within the Scarab API.<br/>
+     */<br/>
+    public IssueTemplateInfo getIssueTemplateInfo()<br/>
+     throws Exception<br/>
+    {<br/>
+        try<br/>
+        {<br/>
+            if (templateInfo == null)<br/>
+            {<br/>
+                String issueId = data.getParameters()<br/>
+                    .getString("issue_id"); <br/>
+<br/>
+                if ( issueId == null || issueId.length() == 0 )<br/>
+                {<br/>
+                    templateInfo = IssueTemplateInfo.getInstance();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    templateInfo = IssueTemplateInfoPeer<br/>
+                        .retrieveByPK(new NumberKey(issueId));<br/>
+                }<br/>
+            }        <br/>
+        }        <br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return templateInfo;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Depend object for use within the Scarab API.<br/>
+     */<br/>
+    public Depend getDepend()<br/>
+     throws Exception<br/>
+    {<br/>
+        try<br/>
+        {<br/>
+            if (depend == null)<br/>
+            {<br/>
+                String dependId = getIntakeTool()<br/>
+                    .get("Depend", IntakeTool.DEFAULT_KEY).get("Id").toString();<br/>
+                if ( dependId == null || dependId.length() == 0 )<br/>
+                {<br/>
+                    depend = Depend.getInstance();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    depend = DependPeer.retrieveByPK(new NumberKey(dependId));<br/>
+                }<br/>
+            }        <br/>
+        }        <br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return depend;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Attachment object for use within the Scarab API.<br/>
+     */<br/>
+    public Attachment getAttachment()<br/>
+     throws Exception<br/>
+    {<br/>
+try{<br/>
+        if (attachment == null)<br/>
+        {<br/>
+            Group att = getIntakeTool()<br/>
+                .get("Attachment", IntakeTool.DEFAULT_KEY, false);<br/>
+            if ( att != null ) <br/>
+            {            <br/>
+                String attId =  att.get("Id").toString();<br/>
+                if ( attId == null || attId.length() == 0 )<br/>
+                {<br/>
+                    attachment = new Attachment();<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    attachment = AttachmentPeer<br/>
+                        .retrieveByPK(new NumberKey(attId));<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                attachment = new Attachment();<br/>
+            }<br/>
+        }        <br/>
+}catch(Exception e){e.printStackTrace(); throw e;}<br/>
+        return attachment;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a new AttributeGroup object.<br/>
+     */<br/>
+    public AttributeGroup getAttributeGroup()<br/>
+    {<br/>
+        return new AttributeGroup();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a AttributeGroup object.<br/>
+     */<br/>
+    public AttributeGroup getAttributeGroup(String key)<br/>
+    {<br/>
+        AttributeGroup group = null;<br/>
+        try<br/>
+        {<br/>
+            group = (AttributeGroup) <br/>
+                AttributeGroupPeer.retrieveByPK(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+        return group;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a specific issue type by key value. Returns null if<br/>
+     * the Issue Type could not be found<br/>
+     *<br/>
+     * @param key a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;IssueType&lt;/code&gt; value<br/>
+     */<br/>
+    public IssueType getIssueType(String key)<br/>
+    {<br/>
+        IssueType issueType = null;<br/>
+        try<br/>
+        {<br/>
+            issueType = (IssueType) <br/>
+                IssueTypePeer.retrieveByPK(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+        }<br/>
+        return issueType;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get an issue type object.<br/>
+     */<br/>
+    public IssueType getIssueType()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( issueType == null ) <br/>
+        {<br/>
+            String key = data.getParameters()<br/>
+                .getString("issuetypeid");<br/>
+            if ( key == null ) <br/>
+            {<br/>
+                // get new issue type<br/>
+                issueType = new IssueType();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                try<br/>
+                {<br/>
+                    issueType = (IssueType) IssueTypePeer<br/>
+                                 .retrieveByPK(new NumberKey(key));<br/>
+                }<br/>
+                catch (Exception e)<br/>
+                {<br/>
+                    e.printStackTrace();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return issueType;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get an RModuleAttribute object. <br/>
+     *<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     */<br/>
+    public RModuleAttribute getRModuleAttribute()<br/>
+        throws Exception<br/>
+    {<br/>
+        RModuleAttribute rma = null;<br/>
+      try{<br/>
+            ComboKey rModAttId = (ComboKey)getIntakeTool()<br/>
+                .get("RModuleAttribute", IntakeTool.DEFAULT_KEY)<br/>
+                .get("Id").getValue();<br/>
+            if ( rModAttId == null )<br/>
+            {<br/>
+                NumberKey attId = (NumberKey)getIntakeTool()<br/>
+                    .get("Attribute", IntakeTool.DEFAULT_KEY)<br/>
+                    .get("Id").getValue();<br/>
+                ModuleEntity currentModule = getCurrentModule();<br/>
+                if ( attId != null &amp;&amp; currentModule != null )<br/>
+                {<br/>
+                    NumberKey[] nka = {attId, currentModule.getModuleId()};<br/>
+                    rma = RModuleAttributePeer.retrieveByPK(new ComboKey(nka));<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    rma = new RModuleAttribute();<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                rma = RModuleAttributePeer.retrieveByPK(rModAttId);<br/>
+            }<br/>
+      }catch(Exception e){e.printStackTrace();}<br/>
+        return rma;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A AttributeGroup object for use within the Scarab API.<br/>
+     */<br/>
+    public void setAttributeGroup(AttributeGroup group)<br/>
+    {<br/>
+        this.group = group;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Module object for use within the Scarab API.<br/>
+     */<br/>
+    public void setModule(ModuleEntity module)<br/>
+    {<br/>
+        this.module = module;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get an Module object. <br/>
+     *<br/>
+     * @return a &lt;code&gt;ModuleEntity&lt;/code&gt; value<br/>
+     */<br/>
+    public ModuleEntity getModule()<br/>
+        throws Exception<br/>
+    {<br/>
+      try{<br/>
+        String modId = getIntakeTool()<br/>
+            .get("Module", IntakeTool.DEFAULT_KEY).get("Id").toString();<br/>
+        if ( modId == null || modId.length() == 0 )<br/>
+        {<br/>
+            module = ModuleManager.getInstance();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            module = ModuleManager.getInstance(new NumberKey(modId));<br/>
+        }<br/>
+      }catch(Exception e){e.printStackTrace();}<br/>
+       return module;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a specific module by key value. Returns null if<br/>
+     * the Module could not be found<br/>
+     *<br/>
+     * @param key a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     */<br/>
+    public ModuleEntity getModule(String key)<br/>
+    {<br/>
+        ModuleEntity me = null;<br/>
+        try<br/>
+        {<br/>
+            me = ModuleManager.getInstance(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+        }<br/>
+        return me;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets the ModuleEntity associated with the information<br/>
+     * passed around in the query string. Returns null if<br/>
+     * the Module could not be found.<br/>
+     */<br/>
+    public ModuleEntity getCurrentModule()<br/>
+    {<br/>
+        if (currentModule == null)<br/>
+        {<br/>
+            currentModule = getModule(<br/>
+                data.getParameters()<br/>
+                .getString(ScarabConstants.CURRENT_MODULE));<br/>
+        }<br/>
+        return currentModule;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Gets the IssueType associated with the information<br/>
+     * passed around in the query string. Returns null if<br/>
+     * the Module could not be found.<br/>
+     */<br/>
+    public IssueType getCurrentIssueType() throws Exception<br/>
+    {<br/>
+        if (currentIssueType == null)<br/>
+        {<br/>
+            currentIssueType = getIssueType(<br/>
+                data.getParameters()<br/>
+                .getString(ScarabConstants.CURRENT_ISSUE_TYPE));<br/>
+        }<br/>
+        return currentIssueType;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The issue that is currently being entered.<br/>
+     *<br/>
+     * @return an &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public Issue getReportingIssue()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( reportingIssue == null ) <br/>
+        {<br/>
+            String key = data.getParameters()<br/>
+                .getString(ScarabConstants.REPORTING_ISSUE);<br/>
+            if ( key == null ) <br/>
+            {<br/>
+                getNewReportingIssue();<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                reportingIssue = ((ScarabUser)data.getUser())<br/>
+                    .getReportingIssue(key);<br/>
+<br/>
+                // if reportingIssue is still null, the parameter must have<br/>
+                // been stale, just get a new issue<br/>
+                if ( reportingIssue == null ) <br/>
+                {<br/>
+                    getNewReportingIssue();                    <br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return reportingIssue;<br/>
+    }<br/>
+<br/>
+    private void getNewReportingIssue()<br/>
+        throws Exception<br/>
+    {<br/>
+        reportingIssue = getCurrentModule().getNewIssue(getCurrentIssueType());<br/>
+        String key = ((ScarabUser)data.getUser())<br/>
+            .setReportingIssue(reportingIssue);<br/>
+        data.getParameters().add(ScarabConstants.REPORTING_ISSUE, key);<br/>
+    }<br/>
+<br/>
+    public void setReportingIssue(Issue issue)<br/>
+    {<br/>
+        reportingIssue = issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The most recent query entered.<br/>
+     *<br/>
+     * @return an &lt;code&gt;Issue&lt;/code&gt; value<br/>
+    public String getCurrentQuery()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( currentQuery == null ) <br/>
+        {<br/>
+            System.out.println("use default");<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            currentQuery = (String)((ScarabUser)data.getUser())<br/>
+                .getTemp(ScarabConstants.CURRENT_QUERY);<br/>
+        }<br/>
+        return currentQuery;<br/>
+    }<br/>
+<br/>
+    public void setCurrentQuery(String query)<br/>
+    {<br/>
+        currentQuery = query;<br/>
+    }<br/>
+     */<br/>
+<br/>
+    /**<br/>
+     * Sets the current ModuleEntity<br/>
+     */<br/>
+    public void setCurrentModule(ModuleEntity me)<br/>
+    {<br/>
+        currentModule = me;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the current ArtifactType<br/>
+     */<br/>
+    public void setCurrentIssueType(IssueType issueType)<br/>
+    {<br/>
+        currentIssueType = issueType;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A Issue object for use within the Scarab API.<br/>
+     */<br/>
+    public void setIssue(Issue issue)<br/>
+    {<br/>
+        this.issue = issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get an Issue object. If it is the first time calling,<br/>
+     * it will be a new blank issue object.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public Issue getIssue()<br/>
+        throws Exception<br/>
+    {<br/>
+        if (issue == null)<br/>
+        {<br/>
+            String issueId = null;<br/>
+            Group issueGroup = getIntakeTool()<br/>
+                .get("Issue", IntakeTool.DEFAULT_KEY, false);<br/>
+            if ( issueGroup != null ) <br/>
+            {            <br/>
+                issueId =  issueGroup.get("Id").toString();<br/>
+            }<br/>
+            else if ( data.getParameters().getString("issue_id") != null ) <br/>
+            {                <br/>
+                issueId = data.getParameters().getString("issue_id");<br/>
+            }<br/>
+<br/>
+            if ( issueId == null || issueId.length() == 0 )<br/>
+            {<br/>
+                issue = getCurrentModule()<br/>
+                    .getNewIssue(getCurrentIssueType());<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                issue = IssuePeer<br/>
+                    .retrieveByPK(new NumberKey(issueId));<br/>
+            }<br/>
+        }<br/>
+        return issue;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The id may be a primary key or an issue id.<br/>
+     *<br/>
+     * @param key a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public Issue getIssue(String key)<br/>
+    {<br/>
+        Issue issue = null;<br/>
+        try<br/>
+        {<br/>
+            issue = IssuePeer.retrieveByPK(new NumberKey(key));<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            // was not a primary key, try fid<br/>
+            try<br/>
+            {<br/>
+                Issue.FederatedId fid = new Issue.FederatedId(key);<br/>
+                if ( fid.getDomain() == null ) <br/>
+                {<br/>
+                    // handle null (always null right now)<br/>
+                }<br/>
+                issue = Issue.getIssueById(fid);<br/>
+            }<br/>
+            catch (NumberFormatException nfe)<br/>
+            {<br/>
+                // invalid id, just return null<br/>
+            }<br/>
+        }<br/>
+        return issue;<br/>
+    }<br/>
+<br/>
+    <span class="add"><span class="add">/**<br/>
+     * Takes unique id, and returns issue.<br/>
+     */</span><br/>
+    <span class="add">public</span> <span class="add"><span class="add">Issue</span></span> <span class="add">getIssueByUniqueId</span>()<br/>
+     throws <span class="add">Exception</span><br/>
+    <span class="add">{<br/>
+        <span class="add"><span class="add"><span class="add">Issue</span></span> <span class="add"><span class="add">issue</span> = <span class="add">null</span></span>;</span><br/>
+        <span class="add">try<br/>
+        <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">String</span></span> <span class="add"><span class="add">uniqueId</span> = <span class="add"><span class="add"><span class="add">data</span>.<span class="add">getParameters</span>()</span><br/>
+                .<span class="add">getString</span>(<span class="add">"unique_id"</span>)</span></span>;</span> <br/>
+            <span class="add"><span class="add"><span class="add">issue</span> = <span class="add"><span class="add">Issue</span>.<span class="add">getIssueById</span>(<span class="add">uniqueId</span>)</span></span>;</span><br/>
+            <span class="add">if (<span class="add"><span class="add">issue</span> == <span class="add">null</span></span>)<br/>
+            <span class="add">{<br/>
+               <span class="add"><span class="add"><span class="add">String</span></span> <span class="add"><span class="add">code</span> = <span class="add"><span class="add"><span class="add">getCurrentModule</span>()</span>.<span class="add">getCode</span>()</span></span>;</span><br/>
+               <span class="add"><span class="add"><span class="add">uniqueId</span> = <span class="add"><span class="add">code</span> + <span class="add">uniqueId</span></span></span>;</span><br/>
+               <span class="add"><span class="add"><span class="add">issue</span> = <span class="add"><span class="add">Issue</span>.<span class="add">getIssueById</span>(<span class="add">uniqueId</span>)</span></span>;</span><br/>
+            }</span></span><br/>
+        }</span>        <br/>
+        <span class="add">catch (<span class="add"><span class="add"><span class="add">Exception</span></span> <span class="add">e</span></span>)<br/>
+        <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">data</span>.<span class="add">setMessage</span>(<span class="add">"That id is not valid."</span>)</span>;</span><br/>
+        }</span></span></span><br/>
+        <span class="add">return <span class="add">issue</span>;</span><br/>
+    }</span></span><br/>
+<br/>
+    /**<br/>
+     * Get a list of Issue objects.<br/>
+     *<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public List getIssues()<br/>
+        throws Exception<br/>
+    {<br/>
+        List issues = null;<br/>
+<br/>
+        Group issueGroup = getIntakeTool()<br/>
+            .get("Issue", IntakeTool.DEFAULT_KEY, false);<br/>
+        if ( issueGroup != null ) <br/>
+        {            <br/>
+            NumberKey[] issueIds =  (NumberKey[])<br/>
+                issueGroup.get("Ids").getValue();<br/>
+            if ( issueIds != null ) <br/>
+            {            <br/>
+                issues = new ArrayList(issueIds.length);<br/>
+                for ( int i=0; i&lt;issueIds.length; i++ ) <br/>
+                {<br/>
+                    issues.add(IssuePeer.retrieveByPK(issueIds[i]));<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        else if ( data.getParameters().getString("issue_ids") != null ) <br/>
+        {                <br/>
+            String[] issueIdStrings = data.getParameters()<br/>
+                .getStrings("issue_ids");<br/>
+            issues = new ArrayList(issueIdStrings.length);<br/>
+            for ( int i=0; i&lt;issueIdStrings.length; i++ ) <br/>
+            {<br/>
+                issues.add(IssuePeer<br/>
+                           .retrieveByPK(new NumberKey(issueIdStrings[i])));<br/>
+            }<br/>
+        }<br/>
+        return issues;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get all scopes.<br/>
+     */<br/>
+    public List getScopes()<br/>
+        throws Exception<br/>
+    {<br/>
+        return ScopePeer.getAllScopes();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get all frequencies.<br/>
+     */<br/>
+    public List getFrequencies()<br/>
+        throws Exception<br/>
+    {<br/>
+        return FrequencyPeer.getFrequencies();<br/>
+    }<br/>
+<br/>
+    public Intake getConditionalIntake(String parameter)<br/>
+        throws Exception<br/>
+    {<br/>
+        Intake intake = null;<br/>
+        String param = data.getParameters().getString(parameter);<br/>
+        if ( param == null ) <br/>
+        {            <br/>
+            intake = getIntakeTool();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            intake = new Intake();<br/>
+            StringValueParser parser = new StringValueParser();<br/>
+            parser.parse(param, '&amp;', '=', true);<br/>
+            intake.init(parser);<br/>
+        }<br/>
+<br/>
+        return intake;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a new SearchIssue object. <br/>
+     *<br/>
+     * @return a &lt;code&gt;Issue&lt;/code&gt; value<br/>
+     */<br/>
+    public IssueSearch getSearch()<br/>
+        throws Exception<br/>
+    {<br/>
+        return new IssueSearch(getCurrentModule(), getCurrentIssueType());<br/>
+    }<br/>
+<br/>
+    public Intake parseQuery(String query)<br/>
+        throws Exception<br/>
+    {<br/>
+        Intake intake = new Intake();<br/>
+        StringValueParser parser = new StringValueParser();<br/>
+        parser.parse(query, '&amp;', '=', true);<br/>
+        intake.init(parser);<br/>
+        return intake;<br/>
+    }<br/>
+<br/>
+    public List getCurrentSearchResults()<br/>
+        throws Exception<br/>
+    {<br/>
+        ScarabUser user = (ScarabUser)data.getUser();<br/>
+        Intake intake = new Intake();<br/>
+        if (user.getTemp(ScarabConstants.CURRENT_QUERY) == null)<br/>
+        {<br/>
+           // No query stored in session<br/>
+           // Check for default query.<br/>
+           Query query = user.getDefaultQuery(getCurrentModule(),<br/>
+                                              getCurrentIssueType());<br/>
+           String defaultQuery = null;<br/>
+           if (query == null)<br/>
+           {<br/>
+               // Use default query : all issues created by or<br/>
+               // Assigned to this user.<br/>
+               defaultQuery = user.getDefaultDefaultQuery();<br/>
+           }<br/>
+           else<br/>
+           {<br/>
+               defaultQuery = query.getValue();<br/>
+           } <br/>
+           intake = parseQuery(defaultQuery);<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+           String currentQuery = user.getTemp(ScarabConstants<br/>
+                                              .CURRENT_QUERY).toString();<br/>
+           intake = parseQuery(currentQuery);<br/>
+        }<br/>
+        <br/>
+        IssueSearch search = getSearch();<br/>
+        Group searchGroup = intake.get("SearchIssue", <br/>
+                                       getSearch().getQueryKey() );<br/>
+        searchGroup.setProperties(search);<br/>
+        SequencedHashtable avMap = search.getModuleAttributeValuesMap();<br/>
+        Iterator i = avMap.iterator();<br/>
+        while (i.hasNext()) <br/>
+        {<br/>
+            AttributeValue aval = (AttributeValue)avMap.get(i.next());<br/>
+            Group group = intake.get("AttributeValue", aval.getQueryKey());<br/>
+            if ( group != null ) <br/>
+            {<br/>
+                group.setProperties(aval);<br/>
+            }                <br/>
+        }<br/>
+        <br/>
+        return search.getMatchingIssues();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Convert paths with slashes to commas.<br/>
+     */<br/>
+    public String convertPath(String path)<br/>
+        throws Exception<br/>
+    {<br/>
+        return path.replace('/',',');<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * a report helper class<br/>
+     */<br/>
+    public Report getReport()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( reportGenerator == null ) <br/>
+        {<br/>
+            ValueParser parameters = data.getParameters();<br/>
+            String id = parameters.getString("report_id");<br/>
+            if ( id == null || id.length() == 0 ) <br/>
+            {<br/>
+                reportGenerator = new Report();<br/>
+                reportGenerator.setModule(getCurrentModule());<br/>
+                reportGenerator.setGeneratedBy((ScarabUser)data.getUser());<br/>
+                reportGenerator.setIssueType(getCurrentIssueType());<br/>
+                reportGenerator<br/>
+                    .setQueryString(getReportQueryString(parameters));<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                reportGenerator = ReportPeer.retrieveByPK(new NumberKey(id));<br/>
+                reportGenerator<br/>
+                    .setQueryString(getReportQueryString(parameters));<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        return reportGenerator;<br/>
+    }<br/>
+<br/>
+    public void setReport(Report report)<br/>
+    {<br/>
+        this.reportGenerator = report;<br/>
+    }<br/>
+    <br/>
+    private static String getReportQueryString(ValueParser params) <br/>
+    {<br/>
+        StringBuffer query = new StringBuffer();<br/>
+        Object[] keys =  params.getKeys();<br/>
+        for (int i =0; i&lt;keys.length; i++)<br/>
+        {<br/>
+            String key = keys[i].toString();<br/>
+            if (key.startsWith("rep") || key.startsWith("intake"))<br/>
+            {<br/>
+                String[] values = params.getStrings(key);<br/>
+                for (int j=0; j&lt;values.length; j++)<br/>
+                {<br/>
+                    query.append('&amp;').append(key);<br/>
+                    query.append('=').append(values[j]);<br/>
+                }<br/>
+            }<br/>
+         }<br/>
+         return query.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return a subset of the passed-in list.<br/>
+     */<br/>
+    public List getPaginatedList( List fullList, int pgNbr, <br/>
+                                  int nbrItemsPerPage)<br/>
+    {<br/>
+        this.nbrPages =  (int)Math.ceil((float)fullList.size() <br/>
+                                               / nbrItemsPerPage);<br/>
+        this.nextPage = pgNbr + 1;<br/>
+        this.prevPage = pgNbr - 1;<br/>
+        return fullList.subList<br/>
+           ((pgNbr - 1) * nbrItemsPerPage,<br/>
+            Math.min(pgNbr * nbrItemsPerPage, fullList.size()));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the cached list of issue id's resulting from a search<br/>
+     * And return the list of issues.<br/>
+     */<br/>
+    public List getIssueList() <br/>
+        throws Exception<br/>
+    {<br/>
+        if ( issueList == null ) <br/>
+        {<br/>
+            issueList = getCurrentSearchResults();<br/>
+        }<br/>
+        return issueList;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set the value of issueList.<br/>
+     * @param v  Value to assign to issueList.<br/>
+     */<br/>
+    public void setIssueList(List  v) <br/>
+    {<br/>
+        this.issueList = v;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Return the number of paginated pages.<br/>
+     *<br/>
+     */<br/>
+    public int getNbrPages()<br/>
+    {<br/>
+        return nbrPages;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the next page in the paginated list.<br/>
+     *<br/>
+     */<br/>
+    public int getNextPage()<br/>
+    {<br/>
+        if (nextPage &lt;= nbrPages)<br/>
+        {<br/>
+            return nextPage;<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            return 0;<br/>
+        }       <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the previous page in the paginated list.<br/>
+     *<br/>
+     */<br/>
+    public int getPrevPage()<br/>
+    {<br/>
+        return prevPage;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Determine if the user currently interacting with the scarab<br/>
+     * application has a permission within the user's currently<br/>
+     * selected module.<br/>
+     *<br/>
+     * @param permission a &lt;code&gt;String&lt;/code&gt; permission value, which should<br/>
+     * be a constant in this interface.<br/>
+     * @return true if the permission exists for the user within the<br/>
+     * current module, false otherwise<br/>
+     */<br/>
+    public boolean hasPermission(String permission)<br/>
+    {<br/>
+        boolean hasPermission = false;<br/>
+        try<br/>
+        {<br/>
+            ModuleEntity module = getCurrentModule();<br/>
+            hasPermission = hasPermission(permission, module);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            hasPermission = false;<br/>
+            Log.error("Permission check failed on:" + permission, e);<br/>
+        }<br/>
+        return hasPermission;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Determine if the user currently interacting with the scarab<br/>
+     * application has a permission within a module.<br/>
+     *<br/>
+     * @param permission a &lt;code&gt;String&lt;/code&gt; permission value, which should<br/>
+     * be a constant in this interface.<br/>
+     * @param module a &lt;code&gt;ModuleEntity&lt;/code&gt; value<br/>
+     * @return true if the permission exists for the user within the<br/>
+     * given module, false otherwise<br/>
+     */<br/>
+    public boolean hasPermission(String permission, ModuleEntity module)<br/>
+    {<br/>
+        boolean hasPermission = false;<br/>
+        try<br/>
+        {<br/>
+            hasPermission = ((ScarabUser)data.getUser())<br/>
+                .hasPermission(permission, module);<br/>
+        }<br/>
+        catch (Exception e)<br/>
+        {<br/>
+            hasPermission = false;<br/>
+            Log.error("Permission check failed on:" + permission, e);<br/>
+        }<br/>
+        return hasPermission;<br/>
+    }<br/>
+<br/>
+<br/>
+    // ****************** Recyclable implementation ************************<br/>
+<br/>
+    /**<br/>
+     * Disposes the object after use. The method is called when the<br/>
+     * object is returned to its pool.  The dispose method must call<br/>
+     * its super.<br/>
+     */<br/>
+    public void dispose()<br/>
+    {<br/>
+        super.dispose();<br/>
+<br/>
+        data = null;<br/>
+        user = null;<br/>
+        issue = null;<br/>
+        attribute = null;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

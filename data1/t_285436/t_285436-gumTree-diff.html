@@ -1,0 +1,572 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Assert_1.11.java</h1>
+<div class="code">
+<div class="id">
+package junit.framework;<br/>
+<br/>
+/**<br/>
+ * A set of assert methods.  Messages are only displayed when an assert fails.<br/>
+ */<br/>
+<br/>
+public class Assert {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Protect constructor since it is a static only class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Assert() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is true. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertTrue(String message, boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!condition)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is true. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertTrue(boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(null, condition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is false. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertFalse(String message, boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(message, !condition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is false. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertFalse(boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertFalse(null, condition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Fails a test with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void fail(String message) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new AssertionFailedError(message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Fails a test with no message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void fail() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected == null &amp;&amp; actual == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected != null &amp;&amp; expected.equals(actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two doubles are equal concerning a delta.  If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.  If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, double expected, double actual, double delta) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// handle infinity specially since subtracting to infinite values gives NaN and the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the following test fails<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (Double.isInfinite(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!(expected == actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Double(expected), new Double(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (!(Math.abs(expected-actual) &lt;= delta)) // Because comparison with NaN always returns false<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Double(expected), new Double(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two doubles are equal concerning a delta. If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(double expected, double actual, double delta) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(null, expected, actual, delta);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two floats are equal concerning a delta. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.  If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, float expected, float actual, float delta) {<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// handle infinity specially since subtracting to infinite values gives NaN and the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the following test fails<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (Float.isInfinite(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!(expected == actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Float(expected), new Float(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (!(Math.abs(expected-actual) &lt;= delta))<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Float(expected), new Float(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two floats are equal concerning a delta. If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(float expected, float actual, float delta) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual, delta);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two longs are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, long expected, long actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(message, new Long(expected), new Long(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two longs are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(long expected, long actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two booleans are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, boolean expected, boolean actual) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Boolean(expected), new Boolean(actual));<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two booleans are equal.<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(boolean expected, boolean actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two bytes are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, byte expected, byte actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Byte(expected), new Byte(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+   &nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two bytes are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(byte expected, byte actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two chars are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, char expected, char actual) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Character(expected), new Character(actual));<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two chars are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(char expected, char actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two shorts are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, short expected, short actual) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Short(expected), new Short(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two shorts are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(short expected, short actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two ints are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, int expected, int actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Integer(expected), new Integer(actual));<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+   &nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two ints are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(int expected, int actual) {<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object isn't null.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotNull(Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertNotNull(null, object);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object isn't null. If it is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotNull(String message, Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(message, object != null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object is null.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNull(Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertNull(null, object);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object is null.  If it is not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNull(String message, Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(message, object == null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected == actual)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotSame(message, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the same an AssertionFailedError is thrown.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertSame(Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertSame(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected == actual)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failSame(message, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the same an AssertionFailedError is thrown.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotSame(Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertNotSame(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static private void failSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String formatted= "";<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message != null)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatted= message+" ";<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(formatted+"expected not same");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static private void failNotSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String formatted= "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatted= message+" ";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(formatted+"expected same:&lt;"+expected+"&gt; was not:&lt;"+actual+"&gt;");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static private void failNotEquals(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new ComparisonFailure(message, <span class="mv">expected.toString()</span>, <span class="mv">actual.toString()</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Assert_1.12.java</h1>
+<div class="code">
+<div class="id">
+package junit.framework;<br/>
+<br/>
+/**<br/>
+ * A set of assert methods.  Messages are only displayed when an assert fails.<br/>
+ */<br/>
+<br/>
+public class Assert {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Protect constructor since it is a static only class<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected Assert() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is true. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertTrue(String message, boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!condition)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is true. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertTrue(boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(null, condition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is false. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertFalse(String message, boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(message, !condition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that a condition is false. If it isn't it throws<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertFalse(boolean condition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertFalse(null, condition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Fails a test with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void fail(String message) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new AssertionFailedError(message);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Fails a test with no message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void fail() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected == null &amp;&amp; actual == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected != null &amp;&amp; expected.equals(actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two doubles are equal concerning a delta.  If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.  If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, double expected, double actual, double delta) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// handle infinity specially since subtracting to infinite values gives NaN and the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the following test fails<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (Double.isInfinite(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!(expected == actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Double(expected), new Double(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (!(Math.abs(expected-actual) &lt;= delta)) // Because comparison with NaN always returns false<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Double(expected), new Double(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two doubles are equal concerning a delta. If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(double expected, double actual, double delta) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(null, expected, actual, delta);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two floats are equal concerning a delta. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.  If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, float expected, float actual, float delta) {<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// handle infinity specially since subtracting to infinite values gives NaN and the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the following test fails<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (Float.isInfinite(expected)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!(expected == actual))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Float(expected), new Float(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (!(Math.abs(expected-actual) &lt;= delta))<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotEquals(message, new Float(expected), new Float(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two floats are equal concerning a delta. If the expected<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * value is infinity then the delta value is ignored.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(float expected, float actual, float delta) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual, delta);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two longs are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, long expected, long actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(message, new Long(expected), new Long(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two longs are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(long expected, long actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two booleans are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, boolean expected, boolean actual) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Boolean(expected), new Boolean(actual));<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two booleans are equal.<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(boolean expected, boolean actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two bytes are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, byte expected, byte actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Byte(expected), new Byte(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+   &nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two bytes are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(byte expected, byte actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two chars are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, char expected, char actual) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Character(expected), new Character(actual));<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two chars are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(char expected, char actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two shorts are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, short expected, short actual) {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Short(expected), new Short(actual));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two shorts are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(short expected, short actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two ints are equal. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(String message, int expected, int actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(message, new Integer(expected), new Integer(actual));<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+   &nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two ints are equal.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;static public void assertEquals(int expected, int actual) {<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object isn't null.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotNull(Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertNotNull(null, object);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object isn't null. If it is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotNull(String message, Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(message, object != null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object is null.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNull(Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertNull(null, object);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that an object is null.  If it is not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNull(String message, Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertTrue(message, object == null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected == actual)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failNotSame(message, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the same an AssertionFailedError is thrown.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertSame(Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    assertSame(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; * an AssertionFailedError is thrown with the given message.<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (expected == actual)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;failSame(message, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Asserts that two objects refer to the same object. If they are not<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the same an AssertionFailedError is thrown.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static public void assertNotSame(Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertNotSame(null, expected, actual);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static private void failSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String formatted= "";<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message != null)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatted= message+" ";<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(formatted+"expected not same");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static private void failNotSame(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String formatted= "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (message != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatted= message+" ";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail(formatted+"expected same:&lt;"+expected+"&gt; was not:&lt;"+actual+"&gt;");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;static private void failNotEquals(String message, Object expected, Object actual) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new ComparisonFailure(message, <span class="add"><span class="add"><span class="add">expected</span> == <span class="add">null</span></span> ? <span class="add">"null"</span> : <span class="mv">expected.toString()</span></span>, <span class="add"><span class="add"><span class="add">actual</span> == <span class="add">null</span></span> ? <span class="add">"null"</span> : <span class="mv">actual.toString()</span></span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

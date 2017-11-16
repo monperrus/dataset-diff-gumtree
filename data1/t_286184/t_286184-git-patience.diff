@@ -1,0 +1,33 @@
+diff --git a/t_286184/left_IgnoreClassTest_1.1.java b/t_286184/right_IgnoreClassTest_1.2.java
+index 99ad089..6d6c4e7 100644
+--- a/t_286184/left_IgnoreClassTest_1.1.java
++++ b/t_286184/right_IgnoreClassTest_1.2.java
+@@ -1,14 +1,17 @@
+ package org.junit.tests.running.classes;
+ 
+ import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertThat;
+ import static org.junit.Assert.fail;
++import static org.junit.experimental.results.PrintableResult.testResult;
++import static org.junit.matchers.JUnitMatchers.containsString;
+ import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.runner.JUnitCore;
+ import org.junit.runner.Result;
+ 
+ public class IgnoreClassTest {
+-	@Ignore public static class IgnoreMe {
++	@Ignore("For a good reason") public static class IgnoreMe {
+ 		@Test public void iFail() {
+ 			fail();
+ 		}
+@@ -23,4 +26,9 @@ public class IgnoreClassTest {
+ 		assertEquals(0, result.getFailureCount());
+ 		assertEquals(1, result.getIgnoreCount());
+ 	}
++	
++	@Test public void includeReasonWhenClassIsIgnored() {
++		assertThat(testResult(IgnoreMe.class).toString(),
++				containsString("For a good reason"));
++	}
+ }

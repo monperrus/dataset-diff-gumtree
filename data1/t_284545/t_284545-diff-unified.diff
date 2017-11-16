@@ -1,0 +1,11 @@
+--- t_284545/left_JoranConfigurator_1.27.java	2013-03-17 15:47:08.000000000 +0100
++++ t_284545/right_JoranConfigurator_1.28.java	2013-03-17 15:47:08.000000000 +0100
+@@ -220,7 +220,7 @@
+       new Pattern("configuration/appender/layout/conversionRule"),
+       new ConversionRuleAction());
+     rs.addRule( 
+-         new Pattern("log4j:configuration/jndiSubstitutionProperty"), 
++         new Pattern("configuration/jndiSubstitutionProperty"), 
+          new JndiSubstitutionPropertyAction());
+     rs.addRule(
+       new Pattern("configuration/newRule"), new NewRuleAction());

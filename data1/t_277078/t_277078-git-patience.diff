@@ -1,0 +1,19 @@
+diff --git a/t_277078/left_ActivityCategoryPreferencePage_1.22.java b/t_277078/right_ActivityCategoryPreferencePage_1.23.java
+index 4fd75be..7a454d5 100644
+--- a/t_277078/left_ActivityCategoryPreferencePage_1.22.java
++++ b/t_277078/right_ActivityCategoryPreferencePage_1.23.java
+@@ -719,4 +719,14 @@ public final class ActivityCategoryPreferencePage extends PreferencePage impleme
+             strings.putAll(table);
+         }
+     }
++    
++    /* (non-Javadoc)
++     * @see org.eclipse.jface.dialogs.DialogPage#dispose()
++     */
++    public void dispose() {
++    	if (workingCopy != null) {
++    		workingCopy.removeActivityManagerListener((CategoryLabelProvider)categoryViewer.getLabelProvider());
++    	}
++    	super.dispose();
++    }
+ }

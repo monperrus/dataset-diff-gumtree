@@ -1,0 +1,498 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ThrowableInformation_1.15.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.spi;<br/>
+<br/>
+import java.io.PrintWriter;<br/>
+import java.io.Writer;<br/>
+<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.log4j.helpers.PlatformInfo;<br/>
+<br/>
+<br/>
+/**<br/>
+ * ThrowableInformation is log4j's internal representation of throwables. It<br/>
+ * essentially consists of a string array, called 'rep', where the first<br/>
+ * element, that is rep[0], represents the string representation of the<br/>
+ * throwable (i.e. the value you get when you do throwable.toString()) and<br/>
+ * subsequent elements correspond the stack trace with the top most entry of the<br/>
+ * stack corresponding to the second entry of the 'rep' array that is rep[1].<br/>
+ *<br/>
+ * Note that ThrowableInformation does not store the throwable it represents.<br/>
+ *<br/>
+ * @author Ceki G&amp;uuml;lc&amp;uuml;<br/>
+ *<br/>
+ */<br/>
+public class ThrowableInformation implements java.io.Serializable {<br/>
+  static final long serialVersionUID = -4748765566864322735L;<br/>
+<br/>
+  //private transient Throwable throwable;<br/>
+  private String[] rep;<br/>
+<br/>
+  public ThrowableInformation(Throwable throwable) {<br/>
+    VectorWriter vw = new VectorWriter();<br/>
+    extractStringRep(throwable, vw);<br/>
+    rep = vw.toStringArray();<br/>
+  }<br/>
+<br/>
+  public ThrowableInformation(String[] rep) {<br/>
+    this.rep = rep;<br/>
+  }<br/>
+<br/>
+  // public Throwable getThrowable() {<br/>
+  // return throwable;<br/>
+  //}<br/>
+<br/>
+  public void extractStringRep(Throwable t, VectorWriter vw) {<br/>
+    t.printStackTrace(vw);<br/>
+<br/>
+    // Check if the Throwable t has a nested Throwable. If so, invoke<br/>
+    // extractStringRep recursively.<br/>
+    // Note that the Throwable.getCause was added in JDK 1.4. The printStackTrace<br/>
+    // method was modified in JDK 1.4 to handle the nested throwable returned<br/>
+    // by Throwable.getCause.<br/>
+    try {<br/>
+      Class tC = t.getClass();<br/>
+      Method[] mA = tC.getMethods();<br/>
+      Method nextThrowableMethod = null;<br/>
+      for (int i = 0; i &lt; mA.length; i++) {<br/>
+        if (("getCause".equals(mA[i].getName()) &amp;&amp; !PlatformInfo.isJDK14OrLater())<br/>
+            || "getRootCause".equals(mA[i].getName())<br/>
+            || "getNextException".equals(mA[i].getName())<br/>
+            || "getException".equals(mA[i].getName())) {<br/>
+          // check param types<br/>
+          Class[] params = mA[i].getParameterTypes();<br/>
+          if ((params == null) || (params.length == 0)) {<br/>
+            // just found the getter for the nested throwable<br/>
+            nextThrowableMethod = mA[i];<br/>
+            break; // no need to search further<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+<br/>
+      if (nextThrowableMethod != null) {<br/>
+        // get the nested throwable and log it<br/>
+        Throwable nextT =<br/>
+          (Throwable) nextThrowableMethod.invoke(t, new Object[0]);<br/>
+        if (nextT != null) {<br/>
+          vw.print("Root cause follows.");<br/>
+          extractStringRep(nextT, vw);<br/>
+        }<br/>
+      }<br/>
+    } catch (Exception e) {<br/>
+      // do nothing<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Retun a clone of the string representation of the exceptopn (throwable)<br/>
+   * that this object represents.<br/>
+   */<br/>
+  public String[] getThrowableStrRep() {<br/>
+    return (String[]) rep.clone();<br/>
+  }<br/>
+<br/>
+  public boolean equals(Object o) {<br/>
+    if (this == o) {<br/>
+      return true;<br/>
+    }<br/>
+<br/>
+    if (!(o instanceof ThrowableInformation)) {<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    ThrowableInformation r = (ThrowableInformation) o;<br/>
+<br/>
+    if (rep == null) {<br/>
+      if (r.rep != null) {<br/>
+        return false;<br/>
+      } else {<br/>
+        return true;<br/>
+      }<br/>
+    }<br/>
+<br/>
+    // at this point we know that both rep and r.rep are non-null.<br/>
+    if (rep.length != r.rep.length) {<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    int len = rep.length;<br/>
+    for (int i = 0; i &lt; len; i++) {<br/>
+      if (!rep[i].equals(r.rep[i])) {<br/>
+        return false;<br/>
+      }<br/>
+    }<br/>
+<br/>
+    return true;<br/>
+  }<br/>
+}<br/>
+<br/>
+<br/>
+/**<br/>
+ * VectorWriter is a seemingly trivial implemtantion of PrintWriter. The<br/>
+ * throwable instance that we are trying to represnt is asked to print itself to<br/>
+ * a VectorWriter.<br/>
+ *<br/>
+ * By our design choice, r string representation of the throwable does not<br/>
+ * contain any line separators. It follows that println() methods of<br/>
+ * VectorWriter ignore the 'ln' part.<br/>
+ */<br/>
+class VectorWriter extends PrintWriter {<br/>
+  private Vector v;<br/>
+<br/>
+  VectorWriter() {<br/>
+    super(new NullWriter());<br/>
+    v = new Vector();<br/>
+  }<br/>
+<br/>
+  public void print(Object o) {<br/>
+    v.addElement(o.toString());<br/>
+  }<br/>
+<br/>
+  public void print(char[] chars) {<br/>
+    v.addElement(new String(chars));<br/>
+  }<br/>
+<br/>
+  public void print(String s) {<br/>
+    v.addElement(s);<br/>
+  }<br/>
+<br/>
+  public void println(Object o) {<br/>
+    v.addElement(<span class="mv">o</span>.<span class="upd">toString</span>());<br/>
+  }<br/>
+<br/>
+  // JDK 1.1.x apprenly uses this form of println while in<br/>
+  // printStackTrace()<br/>
+  public void println(char[] chars) {<br/>
+    v.addElement(new String(chars));<br/>
+  }<br/>
+<br/>
+  public void println(String s) {<br/>
+    v.addElement(s);<br/>
+  }<br/>
+<br/>
+  public void write(char[] chars) {<br/>
+    v.addElement(new String(chars));<br/>
+  }<br/>
+<br/>
+  public void write(char[] chars, int off, int len) {<br/>
+    v.addElement(new String(chars, off, len));<br/>
+  }<br/>
+<br/>
+  public void write(String s, int off, int len) {<br/>
+    v.addElement(s.substring(off, off + len));<br/>
+  }<br/>
+<br/>
+  public void write(String s) {<br/>
+    v.addElement(s);<br/>
+  }<br/>
+<br/>
+  public String[] toStringArray() {<br/>
+    int len = v.size();<br/>
+    String[] sa = new String[len];<br/>
+<br/>
+    for (int i = 0; i &lt; len; i++) {<br/>
+      sa[i] = (String) v.elementAt(i);<br/>
+    }<br/>
+<br/>
+    return sa;<br/>
+  }<br/>
+}<br/>
+<br/>
+<br/>
+class NullWriter extends Writer {<br/>
+  public void close() {<br/>
+    // blank<br/>
+  }<br/>
+<br/>
+  public void flush() {<br/>
+    // blank<br/>
+  }<br/>
+<br/>
+  public void write(char[] cbuf, int off, int len) {<br/>
+    // blank<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ThrowableInformation_1.16.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ *<br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ *<br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ *<br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.spi;<br/>
+<br/>
+import java.io.PrintWriter;<br/>
+import java.io.Writer;<br/>
+<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.log4j.helpers.PlatformInfo;<br/>
+<br/>
+<br/>
+/**<br/>
+ * ThrowableInformation is log4j's internal representation of throwables. It<br/>
+ * essentially consists of a string array, called 'rep', where the first<br/>
+ * element, that is rep[0], represents the string representation of the<br/>
+ * throwable (i.e. the value you get when you do throwable.toString()) and<br/>
+ * subsequent elements correspond the stack trace with the top most entry of the<br/>
+ * stack corresponding to the second entry of the 'rep' array that is rep[1].<br/>
+ *<br/>
+ * Note that ThrowableInformation does not store the throwable it represents.<br/>
+ *<br/>
+ * @author Ceki G&amp;uuml;lc&amp;uuml;<br/>
+ *<br/>
+ */<br/>
+public class ThrowableInformation implements java.io.Serializable {<br/>
+  static final long serialVersionUID = -4748765566864322735L;<br/>
+<br/>
+  //private transient Throwable throwable;<br/>
+  private String[] rep;<br/>
+<br/>
+  public ThrowableInformation(Throwable throwable) {<br/>
+    VectorWriter vw = new VectorWriter();<br/>
+    extractStringRep(throwable, vw);<br/>
+    rep = vw.toStringArray();<br/>
+  }<br/>
+<br/>
+  public ThrowableInformation(String[] rep) {<br/>
+    this.rep = rep;<br/>
+  }<br/>
+<br/>
+  // public Throwable getThrowable() {<br/>
+  // return throwable;<br/>
+  //}<br/>
+<br/>
+  public void extractStringRep(Throwable t, VectorWriter vw) {<br/>
+    t.printStackTrace(vw);<br/>
+<br/>
+    // Check if the Throwable t has a nested Throwable. If so, invoke<br/>
+    // extractStringRep recursively.<br/>
+    // Note that the Throwable.getCause was added in JDK 1.4. The printStackTrace<br/>
+    // method was modified in JDK 1.4 to handle the nested throwable returned<br/>
+    // by Throwable.getCause.<br/>
+    try {<br/>
+      Class tC = t.getClass();<br/>
+      Method[] mA = tC.getMethods();<br/>
+      Method nextThrowableMethod = null;<br/>
+      for (int i = 0; i &lt; mA.length; i++) {<br/>
+        if (("getCause".equals(mA[i].getName()) &amp;&amp; !PlatformInfo.isJDK14OrLater())<br/>
+            || "getRootCause".equals(mA[i].getName())<br/>
+            || "getNextException".equals(mA[i].getName())<br/>
+            || "getException".equals(mA[i].getName())) {<br/>
+          // check param types<br/>
+          Class[] params = mA[i].getParameterTypes();<br/>
+          if ((params == null) || (params.length == 0)) {<br/>
+            // just found the getter for the nested throwable<br/>
+            nextThrowableMethod = mA[i];<br/>
+            break; // no need to search further<br/>
+          }<br/>
+        }<br/>
+      }<br/>
+<br/>
+      if (nextThrowableMethod != null) {<br/>
+        // get the nested throwable and log it<br/>
+        Throwable nextT =<br/>
+          (Throwable) nextThrowableMethod.invoke(t, new Object[0]);<br/>
+        if (nextT != null) {<br/>
+          vw.print("Root cause follows.");<br/>
+          extractStringRep(nextT, vw);<br/>
+        }<br/>
+      }<br/>
+    } catch (Exception e) {<br/>
+      // do nothing<br/>
+    }<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Retun a clone of the string representation of the exceptopn (throwable)<br/>
+   * that this object represents.<br/>
+   */<br/>
+  public String[] getThrowableStrRep() {<br/>
+    return (String[]) rep.clone();<br/>
+  }<br/>
+<br/>
+  public boolean equals(Object o) {<br/>
+    if (this == o) {<br/>
+      return true;<br/>
+    }<br/>
+<br/>
+    if (!(o instanceof ThrowableInformation)) {<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    ThrowableInformation r = (ThrowableInformation) o;<br/>
+<br/>
+    if (rep == null) {<br/>
+      if (r.rep != null) {<br/>
+        return false;<br/>
+      } else {<br/>
+        return true;<br/>
+      }<br/>
+    }<br/>
+<br/>
+    // at this point we know that both rep and r.rep are non-null.<br/>
+    if (rep.length != r.rep.length) {<br/>
+      return false;<br/>
+    }<br/>
+<br/>
+    int len = rep.length;<br/>
+    for (int i = 0; i &lt; len; i++) {<br/>
+      if (!rep[i].equals(r.rep[i])) {<br/>
+        return false;<br/>
+      }<br/>
+    }<br/>
+<br/>
+    return true;<br/>
+  }<br/>
+}<br/>
+<br/>
+<br/>
+/**<br/>
+ * VectorWriter is a seemingly trivial implemtantion of PrintWriter. The<br/>
+ * throwable instance that we are trying to represnt is asked to print itself to<br/>
+ * a VectorWriter.<br/>
+ *<br/>
+ * By our design choice, r string representation of the throwable does not<br/>
+ * contain any line separators. It follows that println() methods of<br/>
+ * VectorWriter ignore the 'ln' part.<br/>
+ */<br/>
+class VectorWriter extends PrintWriter {<br/>
+  private Vector v;<br/>
+<br/>
+  VectorWriter() {<br/>
+    super(new NullWriter());<br/>
+    v = new Vector();<br/>
+  }<br/>
+<br/>
+  public void print(Object o) {<br/>
+    v.addElement(o.toString());<br/>
+  }<br/>
+<br/>
+  public void print(char[] chars) {<br/>
+    v.addElement(new String(chars));<br/>
+  }<br/>
+<br/>
+  public void print(String s) {<br/>
+    v.addElement(s);<br/>
+  }<br/>
+<br/>
+  public void println(Object o) {<br/>
+      v.addElement(<span class="upd">String</span>.<span class="add">valueOf</span>(<span class="mv">o</span>));<br/>
+  }<br/>
+<br/>
+  // JDK 1.1.x apprenly uses this form of println while in<br/>
+  // printStackTrace()<br/>
+  public void println(char[] chars) {<br/>
+    v.addElement(new String(chars));<br/>
+  }<br/>
+<br/>
+  public void println(String s) {<br/>
+    v.addElement(s);<br/>
+  }<br/>
+<br/>
+  public void write(char[] chars) {<br/>
+    v.addElement(new String(chars));<br/>
+  }<br/>
+<br/>
+  public void write(char[] chars, int off, int len) {<br/>
+    v.addElement(new String(chars, off, len));<br/>
+  }<br/>
+<br/>
+  public void write(String s, int off, int len) {<br/>
+    v.addElement(s.substring(off, off + len));<br/>
+  }<br/>
+<br/>
+  public void write(String s) {<br/>
+    v.addElement(s);<br/>
+  }<br/>
+<br/>
+  public String[] toStringArray() {<br/>
+    int len = v.size();<br/>
+    String[] sa = new String[len];<br/>
+<br/>
+    for (int i = 0; i &lt; len; i++) {<br/>
+      sa[i] = (String) v.elementAt(i);<br/>
+    }<br/>
+<br/>
+    return sa;<br/>
+  }<br/>
+}<br/>
+<br/>
+<br/>
+class NullWriter extends Writer {<br/>
+  public void close() {<br/>
+    // blank<br/>
+  }<br/>
+<br/>
+  public void flush() {<br/>
+    // blank<br/>
+  }<br/>
+<br/>
+  public void write(char[] cbuf, int off, int len) {<br/>
+    // blank<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

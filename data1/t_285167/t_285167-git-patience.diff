@@ -1,0 +1,13 @@
+diff --git a/t_285167/left_StandardDrawing_1.13.java b/t_285167/right_StandardDrawing_1.14.java
+index acd6329..56de341 100644
+--- a/t_285167/left_StandardDrawing_1.13.java
++++ b/t_285167/right_StandardDrawing_1.14.java
+@@ -193,7 +193,7 @@ public class StandardDrawing extends CompositeFigure implements Drawing {
+ 	public synchronized void unlock() {
+ 		if (fDrawingLockHolder != null) {
+ 			fDrawingLockHolder = null;
+-			notifyAll();
++			notify();
+ 		}
+ 	}
+ 

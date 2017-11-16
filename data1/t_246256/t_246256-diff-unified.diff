@@ -1,0 +1,11 @@
+--- t_246256/left_TTL_1.13.java	2013-03-17 15:47:00.000000000 +0100
++++ t_246256/right_TTL_1.14.java	2013-03-17 15:47:00.000000000 +0100
+@@ -28,7 +28,7 @@
+  */
+ public static long
+ parseTTL(String s) {
+-	if (s == null || !Character.isDigit(s.charAt(0)))
++	if (s == null || s.length() == 0 || !Character.isDigit(s.charAt(0)))
+ 		throw new NumberFormatException();
+ 	long value = 0;
+ 	long ttl = 0;

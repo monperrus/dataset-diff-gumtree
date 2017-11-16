@@ -1,0 +1,629 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_MechView_1.21.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2000,2001,2002,2003,2004 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it <br/>
+ *  under the terms of the GNU General Public License as published by the Free <br/>
+ *  Software Foundation; either version 2 of the License, or (at your option) <br/>
+ *  any later version.<br/>
+ * <br/>
+ *  This program is distributed in the hope that it will be useful, but <br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY <br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License <br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+/*<br/>
+ * MechView.java<br/>
+ *<br/>
+ * Created on January 20, 2003 by Ryan McConnell<br/>
+ */<br/>
+<br/>
+package megamek.client;<br/>
+<br/>
+import java.util.Enumeration;<br/>
+import java.util.Vector;<br/>
+<br/>
+import megamek.common.*;<br/>
+<br/>
+/**<br/>
+ * A utility class for retrieving mech information in a formatted string.<br/>
+ *<br/>
+ */<br/>
+public class MechView {<br/>
+<br/>
+    private Entity mech;<br/>
+    private boolean isMech;<br/>
+    private boolean isInf;<br/>
+    private boolean isVehicle;<br/>
+    private boolean isProto;<br/>
+<br/>
+    StringBuffer sBasic = new StringBuffer();<br/>
+    StringBuffer sLoadout = new StringBuffer();<br/>
+<br/>
+    public MechView(Entity entity) {<br/>
+        mech = entity;<br/>
+        isMech = entity instanceof Mech;<br/>
+        isInf = entity instanceof Infantry;<br/>
+        isVehicle = entity instanceof Tank;<br/>
+        isProto = entity instanceof Protomech;<br/>
+<br/>
+        sLoadout.append( getWeapons() )<br/>
+            .append("\n")<br/>
+            .append(getAmmo())<br/>
+            .append("\n")<br/>
+            .append(getMisc()) //has to occur before basic is processed<br/>
+            .append("\n")<br/>
+            .append(getFailed());<br/>
+<br/>
+        sBasic.append( mech.getShortName() );<br/>
+        sBasic.append("\n");<br/>
+        if ( !isInf ) {<br/>
+            sBasic.append( Math.round(mech.getWeight()) )<br/>
+                .append(" tons  " );<br/>
+        }<br/>
+        sBasic.append(TechConstants.T_NAMES[mech.getTechLevel()]);<br/>
+        sBasic.append("\n");<br/>
+        if ( mech.hasC3M() || mech.hasC3S() || mech.hasC3i()) {<br/>
+            sBasic.append( "Linked c3 BV: ");<br/>
+            sBasic.append( mech.calculateBattleValue(true) );<br/>
+        }<br/>
+        sBasic.append("\n");<br/>
+        sBasic.append( "Movement: " )<br/>
+            .append( mech.getWalkMP() )<br/>
+            .append( "/" )<br/>
+            .append( mech.getRunMPasString() );<br/>
+        if (mech.getJumpMP() &gt; 0) {<br/>
+            sBasic.append( "/" )<br/>
+                .append( mech.getJumpMP() );<br/>
+        }<br/>
+        if (isVehicle) {<br/>
+            sBasic.append(" (")<br/>
+                .append(entity.getMovementTypeAsString())<br/>
+                .append(")");<br/>
+        }<br/>
+        sBasic.append( "\n" );<br/>
+        if ( isMech ) {<br/>
+            Mech aMech = (Mech) mech;<br/>
+            sBasic.append( "Engine: " )<br/>
+                .append( aMech.engineRating() );<br/>
+            if (aMech.hasXL()) {<br/>
+                sBasic.append( " XL" );<br/>
+            }<br/>
+            if (aMech.hasLightEngine()) {<br/>
+                sBasic.append( " Light" );<br/>
+            }<br/>
+            sBasic.append("\n");<br/>
+            sBasic.append( "Heat Sinks: " )<br/>
+                .append( aMech.heatSinks() );<br/>
+            if (aMech.getHeatCapacity() &gt; aMech.heatSinks()) {<br/>
+                sBasic.append( " [" )<br/>
+                    .append( aMech.getHeatCapacity() )<br/>
+                    .append( "]" );<br/>
+            }<br/>
+            sBasic.append("\n");<br/>
+        }<br/>
+        sBasic.append("\n")<br/>
+            .append( getInternalAndArmor() );<br/>
+    }<br/>
+<br/>
+    public String getMechReadoutBasic() {<br/>
+        return sBasic.toString();<br/>
+    }<br/>
+<br/>
+    public String getMechReadoutLoadout() {<br/>
+        return sLoadout.toString();<br/>
+    }<br/>
+<br/>
+    public String getMechReadout() {<br/>
+        return getMechReadoutBasic() + "\n" + getMechReadoutLoadout();<br/>
+    }<br/>
+    <br/>
+    private String getInternalAndArmor() {<br/>
+        StringBuffer sIntArm = new StringBuffer();<br/>
+<br/>
+        int maxArmor = mech.getTotalInternal() * 2 + 3;<br/>
+        sIntArm.append( "Internal: " )<br/>
+            .append( mech.getTotalInternal() );<br/>
+        if (isMech &amp;&amp; ((Mech)mech).hasEndo()) {<br/>
+            sIntArm.append(" (Endo Steel)");<br/>
+        }<br/>
+        sIntArm.append( "\n" );<br/>
+        sIntArm.append("Armor: ")<br/>
+            .append( mech.getTotalArmor() );<br/>
+        if ( isMech ) {<br/>
+            sIntArm.append( "/" )<br/>
+                .append( maxArmor );<br/>
+            if (((Mech)mech).hasFerro()) {<br/>
+                sIntArm.append(" (Ferro-Fibrous)");<br/>
+            }<br/>
+        }<br/>
+        sIntArm.append( "\n" );<br/>
+        // Walk through the entity's locations.<br/>
+        for ( int loc = 0; loc &lt; mech.locations(); loc++ ) {<br/>
+<br/>
+            // Skip empty sections.<br/>
+            if ( Entity.ARMOR_NA == mech.getInternal(loc) ||<br/>
+                 ( isVehicle &amp;&amp; (( loc == Tank.LOC_TURRET &amp;&amp;<br/>
+                                   ((Tank)mech).hasNoTurret() ) ||<br/>
+                                 (loc == Tank.LOC_BODY))) ) {<br/>
+                continue;<br/>
+            }<br/>
+<br/>
+            if ( mech.getLocationAbbr(loc).length() &lt; 2 ) {<br/>
+                sIntArm.append( " " );<br/>
+            }<br/>
+            sIntArm.append( mech.getLocationAbbr(loc) )<br/>
+                .append( ": " );<br/>
+            sIntArm.append( renderArmor(mech.getInternal(loc)) )<br/>
+                .append("   ");<br/>
+            if ( Entity.ARMOR_NA != mech.getArmor(loc) ) {<br/>
+                sIntArm.append( renderArmor(mech.getArmor(loc)) );<br/>
+            }<br/>
+            if ( mech.hasRearArmor(loc) ) {<br/>
+                sIntArm.append( " (" )<br/>
+                    .append( renderArmor(mech.getArmor(loc, true)) )<br/>
+                    .append( ")" );<br/>
+            }<br/>
+            sIntArm.append( "\n" );<br/>
+        }<br/>
+        return sIntArm.toString();<br/>
+    }<br/>
+<br/>
+    private String getWeapons() {<br/>
+        StringBuffer sWeapons = new StringBuffer();<br/>
+        Vector vWeapons = mech.getWeaponList();<br/>
+        for (int j = 0; j &lt; vWeapons.size(); j++)       {<br/>
+            Mounted mounted = (Mounted) vWeapons.elementAt(j);<br/>
+            WeaponType wtype = (WeaponType)mounted.getType();<br/>
+<br/>
+            sWeapons.append( mounted.getDesc() )<br/>
+                .append( "  [" )<br/>
+                .append( mech.getLocationAbbr(mounted.getLocation()) )<br/>
+                .append( "]" );<br/>
+            if (mech.isClan() &amp;&amp; <br/>
+                mounted.getType().getInternalName().substring(0,2).equals("IS")) {<br/>
+                sWeapons.append(" (IS)");<br/>
+            }<br/>
+            if (!mech.isClan() &amp;&amp;<br/>
+                mounted.getType().getInternalName().substring(0,2).equals("CL")) {<br/>
+                sWeapons.append(" (Clan)");<br/>
+            }<br/>
+            if (wtype.hasFlag(WeaponType.F_ONESHOT)) {<br/>
+                sWeapons.append(" &lt;")<br/>
+                    .append(mounted.getLinked().getDesc())<br/>
+                    .append("&gt;");<br/>
+            }<br/>
+            sWeapons.append("\n");<br/>
+        }<br/>
+        return sWeapons.toString();<br/>
+    }<br/>
+    <br/>
+    private String getAmmo() {<br/>
+        Enumeration eAmmo = mech.getAmmo();<br/>
+        StringBuffer sAmmo = new StringBuffer();<br/>
+        while (eAmmo.hasMoreElements()) {<br/>
+            Mounted mounted = (Mounted)eAmmo.nextElement();<br/>
+            if (mounted.getLocation() != Entity.LOC_NONE) {<br/>
+                sAmmo.append( mounted.getDesc() )<br/>
+                    .append( "  [" )<br/>
+                    .append( mech.getLocationAbbr(mounted.getLocation()) )<br/>
+                    .append( "]\n" );<br/>
+            }<br/>
+        }<br/>
+        return sAmmo.toString();<br/>
+    }<br/>
+<br/>
+    private String getMisc() {<br/>
+        StringBuffer sMisc = new StringBuffer();<br/>
+        Enumeration eMisc = mech.getMisc();<br/>
+        while (eMisc.hasMoreElements()) {<br/>
+            Mounted mounted = (Mounted)eMisc.nextElement();<br/>
+            if ( mounted.getDesc().indexOf("Jump Jet") != -1 ||<br/>
+                 ( mounted.getDesc().indexOf("CASE") != -1 &amp;&amp;<br/>
+                   mech.isClan() ) ||<br/>
+                 mounted.getDesc().indexOf("Heat Sink") != -1  ||<br/>
+                 mounted.getDesc().indexOf("Endo Steel") != -1 ||<br/>
+                 mounted.getDesc().indexOf("Ferro-Fibrous") != -1) {<br/>
+                // These items are displayed elsewhere, so skip them here.<br/>
+                continue;<br/>
+            }<br/>
+            sMisc.append( mounted.getDesc() )<br/>
+                .append( "  [" )<br/>
+                .append( mech.getLocationAbbr(mounted.getLocation()) )<br/>
+                .append( "]" );<br/>
+            if (mech.isClan() &amp;&amp; <br/>
+                mounted.getType().getInternalName().substring(0,2).equals("IS")) {<br/>
+                sMisc.append(" (IS)");<br/>
+            }<br/>
+            if (!mech.isClan() &amp;&amp;<br/>
+                mounted.getType().getInternalName().substring(0,2).equals("CL")) {<br/>
+                sMisc.append(" (Clan)");<br/>
+            }<br/>
+            sMisc.append("\n");<br/>
+        }<br/>
+<br/>
+        String capacity = mech.getUnusedString();<br/>
+        if ( capacity != null &amp;&amp; capacity.length() &gt; 0 ) {<br/>
+            sMisc.append( "\nCarrying Capacity:\n" )<br/>
+                .append( capacity )<br/>
+                .append( "\n" );<br/>
+        }<br/>
+        return sMisc.toString();<br/>
+    }<br/>
+<br/>
+    private String getFailed() {<br/>
+        StringBuffer sFailed = new StringBuffer();<br/>
+        Enumeration eFailed = mech.getFailedEquipment();<br/>
+        if (eFailed.hasMoreElements()) {<br/>
+            sFailed.append("The following equipment\n slots failed to load:\n");<br/>
+            while (eFailed.hasMoreElements()) {<br/>
+                sFailed.append(eFailed.nextElement()).append("\n");<br/>
+            }<br/>
+        }<br/>
+        return sFailed.toString();<br/>
+    }    <br/>
+<br/>
+    private static String renderArmor(int nArmor)<br/>
+    {<br/>
+        if (nArmor &lt;= 0) {<br/>
+            return "xx";<br/>
+        }<br/>
+        else {<br/>
+            return makeLength(String.valueOf(nArmor), 2, true);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private static final String SPACES = "                                   ";<br/>
+    private static String makeLength(String s, int n, boolean bRightJustify)<br/>
+    {<br/>
+        int l = s.length();<br/>
+        if (l == n) {<br/>
+            return s;<br/>
+        }<br/>
+        else if (l &lt; n) {<br/>
+            if (bRightJustify) {<br/>
+                return SPACES.substring(0, n - l) + s;<br/>
+            }<br/>
+            else {<br/>
+                return s + SPACES.substring(0, n - l);<br/>
+            }<br/>
+        }<br/>
+        else {<br/>
+            return s.substring(0, n - 2) + "..";<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_MechView_1.22.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2000,2001,2002,2003,2004 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it <br/>
+ *  under the terms of the GNU General Public License as published by the Free <br/>
+ *  Software Foundation; either version 2 of the License, or (at your option) <br/>
+ *  any later version.<br/>
+ * <br/>
+ *  This program is distributed in the hope that it will be useful, but <br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY <br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License <br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+/*<br/>
+ * MechView.java<br/>
+ *<br/>
+ * Created on January 20, 2003 by Ryan McConnell<br/>
+ */<br/>
+<br/>
+package megamek.client;<br/>
+<br/>
+import java.util.Enumeration;<br/>
+import java.util.Vector;<br/>
+<br/>
+import megamek.common.*;<br/>
+<br/>
+/**<br/>
+ * A utility class for retrieving mech information in a formatted string.<br/>
+ *<br/>
+ */<br/>
+public class MechView {<br/>
+<br/>
+    private Entity mech;<br/>
+    private boolean isMech;<br/>
+    private boolean isInf;<br/>
+    private boolean isVehicle;<br/>
+    private boolean isProto;<br/>
+<br/>
+    StringBuffer sBasic = new StringBuffer();<br/>
+    StringBuffer sLoadout = new StringBuffer();<br/>
+<br/>
+    public MechView(Entity entity) {<br/>
+        mech = entity;<br/>
+        isMech = entity instanceof Mech;<br/>
+        isInf = entity instanceof Infantry;<br/>
+        isVehicle = entity instanceof Tank;<br/>
+        isProto = entity instanceof Protomech;<br/>
+<br/>
+        sLoadout.append( getWeapons() )<br/>
+            .append("\n")<br/>
+            .append(getAmmo())<br/>
+            .append("\n")<br/>
+            .append(getMisc()) //has to occur before basic is processed<br/>
+            .append("\n")<br/>
+            .append(getFailed());<br/>
+<br/>
+        sBasic.append( mech.getShortName() );<br/>
+        sBasic.append("\n");<br/>
+        if ( !isInf ) {<br/>
+            sBasic.append( Math.round(mech.getWeight()) )<br/>
+                .append(" tons  " );<br/>
+        }<br/>
+        sBasic.append(TechConstants.T_NAMES[mech.getTechLevel()]);<br/>
+        sBasic.append("\n");<br/>
+        if ( mech.hasC3M() || mech.hasC3S() || mech.hasC3i()) {<br/>
+            sBasic.append( "Linked c3 BV: ");<br/>
+            sBasic.append( mech.calculateBattleValue(true) );<br/>
+        }<br/>
+        sBasic.append("\n");<br/>
+        sBasic.append( "Movement: " )<br/>
+            .append( mech.getWalkMP() )<br/>
+            .append( "/" )<br/>
+            .append( mech.getRunMPasString() );<br/>
+        if (mech.getJumpMP() &gt; 0) {<br/>
+            sBasic.append( "/" )<br/>
+                .append( mech.getJumpMP() );<br/>
+        }<br/>
+        if (isVehicle) {<br/>
+            sBasic.append(" (")<br/>
+                .append(entity.getMovementTypeAsString())<br/>
+                .append(")");<br/>
+        }<br/>
+        sBasic.append( "\n" );<br/>
+        if ( isMech ) {<br/>
+            Mech aMech = (Mech) mech;<br/>
+            sBasic.append( "Engine: " )<br/>
+                .append( aMech.engineRating() );<br/>
+            if (aMech.hasXL()) {<br/>
+                sBasic.append( " XL" );<br/>
+            }<br/>
+            if (aMech.hasLightEngine()) {<br/>
+                sBasic.append( " Light" );<br/>
+            }<br/>
+            sBasic.append("\n");<br/>
+            sBasic.append( "Heat Sinks: " )<br/>
+                .append( aMech.heatSinks() );<br/>
+            if (aMech.getHeatCapacity() &gt; aMech.heatSinks()) {<br/>
+                sBasic.append( " [" )<br/>
+                    .append( aMech.getHeatCapacity() )<br/>
+                    .append( "]" );<br/>
+            }<br/>
+            sBasic.append("\n");<br/>
+        }<br/>
+        sBasic.append("\n")<br/>
+            .append( getInternalAndArmor() );<br/>
+    }<br/>
+<br/>
+    public String getMechReadoutBasic() {<br/>
+        return sBasic.toString();<br/>
+    }<br/>
+<br/>
+    public String getMechReadoutLoadout() {<br/>
+        return sLoadout.toString();<br/>
+    }<br/>
+<br/>
+    public String getMechReadout() {<br/>
+        return getMechReadoutBasic() + "\n" + getMechReadoutLoadout();<br/>
+    }<br/>
+    <br/>
+    private String getInternalAndArmor() {<br/>
+        StringBuffer sIntArm = new StringBuffer();<br/>
+<br/>
+        int maxArmor = mech.getTotalInternal() * 2 + 3;<br/>
+        sIntArm.append( "Internal: " )<br/>
+            .append( mech.getTotalInternal() );<br/>
+        if (isMech &amp;&amp; ((Mech)mech).hasEndo()) {<br/>
+            sIntArm.append(" (Endo Steel)");<br/>
+        }<br/>
+        sIntArm.append( "\n" );<br/>
+        sIntArm.append("Armor: ")<br/>
+            .append( mech.getTotalArmor() );<br/>
+        if ( isMech ) {<br/>
+            sIntArm.append( "/" )<br/>
+                .append( maxArmor );<br/>
+            if (((Mech)mech).hasFerro()) {<br/>
+                sIntArm.append(" (Ferro-Fibrous)");<br/>
+            }<br/>
+        }<br/>
+        sIntArm.append( "\n" );<br/>
+        // Walk through the entity's locations.<br/>
+        for ( int loc = 0; loc &lt; mech.locations(); loc++ ) {<br/>
+<br/>
+            // Skip empty sections.<br/>
+            if ( Entity.ARMOR_NA == mech.getInternal(loc) ||<br/>
+                 ( isVehicle &amp;&amp; (( loc == Tank.LOC_TURRET &amp;&amp;<br/>
+                                   ((Tank)mech).hasNoTurret() ) ||<br/>
+                                 (loc == Tank.LOC_BODY))) ) {<br/>
+                continue;<br/>
+            }<br/>
+<br/>
+            if ( mech.getLocationAbbr(loc).length() &lt; 2 ) {<br/>
+                sIntArm.append( " " );<br/>
+            }<br/>
+            sIntArm.append( mech.getLocationAbbr(loc) )<br/>
+                .append( ": " );<br/>
+            sIntArm.append( renderArmor(mech.getInternal(loc)) )<br/>
+                .append("   ");<br/>
+            if ( Entity.ARMOR_NA != mech.getArmor(loc) ) {<br/>
+                sIntArm.append( renderArmor(mech.getArmor(loc)) );<br/>
+            }<br/>
+            if ( mech.hasRearArmor(loc) ) {<br/>
+                sIntArm.append( " (" )<br/>
+                    .append( renderArmor(mech.getArmor(loc, true)) )<br/>
+                    .append( ")" );<br/>
+            }<br/>
+            sIntArm.append( "\n" );<br/>
+        }<br/>
+        return sIntArm.toString();<br/>
+    }<br/>
+<br/>
+    private String getWeapons() {<br/>
+        StringBuffer sWeapons = new StringBuffer();<br/>
+        Vector vWeapons = mech.getWeaponList();<br/>
+        for (int j = 0; j &lt; vWeapons.size(); j++)       {<br/>
+            Mounted mounted = (Mounted) vWeapons.elementAt(j);<br/>
+            WeaponType wtype = (WeaponType)mounted.getType();<br/>
+<br/>
+            sWeapons.append( mounted.getDesc() )<br/>
+                .append( "  [" )<br/>
+                .append( mech.getLocationAbbr(mounted.getLocation()) )<br/>
+                .append( "]" );<br/>
+            if (mech.isClan() &amp;&amp; <br/>
+                mounted.getType().getInternalName().substring(0,2).equals("IS")) {<br/>
+                sWeapons.append(" (IS)");<br/>
+            }<br/>
+            if (!mech.isClan() &amp;&amp;<br/>
+                mounted.getType().getInternalName().substring(0,2).equals("CL")) {<br/>
+                sWeapons.append(" (Clan)");<br/>
+            }<br/>
+            if (wtype.hasFlag(WeaponType.F_ONESHOT)) {<br/>
+                sWeapons.append(" &lt;")<br/>
+                    .append(mounted.getLinked().getDesc())<br/>
+                    .append("&gt;");<br/>
+            }<br/>
+            <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">sWeapons</span>.<span class="add">append</span>(<span class="add">" "</span>)</span>.<span class="add">append</span>(<span class="add"><span class="add">wtype</span>.<span class="add">getHeat</span>()</span>)</span>.<span class="add">append</span>(<span class="add">" Heat"</span>)</span>;</span><br/>
+            sWeapons.append("\n");<br/>
+        }<br/>
+        return sWeapons.toString();<br/>
+    }<br/>
+    <br/>
+    private String getAmmo() {<br/>
+        Enumeration eAmmo = mech.getAmmo();<br/>
+        StringBuffer sAmmo = new StringBuffer();<br/>
+        while (eAmmo.hasMoreElements()) {<br/>
+            Mounted mounted = (Mounted)eAmmo.nextElement();<br/>
+            if (mounted.getLocation() != Entity.LOC_NONE) {<br/>
+                sAmmo.append( mounted.getDesc() )<br/>
+                    .append( "  [" )<br/>
+                    .append( mech.getLocationAbbr(mounted.getLocation()) )<br/>
+                    .append( "]\n" );<br/>
+            }<br/>
+        }<br/>
+        return sAmmo.toString();<br/>
+    }<br/>
+<br/>
+    private String getMisc() {<br/>
+        StringBuffer sMisc = new StringBuffer();<br/>
+        Enumeration eMisc = mech.getMisc();<br/>
+        while (eMisc.hasMoreElements()) {<br/>
+            Mounted mounted = (Mounted)eMisc.nextElement();<br/>
+            if ( mounted.getDesc().indexOf("Jump Jet") != -1 ||<br/>
+                 ( mounted.getDesc().indexOf("CASE") != -1 &amp;&amp;<br/>
+                   mech.isClan() ) ||<br/>
+                 mounted.getDesc().indexOf("Heat Sink") != -1  ||<br/>
+                 mounted.getDesc().indexOf("Endo Steel") != -1 ||<br/>
+                 mounted.getDesc().indexOf("Ferro-Fibrous") != -1) {<br/>
+                // These items are displayed elsewhere, so skip them here.<br/>
+                continue;<br/>
+            }<br/>
+            sMisc.append( mounted.getDesc() )<br/>
+                .append( "  [" )<br/>
+                .append( mech.getLocationAbbr(mounted.getLocation()) )<br/>
+                .append( "]" );<br/>
+            if (mech.isClan() &amp;&amp; <br/>
+                mounted.getType().getInternalName().substring(0,2).equals("IS")) {<br/>
+                sMisc.append(" (IS)");<br/>
+            }<br/>
+            if (!mech.isClan() &amp;&amp;<br/>
+                mounted.getType().getInternalName().substring(0,2).equals("CL")) {<br/>
+                sMisc.append(" (Clan)");<br/>
+            }<br/>
+            sMisc.append("\n");<br/>
+        }<br/>
+<br/>
+        String capacity = mech.getUnusedString();<br/>
+        if ( capacity != null &amp;&amp; capacity.length() &gt; 0 ) {<br/>
+            sMisc.append( "\nCarrying Capacity:\n" )<br/>
+                .append( capacity )<br/>
+                .append( "\n" );<br/>
+        }<br/>
+        return sMisc.toString();<br/>
+    }<br/>
+<br/>
+    private String getFailed() {<br/>
+        StringBuffer sFailed = new StringBuffer();<br/>
+        Enumeration eFailed = mech.getFailedEquipment();<br/>
+        if (eFailed.hasMoreElements()) {<br/>
+            sFailed.append("The following equipment\n slots failed to load:\n");<br/>
+            while (eFailed.hasMoreElements()) {<br/>
+                sFailed.append(eFailed.nextElement()).append("\n");<br/>
+            }<br/>
+        }<br/>
+        return sFailed.toString();<br/>
+    }    <br/>
+<br/>
+    private static String renderArmor(int nArmor)<br/>
+    {<br/>
+        if (nArmor &lt;= 0) {<br/>
+            return "xx";<br/>
+        }<br/>
+        else {<br/>
+            return makeLength(String.valueOf(nArmor), 2, true);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private static final String SPACES = "                                   ";<br/>
+    private static String makeLength(String s, int n, boolean bRightJustify)<br/>
+    {<br/>
+        int l = s.length();<br/>
+        if (l == n) {<br/>
+            return s;<br/>
+        }<br/>
+        else if (l &lt; n) {<br/>
+            if (bRightJustify) {<br/>
+                return SPACES.substring(0, n - l) + s;<br/>
+            }<br/>
+            else {<br/>
+                return s + SPACES.substring(0, n - l);<br/>
+            }<br/>
+        }<br/>
+        else {<br/>
+            return s.substring(0, n - 2) + "..";<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

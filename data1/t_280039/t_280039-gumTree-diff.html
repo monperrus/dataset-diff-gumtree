@@ -1,0 +1,2467 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ContextManager_1.186.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */<br/>
+<br/>
+package org.apache.tomcat.core;<br/>
+<br/>
+import org.apache.tomcat.util.log.Log;<br/>
+<br/>
+import java.util.Hashtable;<br/>
+import java.util.Vector;<br/>
+import java.util.Enumeration;<br/>
+<br/>
+<br/>
+/**<br/>
+  ContextManager controls requests processing and server configuration.<br/>
+  It maintains a list of Contexts ( web applications )  and a list of<br/>
+  global modules that deal with server configuration and request processing,<br/>
+  and global properties ( directories, general settings, etc ).<br/>
+<br/>
+  The request processing is similar with Apache and other servers, with the<br/>
+  addition of a "contextMap" chain that will select a tomcat-specific.<br/>
+ <br/>
+  &lt;h2&gt;Configuration and startup&lt;/h2&gt;<br/>
+<br/>
+  Starting tomcat involves a number of actions and states. In order to<br/>
+  start tomcat:<br/>
+  <br/>
+  &lt;ol&gt;<br/>
+  &lt;li&gt; Create ContextManager. The server state is STATE_NEW<br/>
+<br/>
+  &lt;li&gt; Set properties for ContextManager ( home, debug, etc).<br/>
+<br/>
+  &lt;li&gt; Add the initial set of modules ( addInterceptor() ). ContextManager<br/>
+       will call setContextManager() and then the addInterceptor() hook.<br/>
+<br/>
+  &lt;li&gt; Add the initial set of web applications ( Contexts ). Configuration<br/>
+       modules can also add web applications - but no "addContext" hook<br/>
+       will be called ( since the server is not initialized ).<br/>
+<br/>
+  &lt;li&gt; Call init().<br/>
+       &lt;ol&gt;<br/>
+         &lt;li&gt;Init will notify all modules using the engineInit() hook. At<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; this point the ContextManager will be in STATE_CONFIG.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;It'll then call addContext() hooks for each context that were<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; added by config modules. Contexts will be in STATE_ADDED.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;It'll then call context.init() hooks for each context that were<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; added by config modules. Contexts will be in STATE_READY.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;After all contexts are added and initialized, server will be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; in STATE_INIT.<br/>
+       &lt;/ol&gt;<br/>
+  XXX Do we need finer control ? ( like initModules(), initContexts() ? )<br/>
+       <br/>
+  &lt;li&gt; At this point the server is fully configured, but not started.<br/>
+       The user can add/remove modules and applications - the rules are<br/>
+       defined in "run-time configuration".<br/>
+<br/>
+  &lt;li&gt; Call start(). The engineStart() hook will be called,<br/>
+  the connector modules should accept and serve requests. <br/>
+<br/>
+  &lt;li&gt; Call stop() to stop the server ( engineStop() hook will be called,<br/>
+  no requests more will be accepted )<br/>
+<br/>
+  &lt;li&gt; Call shutdown() to clean up all resources in use by web applications<br/>
+  and modules. The server will revert to STATE_CONFIG.<br/>
+       &lt;ol&gt;<br/>
+         &lt;li&gt;contextShutdown() will be called for each application. Modules<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; must clean any resources allocated for that context. <br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;removeContext() will be called for each application.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;engineShutdown() will be called for each module<br/>
+       &lt;/ol&gt;<br/>
+<br/>
+  &lt;/ol&gt;<br/>
+<br/>
+<br/>
+  &lt;h2&gt;Runtime configuration&lt;/h2&gt;<br/>
+<br/>
+  XXX The only "supported" feature is adding/removing web applications.<br/>
+  Since each module can have a set of local modules, you can change the<br/>
+  configuration or modules for each context. Changing "global" modules may<br/>
+  work, but it's not finalized or tested.<br/>
+  <br/>
+  While tomcat is running, you can temporarily disable web applications,<br/>
+  remove and add new applications.<br/>
+  <br/>
+  @author James Duncan Davidson [duncan@eng.sun.com]<br/>
+  @author James Todd [gonzo@eng.sun.com]<br/>
+  @author Harish Prabandham<br/>
+  @author Costin Manolache<br/>
+  @author Hans Bergsten [hans@gefionsoftware.com]<br/>
+ */<br/>
+public final class ContextManager {<br/>
+    /** Official name and version<br/>
+     */<br/>
+    public static final String TOMCAT_VERSION = "3.3 Beta 1";<br/>
+    public static final String TOMCAT_NAME = "Tomcat Web Server";<br/>
+    <br/>
+    /** System property used to set the base directory ( tomcat home ).<br/>
+     *  use -DTOMCAT_HOME= in java command line or as a System.setProperty.<br/>
+     */<br/>
+    public static final String TOMCAT_HOME="tomcat.home";<br/>
+<br/>
+    /** System property used to set the install directory ( tomcat install ).<br/>
+     *  use -DTOMCAT_INSTALL= in java command line or as a System.setProperty.<br/>
+     */<br/>
+    public static final String TOMCAT_INSTALL="tomcat.install";<br/>
+<br/>
+    // State<br/>
+<br/>
+    /**<br/>
+     *  Server is beeing configured - modules are added.<br/>
+     */<br/>
+    public static final int STATE_NEW=0;<br/>
+<br/>
+    /**<br/>
+     *  Server and global modules are initialized and stable.<br/>
+     */<br/>
+    public static final int STATE_CONFIG=1;<br/>
+<br/>
+    /**<br/>
+     *  Web applications are  configured and initialized.<br/>
+     */<br/>
+    public static final int STATE_INIT=2;<br/>
+ <br/>
+    /**<br/>
+     *  Server is started and may process requests.<br/>
+     */<br/>
+    public static final int STATE_START=3;<br/>
+<br/>
+    // -------------------- local variables --------------------<br/>
+<br/>
+    private int state=STATE_NEW;<br/>
+    <br/>
+    // All contexts managed by the server ( can belong to different<br/>
+    // virtual hosts )<br/>
+    private Vector contextsV=new Vector();<br/>
+    private Hashtable contexts=new Hashtable();<br/>
+<br/>
+    private int debug=0;<br/>
+<br/>
+    /** Private workspace for this server<br/>
+     */<br/>
+    private String workDir="work";<br/>
+<br/>
+    /** The base directory where this instance runs.<br/>
+     *  It can be different from the install directory to<br/>
+     *  allow one install per system and multiple users<br/>
+     */<br/>
+    private String home;<br/>
+<br/>
+    /** The directory where tomcat is installed<br/>
+     */<br/>
+    private String installDir;<br/>
+    <br/>
+    // Server properties ( interceptors, etc ) - it's one level above "/"<br/>
+    private Container defaultContainer;<br/>
+<br/>
+    // the embedding application loader. @see getParentLoader<br/>
+    private ClassLoader parentLoader;<br/>
+<br/>
+    // the common class loader, shared by container and apps<br/>
+    private ClassLoader commonLoader;<br/>
+<br/>
+    // the container class loader, used to load all container modules<br/>
+    private ClassLoader containerLoader;<br/>
+<br/>
+    // the webapp loader, with classes shared by all webapps.<br/>
+    private ClassLoader appsLoader;<br/>
+<br/>
+    private Hashtable properties=new Hashtable();<br/>
+    <br/>
+    /**<br/>
+     * Construct a new ContextManager instance with default values.<br/>
+     */<br/>
+    public ContextManager() {<br/>
+        defaultContainer=new Container();<br/>
+        defaultContainer.setContext( null );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;defaultContainer.setContextManager( this );<br/>
+        defaultContainer.setPath( null ); // default container<br/>
+    }<br/>
+<br/>
+    // -------------------- setable properties --------------------<br/>
+<br/>
+    /**<br/>
+     *  The home of the tomcat instance - you can have multiple<br/>
+     *  users running tomcat, with a shared install directory.<br/>
+     *  <br/>
+     *  Home is used as a base for logs, webapps, local config.<br/>
+     *  Install dir ( if different ) is used to find lib ( jar<br/>
+     *   files ).<br/>
+     *<br/>
+     *  The "tomcat.home" system property is used if no explicit<br/>
+     *  value is set. XXX<br/>
+     */<br/>
+    public final void setHome(String home) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.home=home;<br/>
+    }<br/>
+<br/>
+    public final String getHome() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return home;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *  Get installation directory. This is used to locate<br/>
+     *  jar files ( lib ). If tomcat instance is shared,<br/>
+     *  home is used for webapps, logs, config.<br/>
+     *  If either home or install is not set, the other<br/>
+     *  is used as default.<br/>
+     * <br/>
+     */<br/>
+    public final String getInstallDir() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return installDir;<br/>
+    }<br/>
+<br/>
+    public final void setInstallDir( String tH ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;installDir=tH;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * WorkDir property - where all working files will be created<br/>
+     */<br/>
+    public final void setWorkDir( String wd ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0) log("set work dir " + wd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.workDir=wd;<br/>
+    }<br/>
+<br/>
+    public final String getWorkDir() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return workDir;<br/>
+    }<br/>
+<br/>
+<br/>
+    /** Debug level<br/>
+     */<br/>
+    public final void setDebug( int level ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( level != debug )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Setting debug level to " + level);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;debug=level;<br/>
+    }<br/>
+<br/>
+    public final int getDebug() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return debug;<br/>
+    }<br/>
+<br/>
+    //  XmlMapper will call setProperty(name,value) if no explicit setter<br/>
+    // is found - it's better to use this mechanism for special<br/>
+    // properties ( that are not generic enough and used by few specific<br/>
+    // module )<br/>
+<br/>
+    /** Generic properties support. You can get properties like<br/>
+     *  "showDebugInfo", "randomClass", etc.<br/>
+     */<br/>
+    public String getProperty( String name ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (String)properties.get( name );<br/>
+    }<br/>
+<br/>
+    public void setProperty( String name, String value ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;properties.put( name, value );<br/>
+    }<br/>
+<br/>
+    public Hashtable getProperties() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return properties;<br/>
+    }<br/>
+    <br/>
+    // -------------------- Other properties --------------------<br/>
+<br/>
+    /** Return the current state of the tomcat server.<br/>
+     */<br/>
+    public final int getState() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return state;<br/>
+    }<br/>
+<br/>
+    /** Change the state, after notifying all modules about the change<br/>
+     *  Any error will be propagated - the server will not change the<br/>
+     *  state and should fail if any module can't handle that.<br/>
+     */<br/>
+    public final void setState( int state )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    existingI[i].engineState( this, state );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.state=state;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *  Parent loader is the "base" class loader of the<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;application that starts tomcat, and includes no<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;tomcat classes.<br/>
+     * <br/>
+     *  Each web applications will use a loader that will have it as<br/>
+     *  a parent loader, so all classes visible to parentLoader<br/>
+     *  will be available to servlets.<br/>
+     *<br/>
+     *  Tomcat will add the right servlet.jar and Facade.<br/>
+     *<br/>
+     *  Trusted applications will also see the internal tomcat<br/>
+     *  classes.<br/>
+     *<br/>
+     *  Interceptors may also add custom classes to a webapp,<br/>
+     *  based on tomcat configuration.<br/>
+     *<br/>
+     *  Tomcat.core and all internal classes will be loaded by<br/>
+     *  another class loader, having the same parentLoader.<br/>
+     *<br/>
+     *  &lt;pre&gt;<br/>
+     *  parentLoader  -&gt; tomcat.core.loader [ -&gt; trusted.webapp.loader ]<br/>
+     *                -&gt; webapp.loaders<br/>
+     *  &lt;/pre&gt;<br/>
+     */<br/>
+    public final void setParentLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parentLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getParentLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return parentLoader;<br/>
+    }<br/>
+<br/>
+    public final void setCommonLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;commonLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getCommonLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return commonLoader;<br/>
+    }<br/>
+<br/>
+    public final void setContainerLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;containerLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getContainerLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return containerLoader;<br/>
+    }<br/>
+<br/>
+    public final void setAppsLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;appsLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getAppsLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return appsLoader;<br/>
+    }<br/>
+<br/>
+    /** Default container. The interceptors for this container will<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;be called for all requests, and it will be associated with<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;invalid requests ( where context can't be found ).<br/>
+     */<br/>
+    public final Container getContainer() {<br/>
+        return defaultContainer;<br/>
+    }<br/>
+<br/>
+    public final void setContainer(Container newDefaultContainer) {<br/>
+        defaultContainer = newDefaultContainer;<br/>
+    }<br/>
+<br/>
+    /** Add a global interceptor. The addInterceptor() hook will be called.<br/>
+     *  If the module is added after STATE_CONFIG, the engineInit() hook will<br/>
+     *  be called ( otherwise we wait for init() ).<br/>
+     *  If the module is added after STATE_INIT, the addContext and<br/>
+     *  initContext hooks will be called.<br/>
+     *  If the module is added after STATE_START, the engineStart hooks will<br/>
+     *  be called.<br/>
+     */<br/>
+    public final void addInterceptor( BaseInterceptor ri )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.setContextManager( this );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// first, add the module ( addInterceptor may change the ordering )<br/>
+        defaultContainer.addInterceptor(ri);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// second, let the module know it's added. It may look at<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// other module and even choose to remove himself and throw exception.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.addInterceptor( this, null, ri ); // should know about itself<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// let other modules know about the new friend.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( existingI[i] != ri )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;existingI[i].addInterceptor( this, null, ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// startup module, server is not initialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_NEW ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we are at last initialized, call engineInit hook ( a module<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// at runtime will get the same calls as a setup module )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.engineInit( this );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state== STATE_CONFIG ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// addContext hook for all existing contexts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ri.addContext( this, ctx ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Error adding context " +ctx + " to " + ri ); // ignore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// contextInit hook if we're started<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ri.contextInit( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Error adding context " +ctx + " to " + ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ignore it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_INIT ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we are running - let the module know about that.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.engineStart(this);<br/>
+    }<br/>
+<br/>
+    /** Remove a module. Hooks will be called to allow the module to<br/>
+     *  free the resources. <br/>
+     */<br/>
+    public final void removeInterceptor( BaseInterceptor ri )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    existingI[i].removeInterceptor( this, null, ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.removeInterceptor( this, null, ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;defaultContainer.removeInterceptor( ri );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_NEW ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_START )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri.engineStop(this);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state &gt;= STATE_INIT ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ri.contextShutdown( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error shuting down context " +ctx + " to " + ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ri.removeContext( this, ctx ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error removing context " +ctx + " to " + ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ignore it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    }<br/>
+<br/>
+    // -------------------- Server functions --------------------<br/>
+<br/>
+    /**<br/>
+     *  Init() is called after the context manager is set up (properties)<br/>
+     *  and configured ( modules ).<br/>
+     *<br/>
+     *  All engineInit() hooks will be called and the server will <br/>
+     *  move to state= INIT<br/>
+     * <br/>
+     */<br/>
+    public final void init()  throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state &gt;= STATE_CONFIG  ) // already initialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0 ) log( "Tomcat init");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    existingI[i].engineInit( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// The server is configured, all modules are ready<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState(STATE_CONFIG);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;log("Tomcat configured and in stable state ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;existingI=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// deal with contexts that were added before init()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// ( by user or modules during engineInit )<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// first trusted apps - they may do special actions<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.isTrusted() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireAddContext(ctx, existingI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Initialize the contexts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.isTrusted() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ctx.init();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // just log the error - the context will not serve requests<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error initializing " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// again - it may change<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;existingI=defaultContainer.getInterceptors();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Same thing for untrusted apps <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! ctx.isTrusted() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireAddContext(ctx, existingI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Initialize the contexts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! ctx.isTrusted() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ctx.init();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // just log the error - the context will not serve requests<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error initializing " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState( STATE_INIT );<br/>
+    }<br/>
+<br/>
+    private void fireAddContext(Context ctx, BaseInterceptor existingI[] ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;existingI[i].addContext( this, ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error adding context " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // set state may throw exception<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.setState( Context.STATE_ADDED );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("Adding  " +  ctx.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error adding context " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+    /** Will start the connectors and begin serving requests.<br/>
+     *  It must be called after init.<br/>
+     */<br/>
+    public final void start() throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_NEW ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    init();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        if( state==STATE_START ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cI[i].engineStart( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// requests can be processed now<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState(STATE_START);<br/>
+    }<br/>
+<br/>
+    /** Will stop all connectors<br/>
+     */<br/>
+    public final void stop() throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState(STATE_INIT); // initialized, but not accepting connections<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cI[i].engineStop( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /** Remove all contexts.<br/>
+     *  - call removeContext ( that will call Interceptor.removeContext hooks )<br/>
+     *  - call Interceptor.engineShutdown() hooks.<br/>
+     */<br/>
+    public final void shutdown() throws TomcatException {<br/>
+        if( state==STATE_START ) stop();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.shutdown();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Error shuting down context " +ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// No need to remove - since init() doesn't add the contexts.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Modules could remove contexts ( and add them in init() ), but who<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// adds should also remove<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;while (!contextsV.isEmpty()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=(Context)contextsV.firstElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;removeContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    } catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "shutdown.removeContext" , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Notify all modules that the server will shutdown,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// let them clean up all resources<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cI[i].engineShutdown( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "shutdown.engineShutdown" , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState( STATE_NEW );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// remove the modules ( XXX do we need that ? )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;removeInterceptor( cI[i] );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    } catch( Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "shutdown.removeInterceptor" , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // -------------------- Contexts --------------------<br/>
+<br/>
+    /** Return the list of contexts managed by this server.<br/>
+     *  Tomcat can handle multiple virtual hosts. <br/>
+     *<br/>
+     *  All contexts are stored in ContextManager when added.<br/>
+     *  Modules can use the information in context ( when addContext<br/>
+     *  hook is called ) and prepare mapping tables.<br/>
+     */<br/>
+    public final Enumeration getContexts() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return contextsV.elements();<br/>
+    }<br/>
+<br/>
+    public final Enumeration getContextNames() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return contexts.keys();<br/>
+    }<br/>
+<br/>
+    public Context getContext(String name ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (Context)contexts.get( name );<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds a new Context to the set managed by this ContextManager.<br/>
+     * It'll also init the server if it hasn't been already.<br/>
+     *<br/>
+     * All addContext hooks will be called. The context will be<br/>
+     * in STATE_ADDED - it'll not serve requests.<br/>
+     *<br/>
+     * @param ctx context to be added.<br/>
+     */<br/>
+    public final void addContext( Context ctx ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Make sure context knows about its manager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// this will also initialized all context-specific modules.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setState( Context.STATE_NEW );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contextsV.addElement( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contexts.put( ctx.getName(), ctx );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( getState() == STATE_NEW )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we are at least configured, can call the hook<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    BaseInterceptor cI[]=ctx.getContainer().getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If an exception is thrown, context will remain in<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// NEW state.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cI[i].addContext( this, ctx ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.setState( Context.STATE_ADDED );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("Adding context " +  ctx.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Context not added " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw ex;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+<br/>
+    /** Shut down and removes a context from service.<br/>
+     */<br/>
+    public final void removeContext( Context context ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( context==null ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;log( "Removing context " + context.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contextsV.removeElement(context);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contexts.remove( context.getName());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( getState() == STATE_NEW )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return; // we are not even initialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// modules can add/remove contexts at init time, but no<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// action will take place until the server is stable.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// if it's already disabled - or was never activated,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// no need to shutdown and remove<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( context.getState() == Context.STATE_NEW )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// disable the context - it it is running <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( context.getState() == Context.STATE_READY )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    context.shutdown();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// remove it from operation - notify interceptors that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// this context is no longer active<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=context.getContainer().getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cI[i].removeContext( this, context );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// mark the context as "not active" <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;context.setState( Context.STATE_NEW );<br/>
+    }<br/>
+<br/>
+<br/>
+    // -------------------- Request processing / subRequest ------------------<br/>
+    // -------------------- Main request processing methods ------------------<br/>
+<br/>
+    /** Prepare the req/resp pair for use in tomcat.<br/>
+     *  Call it after you create the request/response objects.<br/>
+     *  ( for example in a connector, or when an internal sub-request is<br/>
+     *  created )<br/>
+     */<br/>
+    public final void initRequest( Request req, Response resp ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// We may add other special calls here.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;resp.setRequest( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setResponse( resp );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;resp.init();<br/>
+    }<br/>
+<br/>
+    /** This is the entry point in tomcat - the connectors ( or any other<br/>
+     *  component able to generate Request/Response implementations ) will<br/>
+     *  call this method to get it processed.<br/>
+     */<br/>
+    public final void service( Request req, Response res ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state!=STATE_START ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // A request was received before all components are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // in started state. Than can happen if the adapter was<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // started too soon or of the server is temporarily<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // disabled.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.setAttribute("javax.servlet.error.message",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "Server is starting");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    handleStatus( req, res, 503 ); // service unavailable<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    internalService( req, res );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// clean up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    res.finish();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( Throwable ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    handleError( req, res, ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;finally {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    BaseInterceptor reqI[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( req.getContext()==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reqI=getContainer().getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reqI= req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getInterceptors(Container.H_postRequest);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for( int i=0; i&lt; reqI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reqI[i].postRequest( req, res );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.recycle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    res.recycle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+    }<br/>
+<br/>
+    // Request processing steps and behavior<br/>
+    private final void internalService( Request req, Response res ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /* assert req/res are set up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;       corectly - have cm, and one-one relation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // wrong request - parsing error<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int status=res.getStatus();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status &gt;= 400 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error reading request " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status= processRequest( req );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status != 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("Error mapping the request " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( req.getHandler() == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status=404;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("No handler for request " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String roles[]=req.getRequiredRoles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(roles != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status=0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor reqI[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext()==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    reqI=getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    reqI = req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors(Container.H_authorize);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Call all authorization callbacks. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; reqI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    status = reqI[i].authorize( req, res, roles );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if ( status != BaseInterceptor.DECLINED ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status != BaseInterceptor.OK ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("Unauthorized " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( status==BaseInterceptor.DECLINED )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    status=401; // unauthorized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.getHandler().service(req, res);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    handleError( req, res, t );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /** Will find the Handler for a servlet, assuming we already have<br/>
+     *  the Context. This is also used by Dispatcher and getResource -<br/>
+     *  where the Context is already known.<br/>
+     *<br/>
+     *  This method will only map the request, it'll not do authorization<br/>
+     *  or authentication.<br/>
+     */<br/>
+    public final int processRequest( Request req ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;9) log("Before processRequest(): "+req.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int status=0;<br/>
+        BaseInterceptor ri[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri=defaultContainer.getInterceptors(Container.H_postReadRequest);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].postReadRequest( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri=defaultContainer.getInterceptors(Container.H_contextMap);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].contextMap( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setState(Request.STATE_CONTEXT_MAPPED );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext() == null ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.getContext().getState() != Context.STATE_READY ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // the context is not fully initialized.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.setAttribute("javax.servlet.error.message",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "Application not available");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // return error code - the caller will handle it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // handleStatus( req, req.getResponse(), 503 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // service unavailable<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 503;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri=req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    getInterceptors(Container.H_requestMap);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 1 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "RequestMap " + ri[i] );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].requestMap( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setState(Request.STATE_MAPPED );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;9) log("After processRequest(): "+req.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    }<br/>
+<br/>
+<br/>
+    // -------------------- Sub-Request mechanism --------------------<br/>
+<br/>
+    /** Create a new sub-request in a given context, set the context "hint"<br/>
+     *  This is a particular case of sub-request that can't get out of<br/>
+     *  a context ( and we know the context before - so no need to compute it<br/>
+     *  again)<br/>
+     *<br/>
+     *  Note that session and all stuff will still be computed.<br/>
+     */<br/>
+    public final Request createRequest( Context ctx, String urlPath ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// assert urlPath!=null<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// deal with paths with parameters in it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String contextPath=ctx.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String origPath=urlPath;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append context path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( !"".equals(contextPath) &amp;&amp; !"/".equals(contextPath)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( urlPath.startsWith("/" ) )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;urlPath=contextPath + urlPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;urlPath=contextPath + "/" + urlPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // root context<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( !urlPath.startsWith("/" ) )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;urlPath= "/" + urlPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt;4 ) log("createRequest " + origPath + " " + urlPath  );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Request req= createSubRequest( ctx.getHost(), urlPath );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContext( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return req;<br/>
+    }<br/>
+<br/>
+    /** Create a new sub-request, deal with query string<br/>
+     */<br/>
+    private final Request createSubRequest( String host, String urlPath ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String queryString=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int i = urlPath.indexOf("?");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int len=urlPath.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (i&gt;-1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(i&lt;len)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;queryString =urlPath.substring(i + 1, urlPath.length());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    urlPath = urlPath.substring(0, i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Request lr = new Request();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Response res = new Response();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.setResponse( res );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;res.setRequest( lr );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.requestURI().setString( urlPath );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.queryString().setString(queryString );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host != null) lr.serverName().setString( host );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return lr;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *   Find a context by doing a sub-request and mapping the request<br/>
+     *   against the active rules ( that means you could use a /~costin<br/>
+     *   if a UserHomeInterceptor is present )<br/>
+     *<br/>
+     *   The new context will be in the same virtual host as base.<br/>
+     *<br/>
+     */<br/>
+    public final  Context getContext(Context base, String path) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// XXX Servlet checks should be done in facade<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (! path.startsWith("/")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null; // according to spec, null is returned<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // if we can't  return a servlet, so it's more probable<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // servlets will check for null than IllegalArgument<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// absolute path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Request lr=this.createSubRequest( base.getHost(), path );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.processRequest(lr);<br/>
+        return lr.getContext();<br/>
+    }<br/>
+<br/>
+<br/>
+    // -------------------- Error handling --------------------<br/>
+<br/>
+    /** Called for error-codes. Will call the error hook with a status code.<br/>
+     */<br/>
+    public final void handleStatus( Request req, Response res, int code ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( code!=0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    res.setStatus( code );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor ri[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext()==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=getContainer().getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].handleError( req, res, null );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *  Call error hook with an exception code.<br/>
+     */<br/>
+    public final void handleError( Request req, Response res , Throwable t  ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor ri[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext() == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=getContainer().getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].handleError( req, res, t );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // -------------------- Support for notes --------------------<br/>
+<br/>
+    /** Note id counters. Synchronized access is not necesarily needed<br/>
+     *  ( the initialization is in one thread ), but anyway we do it<br/>
+     */<br/>
+    public static final int NOTE_COUNT=8;<br/>
+    private  int noteId[]=new int[NOTE_COUNT];<br/>
+<br/>
+    /** Maximum number of notes supported<br/>
+     */<br/>
+    public static final int MAX_NOTES=32;<br/>
+    public static final int RESERVED=5;<br/>
+<br/>
+    public static final int SERVER_NOTE=0;<br/>
+    public static final int CONTAINER_NOTE=1;<br/>
+    public static final int REQUEST_NOTE=2;<br/>
+    public static final int HANDLER_NOTE=3;<br/>
+    public static final int SESSION_NOTE=4;<br/>
+    <br/>
+    public static final int REQ_RE_NOTE=0;<br/>
+<br/>
+    private String noteName[][]=new String[NOTE_COUNT][MAX_NOTES];<br/>
+    <br/>
+    /** used to allow interceptors to set specific per/request, per/container<br/>
+     * and per/CM informations.<br/>
+     *<br/>
+     * This will allow us to remove all "specialized" methods in<br/>
+     * Request and Container/Context, without losing the functionality.<br/>
+     * Remember - Interceptors are not supposed to have internal state<br/>
+     * and minimal configuration, all setup is part of the "core", under<br/>
+     *  central control.<br/>
+     *  We use indexed notes instead of attributes for performance -<br/>
+     * this is internal to tomcat and most of the time in critical path<br/>
+     */<br/>
+<br/>
+    /** Create a new note id. Interceptors will get an Id at init time for<br/>
+     *  all notes that it needs.<br/>
+     *<br/>
+     *  Throws exception if too many notes are set ( shouldn't happen in<br/>
+     *  normal use ).<br/>
+     *  @param noteType The note will be associated with the server,<br/>
+     *   container or request.<br/>
+     *  @param name the name of the note.<br/>
+     */<br/>
+    public final synchronized int getNoteId( int noteType, String name )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// find if we already have a note with this name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// ( this is in init(), not critical )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; noteId[noteType] ; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( name.equals( noteName[noteType][i] ) )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( noteId[noteType] &gt;= MAX_NOTES )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new TomcatException( "Too many notes ");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// make sure the note id is &gt; RESERVED<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( noteId[noteType] &lt; RESERVED ) noteId[noteType]=RESERVED;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;noteName[noteType][ noteId[noteType] ]=name;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return noteId[noteType]++;<br/>
+    }<br/>
+<br/>
+    public final String getNoteName( int noteType, int noteId ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return noteName[noteType][noteId];<br/>
+    }<br/>
+<br/>
+    // -------------------- Per-server notes --------------------<br/>
+    private Object notes[]=new Object[MAX_NOTES];<br/>
+    <br/>
+    public final void setNote( int pos, Object value ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;notes[pos]=value;<br/>
+    }<br/>
+<br/>
+    public final Object getNote( int pos ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return notes[pos];<br/>
+    }<br/>
+<br/>
+    public Object getNote( String name ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int id=getNoteId( SERVER_NOTE, name );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getNote( id );<br/>
+    }<br/>
+<br/>
+    public void setNote( String name, Object value ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int id=getNoteId( SERVER_NOTE, name );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setNote( id, value );<br/>
+    }<br/>
+    <br/>
+    // -------------------- Logging and debug --------------------<br/>
+<br/>
+    // default, is going to console until replaced (unless aleady configured)<br/>
+    private Log loghelper = Log.getLog("org/apache/tomcat/core",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       "ContextManager");<br/>
+    /**<br/>
+     * So other classes can piggyback on the context manager's log<br/>
+     * stream.<br/>
+     **/<br/>
+    public final Log getLog() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return loghelper;<br/>
+    }<br/>
+<br/>
+    public final void setLog(Log log) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;loghelper=log;<br/>
+    }<br/>
+ <br/>
+    public final void log(String msg) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;loghelper.log(msg);<br/>
+    }<br/>
+<br/>
+    public final void log(String msg, Throwable t) {<br/>
+        loghelper.log(msg, t);<br/>
+    }<br/>
+<br/>
+    public final void log(String msg, int level) {<br/>
+        loghelper.log(msg, level);<br/>
+    }<br/>
+<br/>
+    public final void log(String msg, Throwable t, int level) {<br/>
+        loghelper.log(msg, t, level);<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ContextManager_1.187.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */<br/>
+<br/>
+package org.apache.tomcat.core;<br/>
+<br/>
+import org.apache.tomcat.util.log.Log;<br/>
+<br/>
+import java.util.Hashtable;<br/>
+import java.util.Vector;<br/>
+import java.util.Enumeration;<br/>
+<br/>
+<br/>
+/**<br/>
+  ContextManager controls requests processing and server configuration.<br/>
+  It maintains a list of Contexts ( web applications )  and a list of<br/>
+  global modules that deal with server configuration and request processing,<br/>
+  and global properties ( directories, general settings, etc ).<br/>
+<br/>
+  The request processing is similar with Apache and other servers, with the<br/>
+  addition of a "contextMap" chain that will select a tomcat-specific.<br/>
+ <br/>
+  &lt;h2&gt;Configuration and startup&lt;/h2&gt;<br/>
+<br/>
+  Starting tomcat involves a number of actions and states. In order to<br/>
+  start tomcat:<br/>
+  <br/>
+  &lt;ol&gt;<br/>
+  &lt;li&gt; Create ContextManager. The server state is STATE_NEW<br/>
+<br/>
+  &lt;li&gt; Set properties for ContextManager ( home, debug, etc).<br/>
+<br/>
+  &lt;li&gt; Add the initial set of modules ( addInterceptor() ). ContextManager<br/>
+       will call setContextManager() and then the addInterceptor() hook.<br/>
+<br/>
+  &lt;li&gt; Add the initial set of web applications ( Contexts ). Configuration<br/>
+       modules can also add web applications - but no "addContext" hook<br/>
+       will be called ( since the server is not initialized ).<br/>
+<br/>
+  &lt;li&gt; Call init().<br/>
+       &lt;ol&gt;<br/>
+         &lt;li&gt;Init will notify all modules using the engineInit() hook. At<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; this point the ContextManager will be in STATE_CONFIG.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;It'll then call addContext() hooks for each context that were<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; added by config modules. Contexts will be in STATE_ADDED.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;It'll then call context.init() hooks for each context that were<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; added by config modules. Contexts will be in STATE_READY.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;After all contexts are added and initialized, server will be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; in STATE_INIT.<br/>
+       &lt;/ol&gt;<br/>
+  XXX Do we need finer control ? ( like initModules(), initContexts() ? )<br/>
+       <br/>
+  &lt;li&gt; At this point the server is fully configured, but not started.<br/>
+       The user can add/remove modules and applications - the rules are<br/>
+       defined in "run-time configuration".<br/>
+<br/>
+  &lt;li&gt; Call start(). The engineStart() hook will be called,<br/>
+  the connector modules should accept and serve requests. <br/>
+<br/>
+  &lt;li&gt; Call stop() to stop the server ( engineStop() hook will be called,<br/>
+  no requests more will be accepted )<br/>
+<br/>
+  &lt;li&gt; Call shutdown() to clean up all resources in use by web applications<br/>
+  and modules. The server will revert to STATE_CONFIG.<br/>
+       &lt;ol&gt;<br/>
+         &lt;li&gt;contextShutdown() will be called for each application. Modules<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; must clean any resources allocated for that context. <br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;removeContext() will be called for each application.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; &lt;li&gt;engineShutdown() will be called for each module<br/>
+       &lt;/ol&gt;<br/>
+<br/>
+  &lt;/ol&gt;<br/>
+<br/>
+<br/>
+  &lt;h2&gt;Runtime configuration&lt;/h2&gt;<br/>
+<br/>
+  XXX The only "supported" feature is adding/removing web applications.<br/>
+  Since each module can have a set of local modules, you can change the<br/>
+  configuration or modules for each context. Changing "global" modules may<br/>
+  work, but it's not finalized or tested.<br/>
+  <br/>
+  While tomcat is running, you can temporarily disable web applications,<br/>
+  remove and add new applications.<br/>
+  <br/>
+  @author James Duncan Davidson [duncan@eng.sun.com]<br/>
+  @author James Todd [gonzo@eng.sun.com]<br/>
+  @author Harish Prabandham<br/>
+  @author Costin Manolache<br/>
+  @author Hans Bergsten [hans@gefionsoftware.com]<br/>
+ */<br/>
+public final class ContextManager {<br/>
+    /** Official name and version<br/>
+     */<br/>
+    public static final String TOMCAT_VERSION = "3.3 Beta 1";<br/>
+    public static final String TOMCAT_NAME = "Tomcat Web Server";<br/>
+    <br/>
+    /** System property used to set the base directory ( tomcat home ).<br/>
+     *  use -DTOMCAT_HOME= in java command line or as a System.setProperty.<br/>
+     */<br/>
+    public static final String TOMCAT_HOME="tomcat.home";<br/>
+<br/>
+    /** System property used to set the install directory ( tomcat install ).<br/>
+     *  use -DTOMCAT_INSTALL= in java command line or as a System.setProperty.<br/>
+     */<br/>
+    public static final String TOMCAT_INSTALL="tomcat.install";<br/>
+<br/>
+    // State<br/>
+<br/>
+    /**<br/>
+     *  Server is beeing configured - modules are added.<br/>
+     */<br/>
+    public static final int STATE_NEW=0;<br/>
+<br/>
+    /**<br/>
+     *  Server and global modules are initialized and stable.<br/>
+     */<br/>
+    public static final int STATE_CONFIG=1;<br/>
+<br/>
+    /**<br/>
+     *  Web applications are  configured and initialized.<br/>
+     */<br/>
+    public static final int STATE_INIT=2;<br/>
+ <br/>
+    /**<br/>
+     *  Server is started and may process requests.<br/>
+     */<br/>
+    public static final int STATE_START=3;<br/>
+<br/>
+    // -------------------- local variables --------------------<br/>
+<br/>
+    private int state=STATE_NEW;<br/>
+    <br/>
+    // All contexts managed by the server ( can belong to different<br/>
+    // virtual hosts )<br/>
+    private Vector contextsV=new Vector();<br/>
+    private Hashtable contexts=new Hashtable();<br/>
+<br/>
+    private int debug=0;<br/>
+<br/>
+    /** Private workspace for this server<br/>
+     */<br/>
+    private String workDir="work";<br/>
+<br/>
+    /** The base directory where this instance runs.<br/>
+     *  It can be different from the install directory to<br/>
+     *  allow one install per system and multiple users<br/>
+     */<br/>
+    private String home;<br/>
+<br/>
+    /** The directory where tomcat is installed<br/>
+     */<br/>
+    private String installDir;<br/>
+    <br/>
+    // Server properties ( interceptors, etc ) - it's one level above "/"<br/>
+    private Container defaultContainer;<br/>
+<br/>
+    // the embedding application loader. @see getParentLoader<br/>
+    private ClassLoader parentLoader;<br/>
+<br/>
+    // the common class loader, shared by container and apps<br/>
+    private ClassLoader commonLoader;<br/>
+<br/>
+    // the container class loader, used to load all container modules<br/>
+    private ClassLoader containerLoader;<br/>
+<br/>
+    // the webapp loader, with classes shared by all webapps.<br/>
+    private ClassLoader appsLoader;<br/>
+<br/>
+    private Hashtable properties=new Hashtable();<br/>
+    <br/>
+    /**<br/>
+     * Construct a new ContextManager instance with default values.<br/>
+     */<br/>
+    public ContextManager() {<br/>
+        defaultContainer=new Container();<br/>
+        defaultContainer.setContext( null );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;defaultContainer.setContextManager( this );<br/>
+        defaultContainer.setPath( null ); // default container<br/>
+    }<br/>
+<br/>
+    // -------------------- setable properties --------------------<br/>
+<br/>
+    /**<br/>
+     *  The home of the tomcat instance - you can have multiple<br/>
+     *  users running tomcat, with a shared install directory.<br/>
+     *  <br/>
+     *  Home is used as a base for logs, webapps, local config.<br/>
+     *  Install dir ( if different ) is used to find lib ( jar<br/>
+     *   files ).<br/>
+     *<br/>
+     *  The "tomcat.home" system property is used if no explicit<br/>
+     *  value is set. XXX<br/>
+     */<br/>
+    public final void setHome(String home) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.home=home;<br/>
+    }<br/>
+<br/>
+    public final String getHome() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return home;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *  Get installation directory. This is used to locate<br/>
+     *  jar files ( lib ). If tomcat instance is shared,<br/>
+     *  home is used for webapps, logs, config.<br/>
+     *  If either home or install is not set, the other<br/>
+     *  is used as default.<br/>
+     * <br/>
+     */<br/>
+    public final String getInstallDir() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return installDir;<br/>
+    }<br/>
+<br/>
+    public final void setInstallDir( String tH ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;installDir=tH;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * WorkDir property - where all working files will be created<br/>
+     */<br/>
+    public final void setWorkDir( String wd ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0) log("set work dir " + wd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.workDir=wd;<br/>
+    }<br/>
+<br/>
+    public final String getWorkDir() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return workDir;<br/>
+    }<br/>
+<br/>
+<br/>
+    /** Debug level<br/>
+     */<br/>
+    public final void setDebug( int level ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( level != debug )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Setting debug level to " + level);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;debug=level;<br/>
+    }<br/>
+<br/>
+    public final int getDebug() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return debug;<br/>
+    }<br/>
+<br/>
+    //  XmlMapper will call setProperty(name,value) if no explicit setter<br/>
+    // is found - it's better to use this mechanism for special<br/>
+    // properties ( that are not generic enough and used by few specific<br/>
+    // module )<br/>
+<br/>
+    /** Generic properties support. You can get properties like<br/>
+     *  "showDebugInfo", "randomClass", etc.<br/>
+     */<br/>
+    public String getProperty( String name ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (String)properties.get( name );<br/>
+    }<br/>
+<br/>
+    public void setProperty( String name, String value ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;properties.put( name, value );<br/>
+    }<br/>
+<br/>
+    public Hashtable getProperties() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return properties;<br/>
+    }<br/>
+    <br/>
+    // -------------------- Other properties --------------------<br/>
+<br/>
+    /** Return the current state of the tomcat server.<br/>
+     */<br/>
+    public final int getState() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return state;<br/>
+    }<br/>
+<br/>
+    /** Change the state, after notifying all modules about the change<br/>
+     *  Any error will be propagated - the server will not change the<br/>
+     *  state and should fail if any module can't handle that.<br/>
+     */<br/>
+    public final void setState( int state )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    existingI[i].engineState( this, state );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.state=state;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *  Parent loader is the "base" class loader of the<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;application that starts tomcat, and includes no<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;tomcat classes.<br/>
+     * <br/>
+     *  Each web applications will use a loader that will have it as<br/>
+     *  a parent loader, so all classes visible to parentLoader<br/>
+     *  will be available to servlets.<br/>
+     *<br/>
+     *  Tomcat will add the right servlet.jar and Facade.<br/>
+     *<br/>
+     *  Trusted applications will also see the internal tomcat<br/>
+     *  classes.<br/>
+     *<br/>
+     *  Interceptors may also add custom classes to a webapp,<br/>
+     *  based on tomcat configuration.<br/>
+     *<br/>
+     *  Tomcat.core and all internal classes will be loaded by<br/>
+     *  another class loader, having the same parentLoader.<br/>
+     *<br/>
+     *  &lt;pre&gt;<br/>
+     *  parentLoader  -&gt; tomcat.core.loader [ -&gt; trusted.webapp.loader ]<br/>
+     *                -&gt; webapp.loaders<br/>
+     *  &lt;/pre&gt;<br/>
+     */<br/>
+    public final void setParentLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;parentLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getParentLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return parentLoader;<br/>
+    }<br/>
+<br/>
+    public final void setCommonLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;commonLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getCommonLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return commonLoader;<br/>
+    }<br/>
+<br/>
+    public final void setContainerLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;containerLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getContainerLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return containerLoader;<br/>
+    }<br/>
+<br/>
+    public final void setAppsLoader( ClassLoader cl ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;appsLoader=cl;<br/>
+    }<br/>
+<br/>
+    public final ClassLoader getAppsLoader() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return appsLoader;<br/>
+    }<br/>
+<br/>
+    /** Default container. The interceptors for this container will<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;be called for all requests, and it will be associated with<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;invalid requests ( where context can't be found ).<br/>
+     */<br/>
+    public final Container getContainer() {<br/>
+        return defaultContainer;<br/>
+    }<br/>
+<br/>
+    public final void setContainer(Container newDefaultContainer) {<br/>
+        defaultContainer = newDefaultContainer;<br/>
+    }<br/>
+<br/>
+    /** Add a global interceptor. The addInterceptor() hook will be called.<br/>
+     *  If the module is added after STATE_CONFIG, the engineInit() hook will<br/>
+     *  be called ( otherwise we wait for init() ).<br/>
+     *  If the module is added after STATE_INIT, the addContext and<br/>
+     *  initContext hooks will be called.<br/>
+     *  If the module is added after STATE_START, the engineStart hooks will<br/>
+     *  be called.<br/>
+     */<br/>
+    public final void addInterceptor( BaseInterceptor ri )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.setContextManager( this );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// first, add the module ( addInterceptor may change the ordering )<br/>
+        defaultContainer.addInterceptor(ri);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// second, let the module know it's added. It may look at<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// other module and even choose to remove himself and throw exception.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.addInterceptor( this, null, ri ); // should know about itself<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// let other modules know about the new friend.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( existingI[i] != ri )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;existingI[i].addInterceptor( this, null, ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// startup module, server is not initialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_NEW ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we are at last initialized, call engineInit hook ( a module<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// at runtime will get the same calls as a setup module )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.engineInit( this );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state== STATE_CONFIG ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// addContext hook for all existing contexts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ri.addContext( this, ctx ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Error adding context " +ctx + " to " + ri ); // ignore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// contextInit hook if we're started<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ri.contextInit( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Error adding context " +ctx + " to " + ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ignore it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_INIT ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we are running - let the module know about that.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.engineStart(this);<br/>
+    }<br/>
+<br/>
+    /** Remove a module. Hooks will be called to allow the module to<br/>
+     *  free the resources. <br/>
+     */<br/>
+    public final void removeInterceptor( BaseInterceptor ri )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    existingI[i].removeInterceptor( this, null, ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri.removeInterceptor( this, null, ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;defaultContainer.removeInterceptor( ri );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_NEW ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_START )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri.engineStop(this);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state &gt;= STATE_INIT ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ri.contextShutdown( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error shuting down context " +ctx + " to " + ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ri.removeContext( this, ctx ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error removing context " +ctx + " to " + ri );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ignore it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    }<br/>
+<br/>
+    // -------------------- Server functions --------------------<br/>
+<br/>
+    /**<br/>
+     *  Init() is called after the context manager is set up (properties)<br/>
+     *  and configured ( modules ).<br/>
+     *<br/>
+     *  All engineInit() hooks will be called and the server will <br/>
+     *  move to state= INIT<br/>
+     * <br/>
+     */<br/>
+    public final void init()  throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state &gt;= STATE_CONFIG  ) // already initialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;0 ) log( "Tomcat init");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor existingI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    existingI[i].engineInit( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// The server is configured, all modules are ready<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState(STATE_CONFIG);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;log("Tomcat configured and in stable state ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;existingI=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// deal with contexts that were added before init()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// ( by user or modules during engineInit )<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// first trusted apps - they may do special actions<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.isTrusted() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireAddContext(ctx, existingI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Initialize the contexts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.isTrusted() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ctx.init();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // just log the error - the context will not serve requests<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error initializing " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// again - it may change<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;existingI=defaultContainer.getInterceptors();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Same thing for untrusted apps <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! ctx.isTrusted() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fireAddContext(ctx, existingI );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Initialize the contexts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! ctx.isTrusted() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ctx.init();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // just log the error - the context will not serve requests<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error initializing " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState( STATE_INIT );<br/>
+    }<br/>
+<br/>
+    private void fireAddContext(Context ctx, BaseInterceptor existingI[] ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for( int i=0; i&lt;existingI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;existingI[i].addContext( this, ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error adding context " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // set state may throw exception<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.setState( Context.STATE_ADDED );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("Adding  " +  ctx.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error adding context " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+    /** Will start the connectors and begin serving requests.<br/>
+     *  It must be called after init.<br/>
+     */<br/>
+    public final void start() throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state==STATE_NEW ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    init();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        if( state==STATE_START ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cI[i].engineStart( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// requests can be processed now<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState(STATE_START);<br/>
+    }<br/>
+<br/>
+    /** Will stop all connectors<br/>
+     */<br/>
+    public final void stop() throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState(STATE_INIT); // initialized, but not accepting connections<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cI[i].engineStop( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /** Remove all contexts.<br/>
+     *  - call removeContext ( that will call Interceptor.removeContext hooks )<br/>
+     *  - call Interceptor.engineShutdown() hooks.<br/>
+     */<br/>
+    public final void shutdown() throws TomcatException {<br/>
+        if( state==STATE_START ) stop();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration enum = getContexts();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (enum.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Context ctx = (Context)enum.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.shutdown();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "Error shuting down context " +ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// No need to remove - since init() doesn't add the contexts.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Modules could remove contexts ( and add them in init() ), but who<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// adds should also remove<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;while (!contextsV.isEmpty()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Context ctx=(Context)contextsV.firstElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;removeContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    } catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "shutdown.removeContext" , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Notify all modules that the server will shutdown,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// let them clean up all resources<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=defaultContainer.getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cI[i].engineShutdown( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } catch( Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "shutdown.engineShutdown" , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setState( STATE_NEW );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// remove the modules ( XXX do we need that ? )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;removeInterceptor( cI[i] );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    } catch( Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "shutdown.removeInterceptor" , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // -------------------- Contexts --------------------<br/>
+<br/>
+    /** Return the list of contexts managed by this server.<br/>
+     *  Tomcat can handle multiple virtual hosts. <br/>
+     *<br/>
+     *  All contexts are stored in ContextManager when added.<br/>
+     *  Modules can use the information in context ( when addContext<br/>
+     *  hook is called ) and prepare mapping tables.<br/>
+     */<br/>
+    public final Enumeration getContexts() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return contextsV.elements();<br/>
+    }<br/>
+<br/>
+    public final Enumeration getContextNames() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return contexts.keys();<br/>
+    }<br/>
+<br/>
+    public Context getContext(String name ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (Context)contexts.get( name );<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds a new Context to the set managed by this ContextManager.<br/>
+     * It'll also init the server if it hasn't been already.<br/>
+     *<br/>
+     * All addContext hooks will be called. The context will be<br/>
+     * in STATE_ADDED - it'll not serve requests.<br/>
+     *<br/>
+     * @param ctx context to be added.<br/>
+     */<br/>
+    public final void addContext( Context ctx ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Make sure context knows about its manager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// this will also initialized all context-specific modules.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setState( Context.STATE_NEW );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contextsV.addElement( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contexts.put( ctx.getName(), ctx );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( getState() == STATE_NEW )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// we are at least configured, can call the hook<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    BaseInterceptor cI[]=ctx.getContainer().getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If an exception is thrown, context will remain in<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// NEW state.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cI[i].addContext( this, ctx ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.setState( Context.STATE_ADDED );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("Adding context " +  ctx.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (TomcatException ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log( "Context not added " + ctx , ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw ex;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+<br/>
+    /** Shut down and removes a context from service.<br/>
+     */<br/>
+    public final void removeContext( Context context ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( context==null ) return;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;log( "Removing context " + context.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contextsV.removeElement(context);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;contexts.remove( context.getName());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( getState() == STATE_NEW )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return; // we are not even initialized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// modules can add/remove contexts at init time, but no<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// action will take place until the server is stable.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// if it's already disabled - or was never activated,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// no need to shutdown and remove<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( context.getState() == Context.STATE_NEW )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// disable the context - it it is running <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( context.getState() == Context.STATE_READY )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    context.shutdown();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// remove it from operation - notify interceptors that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// this context is no longer active<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor cI[]=context.getContainer().getInterceptors();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; cI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    cI[i].removeContext( this, context );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// mark the context as "not active" <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;context.setState( Context.STATE_NEW );<br/>
+    }<br/>
+<br/>
+<br/>
+    // -------------------- Request processing / subRequest ------------------<br/>
+    // -------------------- Main request processing methods ------------------<br/>
+<br/>
+    /** Prepare the req/resp pair for use in tomcat.<br/>
+     *  Call it after you create the request/response objects.<br/>
+     *  ( for example in a connector, or when an internal sub-request is<br/>
+     *  created )<br/>
+     */<br/>
+    public final void initRequest( Request req, Response resp ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// We may add other special calls here.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;resp.setRequest( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setResponse( resp );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;resp.init();<br/>
+    }<br/>
+<br/>
+    /** This is the entry point in tomcat - the connectors ( or any other<br/>
+     *  component able to generate Request/Response implementations ) will<br/>
+     *  call this method to get it processed.<br/>
+     */<br/>
+    public final void service( Request req, Response res ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( state!=STATE_START ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // A request was received before all components are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // in started state. Than can happen if the adapter was<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // started too soon or of the server is temporarily<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // disabled.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.setAttribute("javax.servlet.error.message",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "Server is starting");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    handleStatus( req, res, 503 ); // service unavailable<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    internalService( req, res );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// clean up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    res.finish();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch( Throwable ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    handleError( req, res, ex );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;finally {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    BaseInterceptor reqI[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( req.getContext()==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reqI=getContainer().getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reqI= req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    getInterceptors(Container.H_postRequest);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for( int i=0; i&lt; reqI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reqI[i].postRequest( req, res );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.recycle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    res.recycle();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+    }<br/>
+<br/>
+    // Request processing steps and behavior<br/>
+    private final void internalService( Request req, Response res ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    /* assert req/res are set up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;       corectly - have cm, and one-one relation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // wrong request - parsing error<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int status=res.getStatus();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status &gt;= 400 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log( "Error reading request " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status ); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status= processRequest( req );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status != 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("Error mapping the request " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( req.getHandler() == null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status=404;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("No handler for request " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String roles[]=req.getRequiredRoles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(roles != null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status=0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor reqI[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext()==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    reqI=getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    reqI = req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors(Container.H_authorize);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Call all authorization callbacks. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; reqI.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    status = reqI[i].authorize( req, res, roles );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if ( status != BaseInterceptor.DECLINED ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status != BaseInterceptor.OK ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("Unauthorized " + req + " " + status);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( status==BaseInterceptor.DECLINED )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    status=401; // unauthorized<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handleStatus( req, res, status );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.getHandler().service(req, res);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Throwable t) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    handleError( req, res, t );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /** Will find the Handler for a servlet, assuming we already have<br/>
+     *  the Context. This is also used by Dispatcher and getResource -<br/>
+     *  where the Context is already known.<br/>
+     *<br/>
+     *  This method will only map the request, it'll not do authorization<br/>
+     *  or authentication.<br/>
+     */<br/>
+    public final int processRequest( Request req ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;9) log("Before processRequest(): "+req.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int status=0;<br/>
+        BaseInterceptor ri[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri=defaultContainer.getInterceptors(Container.H_postReadRequest);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].postReadRequest( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri=defaultContainer.getInterceptors(Container.H_contextMap);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].contextMap( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setState(Request.STATE_CONTEXT_MAPPED );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext() == null ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.getContext().getState() != Context.STATE_READY ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // the context is not fully initialized.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    req.setAttribute("javax.servlet.error.message",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     "Application not available");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // return error code - the caller will handle it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // handleStatus( req, req.getResponse(), 503 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // service unavailable<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return 503;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ri=req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    getInterceptors(Container.H_requestMap);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( debug &gt; 1 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log( "RequestMap " + ri[i] );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].requestMap( req );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setState(Request.STATE_MAPPED );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(debug&gt;9) log("After processRequest(): "+req.toString());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br/>
+    }<br/>
+<br/>
+<br/>
+    // -------------------- Sub-Request mechanism --------------------<br/>
+<br/>
+    /** Create a new sub-request in a given context, set the context "hint"<br/>
+     *  This is a particular case of sub-request that can't get out of<br/>
+     *  a context ( and we know the context before - so no need to compute it<br/>
+     *  again)<br/>
+     *<br/>
+     *  Note that session and all stuff will still be computed.<br/>
+     */<br/>
+    public final Request createRequest( Context ctx, String urlPath ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// assert urlPath!=null<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// deal with paths with parameters in it<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String contextPath=ctx.getPath();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String origPath=urlPath;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append context path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( !"".equals(contextPath) &amp;&amp; !"/".equals(contextPath)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( urlPath.startsWith("/" ) )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;urlPath=contextPath + urlPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;urlPath=contextPath + "/" + urlPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // root context<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( !urlPath.startsWith("/" ) )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;urlPath= "/" + urlPath;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( debug &gt;4 ) log("createRequest " + origPath + " " + urlPath  );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Request req= createSubRequest( ctx.getHost(), urlPath );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;req.setContext( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return req;<br/>
+    }<br/>
+<br/>
+    /** Create a new sub-request, deal with query string<br/>
+     */<br/>
+    private final Request createSubRequest( String host, String urlPath ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String queryString=null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int i = urlPath.indexOf("?");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int len=urlPath.length();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (i&gt;-1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(i&lt;len)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;queryString =urlPath.substring(i + 1, urlPath.length());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    urlPath = urlPath.substring(0, i);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Request lr = new Request();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Response res = new Response();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.setContextManager( this );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.setResponse( res );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;res.setRequest( lr );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.requestURI().setString( urlPath );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;lr.queryString().setString(queryString );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( host != null) lr.serverName().setString( host );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return lr;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *   Find a context by doing a sub-request and mapping the request<br/>
+     *   against the active rules ( that means you could use a /~costin<br/>
+     *   if a UserHomeInterceptor is present )<br/>
+     *<br/>
+     *   The new context will be in the same virtual host as base.<br/>
+     *<br/>
+     */<br/>
+    public final  Context getContext(Context base, String path) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// XXX Servlet checks should be done in facade<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (! path.startsWith("/")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null; // according to spec, null is returned<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // if we can't  return a servlet, so it's more probable<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // servlets will check for null than IllegalArgument<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// absolute path<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Request lr=this.createSubRequest( base.getHost(), path );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.processRequest(lr);<br/>
+        return lr.getContext();<br/>
+    }<br/>
+<br/>
+<br/>
+    // -------------------- Error handling --------------------<br/>
+<br/>
+    /** Called for error-codes. Will call the error hook with a status code.<br/>
+     */<br/>
+    public final void handleStatus( Request req, Response res, int code ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( code!=0 )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    res.setStatus( code );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor ri[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext()==null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=getContainer().getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].handleError( req, res, null );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *  Call error hook with an exception code.<br/>
+     */<br/>
+    public final void handleError( Request req, Response res , Throwable t  ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;BaseInterceptor ri[];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( req.getContext() == null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=getContainer().getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ri=req.getContext().getContainer().<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInterceptors( Container.H_handleError );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; ri.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    status=ri[i].handleError( req, res, t );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( status!=0 ) return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // -------------------- Support for notes --------------------<br/>
+<br/>
+    /** Note id counters. Synchronized access is not necesarily needed<br/>
+     *  ( the initialization is in one thread ), but anyway we do it<br/>
+     */<br/>
+    public static final int NOTE_COUNT=8;<br/>
+    private  int noteId[]=new int[NOTE_COUNT];<br/>
+<br/>
+    /** Maximum number of notes supported<br/>
+     */<br/>
+    public static final int MAX_NOTES=32;<br/>
+    public static final int RESERVED=5;<br/>
+<br/>
+    public static final int SERVER_NOTE=0;<br/>
+    public static final int CONTAINER_NOTE=1;<br/>
+    public static final int REQUEST_NOTE=2;<br/>
+    public static final int HANDLER_NOTE=3;<br/>
+    public static final int SESSION_NOTE=4;<br/>
+    <span class="add"><span class="add">public</span> <span class="add">static</span> <span class="add">final</span> <span class="add">int</span> <span class="add"><span class="add">MODULE_NOTE</span>=<span class="add">5</span></span>;</span><br/>
+    <br/>
+    public static final int REQ_RE_NOTE=0;<br/>
+<br/>
+    private String noteName[][]=new String[NOTE_COUNT][MAX_NOTES];<br/>
+    <br/>
+    /** used to allow interceptors to set specific per/request, per/container<br/>
+     * and per/CM informations.<br/>
+     *<br/>
+     * This will allow us to remove all "specialized" methods in<br/>
+     * Request and Container/Context, without losing the functionality.<br/>
+     * Remember - Interceptors are not supposed to have internal state<br/>
+     * and minimal configuration, all setup is part of the "core", under<br/>
+     *  central control.<br/>
+     *  We use indexed notes instead of attributes for performance -<br/>
+     * this is internal to tomcat and most of the time in critical path<br/>
+     */<br/>
+<br/>
+    /** Create a new note id. Interceptors will get an Id at init time for<br/>
+     *  all notes that it needs.<br/>
+     *<br/>
+     *  Throws exception if too many notes are set ( shouldn't happen in<br/>
+     *  normal use ).<br/>
+     *  @param noteType The note will be associated with the server,<br/>
+     *   container or request.<br/>
+     *  @param name the name of the note.<br/>
+     */<br/>
+    public final synchronized int getNoteId( int noteType, String name )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// find if we already have a note with this name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// ( this is in init(), not critical )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; noteId[noteType] ; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( name.equals( noteName[noteType][i] ) )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( noteId[noteType] &gt;= MAX_NOTES )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new TomcatException( "Too many notes ");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// make sure the note id is &gt; RESERVED<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( noteId[noteType] &lt; RESERVED ) noteId[noteType]=RESERVED;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;noteName[noteType][ noteId[noteType] ]=name;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return noteId[noteType]++;<br/>
+    }<br/>
+<br/>
+    public final String getNoteName( int noteType, int noteId ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return noteName[noteType][noteId];<br/>
+    }<br/>
+<br/>
+    // -------------------- Per-server notes --------------------<br/>
+    private Object notes[]=new Object[MAX_NOTES];<br/>
+    <br/>
+    public final void setNote( int pos, Object value ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;notes[pos]=value;<br/>
+    }<br/>
+<br/>
+    public final Object getNote( int pos ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return notes[pos];<br/>
+    }<br/>
+<br/>
+    public Object getNote( String name ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int id=getNoteId( SERVER_NOTE, name );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getNote( id );<br/>
+    }<br/>
+<br/>
+    public void setNote( String name, Object value ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int id=getNoteId( SERVER_NOTE, name );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setNote( id, value );<br/>
+    }<br/>
+    <br/>
+    // -------------------- Logging and debug --------------------<br/>
+<br/>
+    // default, is going to console until replaced (unless aleady configured)<br/>
+    private Log loghelper = Log.getLog("org/apache/tomcat/core",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       "ContextManager");<br/>
+    /**<br/>
+     * So other classes can piggyback on the context manager's log<br/>
+     * stream.<br/>
+     **/<br/>
+    public final Log getLog() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return loghelper;<br/>
+    }<br/>
+<br/>
+    public final void setLog(Log log) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;loghelper=log;<br/>
+    }<br/>
+ <br/>
+    public final void log(String msg) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;loghelper.log(msg);<br/>
+    }<br/>
+<br/>
+    public final void log(String msg, Throwable t) {<br/>
+        loghelper.log(msg, t);<br/>
+    }<br/>
+<br/>
+    public final void log(String msg, int level) {<br/>
+        loghelper.log(msg, level);<br/>
+    }<br/>
+<br/>
+    public final void log(String msg, Throwable t, int level) {<br/>
+        loghelper.log(msg, t, level);<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

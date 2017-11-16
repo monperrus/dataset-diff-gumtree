@@ -1,0 +1,27 @@
+--- t_265044/left_SimpleLookupTable_1.5.java	2013-03-17 15:47:20.000000000 +0100
++++ t_265044/right_SimpleLookupTable_1.6.java	2013-03-17 15:47:20.000000000 +0100
+@@ -1,5 +1,5 @@
+ /*******************************************************************************
+- * Copyright (c) 2000, 2006 IBM Corporation and others.
++ * Copyright (c) 2000, 2007 IBM Corporation and others.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Eclipse Public License v1.0
+  * which accompanies this distribution, and is available at
+@@ -74,6 +74,17 @@
+ 	return null;
+ }
+ 
++public Object getKey(Object key) {
++	int length = keyTable.length;
++	int index = (key.hashCode() & 0x7FFFFFFF) % length;
++	Object currentKey;
++	while ((currentKey = keyTable[index]) != null) {
++		if (currentKey.equals(key)) return currentKey;
++		if (++index == length) index = 0;
++	}
++	return key;
++}
++
+ public Object keyForValue(Object valueToMatch) {
+ 	if (valueToMatch != null)
+ 		for (int i = 0, l = keyTable.length; i < l; i++)

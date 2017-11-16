@@ -1,0 +1,13 @@
+diff --git a/t_245308/left_update_1.45.java b/t_245308/right_update_1.46.java
+index 563de5a..123ab21 100644
+--- a/t_245308/left_update_1.45.java
++++ b/t_245308/right_update_1.46.java
+@@ -388,7 +388,7 @@ doQuery(MyStringTokenizer st) throws IOException {
+ 	Name name = null;
+ 	short type = Type.A, dclass = defaultClass;
+ 
+-	name = new Name(st.nextToken());
++	name = new Name(st.nextToken(), origin);
+ 	if (st.hasMoreTokens()) {
+ 		type = Type.value(st.nextToken());
+ 		if (type < 0)

@@ -1,0 +1,393 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_PhraseQuery_1.4.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.search;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.io.IOException;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.lucene.index.Term;<br/>
+import org.apache.lucene.index.TermDocs;<br/>
+import org.apache.lucene.index.TermPositions;<br/>
+import org.apache.lucene.index.IndexReader;<br/>
+<br/>
+/** A Query that matches documents containing a particular sequence of terms.<br/>
+  This may be combined with other terms with a {@link BooleanQuery}.<br/>
+  */<br/>
+public class PhraseQuery extends Query {<br/>
+  private String field;<br/>
+  private Vector terms = new Vector();<br/>
+  private float idf = 0.0f;<br/>
+  private float weight = 0.0f;<br/>
+<br/>
+  private int slop = 0;<br/>
+<br/>
+<br/>
+  /** Constructs an empty phrase query. */<br/>
+  public PhraseQuery() {<br/>
+  }<br/>
+<br/>
+  /** Sets the number of other words permitted between words in query phrase.<br/>
+    If zero, then this is an exact phrase search.  For larger values this works<br/>
+    like a &lt;code&gt;WITHIN&lt;/code&gt; or &lt;code&gt;NEAR&lt;/code&gt; operator.<br/>
+<br/>
+    &lt;p&gt;The slop is in fact an edit-distance, where the units correspond to<br/>
+    moves of terms in the query phrase out of position.  For example, to switch<br/>
+    the order of two words requires two moves (the first move places the words<br/>
+    atop one another), so to permit re-orderings of phrases, the slop must be<br/>
+    at least two.<br/>
+<br/>
+    &lt;p&gt;More exact matches are scored higher than sloppier matches, thus search<br/>
+    results are sorted by exactness.<br/>
+<br/>
+    &lt;p&gt;The slop is zero by default, requiring exact matches.*/<br/>
+  public void setSlop(int s) { slop = s; }<br/>
+  /** Returns the slop.  See setSlop(). */<br/>
+  public int getSlop() { return slop; }<br/>
+<br/>
+  /** Adds a term to the end of the query phrase. */<br/>
+  public void add(Term term) {<br/>
+    if (terms.size() == 0)<br/>
+      field = term.field();<br/>
+    else if (term.field() != field)<br/>
+      throw new IllegalArgumentException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("All phrase terms must be in the same field: " + term);<br/>
+<br/>
+    terms.addElement(term);<br/>
+  }<br/>
+<br/>
+  final float sumOfSquaredWeights(Searcher searcher) throws IOException {<br/>
+    for (int i = 0; i &lt; terms.size(); i++)&nbsp;&nbsp;&nbsp;&nbsp;  // sum term IDFs<br/>
+      idf += Similarity.idf((Term)terms.elementAt(i), searcher);<br/>
+<br/>
+    weight = idf * boost;<br/>
+    return weight * weight;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // square term weights<br/>
+  }<br/>
+<br/>
+  final void normalize(float norm) {<br/>
+    weight *= norm;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // normalize for query<br/>
+    weight *= idf;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // factor from document<br/>
+  }<br/>
+<br/>
+  final Scorer scorer(IndexReader reader) throws IOException {<br/>
+    if (terms.size() == 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // optimize zero-term case<br/>
+      return null;<br/>
+    if (terms.size() == 1) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // optimize one-term case<br/>
+      Term term = (Term)terms.elementAt(0);<br/>
+      TermDocs docs = reader.termDocs(term);<br/>
+      if (docs == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+      return new TermScorer(docs, reader.norms(term.field()), weight);<br/>
+    }<br/>
+<br/>
+    TermPositions[] tps = new TermPositions[terms.size()];<br/>
+    for (int i = 0; i &lt; terms.size(); i++) {<br/>
+      TermPositions p = reader.termPositions((Term)terms.elementAt(i));<br/>
+      if (p == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+      tps[i] = p;<br/>
+    }<br/>
+<br/>
+    if (slop == 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // optimize exact case<br/>
+      return new ExactPhraseScorer(tps, reader.norms(field), weight);<br/>
+    else<br/>
+      return<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;new SloppyPhraseScorer(tps, slop, reader.norms(field), weight);<br/>
+<br/>
+  }<br/>
+<br/>
+  /** Prints a user-readable version of this query. */<br/>
+  public String toString(String f) {<br/>
+    StringBuffer buffer = new StringBuffer();<br/>
+    if (!field.equals(f)) {<br/>
+      buffer.append(field);<br/>
+      buffer.append(":");<br/>
+    }<br/>
+<br/>
+    buffer.append("\"");<br/>
+    for (int i = 0; i &lt; terms.size(); i++) {<br/>
+      buffer.append(((Term)terms.elementAt(i)).text());<br/>
+      if (i != terms.size()-1)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" ");<br/>
+    }<br/>
+    buffer.append("\"");<br/>
+<br/>
+    if (slop != 0) {<br/>
+      buffer.append("~");<br/>
+      buffer.append(slop);<br/>
+    }<br/>
+<br/>
+    if (boost != 1.0f) {<br/>
+      buffer.append("^");<br/>
+      buffer.append(Float.toString(boost));<br/>
+    }<br/>
+<br/>
+    return buffer.toString();<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_PhraseQuery_1.5.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.search;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.io.IOException;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.lucene.index.Term;<br/>
+import org.apache.lucene.index.TermDocs;<br/>
+import org.apache.lucene.index.TermPositions;<br/>
+import org.apache.lucene.index.IndexReader;<br/>
+<br/>
+/** A Query that matches documents containing a particular sequence of terms.<br/>
+  This may be combined with other terms with a {@link BooleanQuery}.<br/>
+  */<br/>
+public class PhraseQuery extends Query {<br/>
+  private String field;<br/>
+  private Vector terms = new Vector();<br/>
+  private float idf = 0.0f;<br/>
+  private float weight = 0.0f;<br/>
+<br/>
+  private int slop = 0;<br/>
+<br/>
+<br/>
+  /** Constructs an empty phrase query. */<br/>
+  public PhraseQuery() {<br/>
+  }<br/>
+<br/>
+  /** Sets the number of other words permitted between words in query phrase.<br/>
+    If zero, then this is an exact phrase search.  For larger values this works<br/>
+    like a &lt;code&gt;WITHIN&lt;/code&gt; or &lt;code&gt;NEAR&lt;/code&gt; operator.<br/>
+<br/>
+    &lt;p&gt;The slop is in fact an edit-distance, where the units correspond to<br/>
+    moves of terms in the query phrase out of position.  For example, to switch<br/>
+    the order of two words requires two moves (the first move places the words<br/>
+    atop one another), so to permit re-orderings of phrases, the slop must be<br/>
+    at least two.<br/>
+<br/>
+    &lt;p&gt;More exact matches are scored higher than sloppier matches, thus search<br/>
+    results are sorted by exactness.<br/>
+<br/>
+    &lt;p&gt;The slop is zero by default, requiring exact matches.*/<br/>
+  public void setSlop(int s) { slop = s; }<br/>
+  /** Returns the slop.  See setSlop(). */<br/>
+  public int getSlop() { return slop; }<br/>
+<br/>
+  /** Adds a term to the end of the query phrase. */<br/>
+  public void add(Term term) {<br/>
+    if (terms.size() == 0)<br/>
+      field = term.field();<br/>
+    else if (term.field() != field)<br/>
+      throw new IllegalArgumentException<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("All phrase terms must be in the same field: " + term);<br/>
+<br/>
+    terms.addElement(term);<br/>
+  }<br/>
+<br/>
+  final float sumOfSquaredWeights(Searcher searcher) throws IOException {<br/>
+    <span class="add"><span class="add"><span class="add">idf</span> = <span class="add">0.0f</span></span>;</span><br/>
+    for (int i = 0; i &lt; terms.size(); i++)&nbsp;&nbsp;&nbsp;&nbsp;  // sum term IDFs<br/>
+      idf += Similarity.idf((Term)terms.elementAt(i), searcher);<br/>
+<br/>
+    weight = idf * boost;<br/>
+    return weight * weight;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // square term weights<br/>
+  }<br/>
+<br/>
+  final void normalize(float norm) {<br/>
+    weight *= norm;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // normalize for query<br/>
+    weight *= idf;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // factor from document<br/>
+  }<br/>
+<br/>
+  final Scorer scorer(IndexReader reader) throws IOException {<br/>
+    if (terms.size() == 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // optimize zero-term case<br/>
+      return null;<br/>
+    if (terms.size() == 1) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // optimize one-term case<br/>
+      Term term = (Term)terms.elementAt(0);<br/>
+      TermDocs docs = reader.termDocs(term);<br/>
+      if (docs == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+      return new TermScorer(docs, reader.norms(term.field()), weight);<br/>
+    }<br/>
+<br/>
+    TermPositions[] tps = new TermPositions[terms.size()];<br/>
+    for (int i = 0; i &lt; terms.size(); i++) {<br/>
+      TermPositions p = reader.termPositions((Term)terms.elementAt(i));<br/>
+      if (p == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+      tps[i] = p;<br/>
+    }<br/>
+<br/>
+    if (slop == 0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // optimize exact case<br/>
+      return new ExactPhraseScorer(tps, reader.norms(field), weight);<br/>
+    else<br/>
+      return<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;new SloppyPhraseScorer(tps, slop, reader.norms(field), weight);<br/>
+<br/>
+  }<br/>
+<br/>
+  /** Prints a user-readable version of this query. */<br/>
+  public String toString(String f) {<br/>
+    StringBuffer buffer = new StringBuffer();<br/>
+    if (!field.equals(f)) {<br/>
+      buffer.append(field);<br/>
+      buffer.append(":");<br/>
+    }<br/>
+<br/>
+    buffer.append("\"");<br/>
+    for (int i = 0; i &lt; terms.size(); i++) {<br/>
+      buffer.append(((Term)terms.elementAt(i)).text());<br/>
+      if (i != terms.size()-1)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" ");<br/>
+    }<br/>
+    buffer.append("\"");<br/>
+<br/>
+    if (slop != 0) {<br/>
+      buffer.append("~");<br/>
+      buffer.append(slop);<br/>
+    }<br/>
+<br/>
+    if (boost != 1.0f) {<br/>
+      buffer.append("^");<br/>
+      buffer.append(Float.toString(boost));<br/>
+    }<br/>
+<br/>
+    return buffer.toString();<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

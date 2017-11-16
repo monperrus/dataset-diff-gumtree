@@ -1,0 +1,12 @@
+diff --git a/t_285436/left_Assert_1.11.java b/t_285436/right_Assert_1.12.java
+index e4490dd..8116749 100644
+--- a/t_285436/left_Assert_1.11.java
++++ b/t_285436/right_Assert_1.12.java
+@@ -263,6 +263,6 @@ public class Assert {
+ 	}
+ 
+ 	static private void failNotEquals(String message, Object expected, Object actual) {
+-		throw new ComparisonFailure(message, expected.toString(), actual.toString());
++	    throw new ComparisonFailure(message, expected == null ? "null" : expected.toString(), actual == null ? "null" : actual.toString());
+ 	}
+ }

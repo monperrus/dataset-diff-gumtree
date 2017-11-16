@@ -1,0 +1,290 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_DateField_1.4.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.document;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.util.Date;<br/>
+<br/>
+/**<br/>
+ * Provides support for converting dates to strings and vice-versa.<br/>
+ * The strings are structured so that lexicographic sorting orders by date.<br/>
+ * This makes them suitable for use as field values and search terms.<br/>
+ * &lt;P&gt;<br/>
+ * Note: currenly dates before 1970 cannot be used, and therefore cannot be<br/>
+ * indexed.<br/>
+ */<br/>
+public class DateField {<br/>
+  private DateField() {}<br/>
+<br/>
+  // make date strings long enough to last a millenium<br/>
+  private static int DATE_LEN = Long.toString(1000L*365*24*60*60*1000,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Character.MAX_RADIX).length();<br/>
+<br/>
+  public static String MIN_DATE_STRING() {<br/>
+    return timeToString(0);<br/>
+  }<br/>
+<br/>
+  public static String MAX_DATE_STRING() {<br/>
+    char[] buffer = new char[DATE_LEN];<br/>
+    char c = Character.forDigit(Character.MAX_RADIX-1, Character.MAX_RADIX);<br/>
+    for (int i = 0 ; i &lt; DATE_LEN; i++)<br/>
+      buffer[i] = c;<br/>
+    return new String(buffer);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Converts a Date to a string suitable for indexing.<br/>
+   * This method will throw a RuntimeException if the date specified in the<br/>
+   * method argument is before 1970.<br/>
+   */<br/>
+  public static String dateToString(Date date) {<br/>
+    return timeToString(date.getTime());<br/>
+  }<br/>
+  /**<br/>
+   * Converts a millisecond time to a string suitable for indexing.<br/>
+   * This method will throw a RuntimeException if the time specified in the<br/>
+   * method argument is negative, that is, before 1970.<br/>
+   */<br/>
+  public static String timeToString(long time) {<br/>
+    if (time &lt; 0)<br/>
+      throw new RuntimeException("time too early");<br/>
+<br/>
+    String s = Long.toString(time, Character.MAX_RADIX);<br/>
+<br/>
+    if (s.length() &gt; DATE_LEN)<br/>
+      throw new RuntimeException("time too late");<br/>
+<br/>
+    // Pad with leading zeros<br/>
+    if (s.length() &lt; DATE_LEN) {<br/>
+      StringBuffer sb = new StringBuffer(s);<br/>
+      while (sb.length() &lt; DATE_LEN)<br/>
+        sb.insert(0, <span class="del">' '</span>);<br/>
+      s = sb.toString();<br/>
+    }<br/>
+<br/>
+    return s;<br/>
+  }<br/>
+<br/>
+  /** Converts a string-encoded date into a millisecond time. */<br/>
+  public static long stringToTime(String s) {<br/>
+    return Long.parseLong(s, Character.MAX_RADIX);<br/>
+  }<br/>
+  /** Converts a string-encoded date into a Date object. */<br/>
+  public static Date stringToDate(String s) {<br/>
+    return new Date(stringToTime(s));<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_DateField_1.5.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.lucene.document;<br/>
+<br/>
+/* ====================================================================<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 2001 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution,<br/>
+ *    if any, must include the following acknowledgment:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowledgment may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowledgments normally appear.<br/>
+ *<br/>
+ * 4. The names "Apache" and "Apache Software Foundation" and<br/>
+ *    "Apache Lucene" must not be used to endorse or promote products<br/>
+ *    derived from this software without prior written permission. For<br/>
+ *    written permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache",<br/>
+ *    "Apache Lucene", nor may "Apache" appear in their name, without<br/>
+ *    prior written permission of the Apache Software Foundation.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ */<br/>
+<br/>
+import java.util.Date;<br/>
+<br/>
+/**<br/>
+ * Provides support for converting dates to strings and vice-versa.<br/>
+ * The strings are structured so that lexicographic sorting orders by date.<br/>
+ * This makes them suitable for use as field values and search terms.<br/>
+ * &lt;P&gt;<br/>
+ * Note: currenly dates before 1970 cannot be used, and therefore cannot be<br/>
+ * indexed.<br/>
+ */<br/>
+public class DateField {<br/>
+  private DateField() {}<br/>
+<br/>
+  // make date strings long enough to last a millenium<br/>
+  private static int DATE_LEN = Long.toString(1000L*365*24*60*60*1000,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Character.MAX_RADIX).length();<br/>
+<br/>
+  public static String MIN_DATE_STRING() {<br/>
+    return timeToString(0);<br/>
+  }<br/>
+<br/>
+  public static String MAX_DATE_STRING() {<br/>
+    char[] buffer = new char[DATE_LEN];<br/>
+    char c = Character.forDigit(Character.MAX_RADIX-1, Character.MAX_RADIX);<br/>
+    for (int i = 0 ; i &lt; DATE_LEN; i++)<br/>
+      buffer[i] = c;<br/>
+    return new String(buffer);<br/>
+  }<br/>
+<br/>
+  /**<br/>
+   * Converts a Date to a string suitable for indexing.<br/>
+   * This method will throw a RuntimeException if the date specified in the<br/>
+   * method argument is before 1970.<br/>
+   */<br/>
+  public static String dateToString(Date date) {<br/>
+    return timeToString(date.getTime());<br/>
+  }<br/>
+  /**<br/>
+   * Converts a millisecond time to a string suitable for indexing.<br/>
+   * This method will throw a RuntimeException if the time specified in the<br/>
+   * method argument is negative, that is, before 1970.<br/>
+   */<br/>
+  public static String timeToString(long time) {<br/>
+    if (time &lt; 0)<br/>
+      throw new RuntimeException("time too early");<br/>
+<br/>
+    String s = Long.toString(time, Character.MAX_RADIX);<br/>
+<br/>
+    if (s.length() &gt; DATE_LEN)<br/>
+      throw new RuntimeException("time too late");<br/>
+<br/>
+    // Pad with leading zeros<br/>
+    if (s.length() &lt; DATE_LEN) {<br/>
+      StringBuffer sb = new StringBuffer(s);<br/>
+      while (sb.length() &lt; DATE_LEN)<br/>
+        sb.insert(0, <span class="add">0</span>);<br/>
+      s = sb.toString();<br/>
+    }<br/>
+<br/>
+    return s;<br/>
+  }<br/>
+<br/>
+  /** Converts a string-encoded date into a millisecond time. */<br/>
+  public static long stringToTime(String s) {<br/>
+    return Long.parseLong(s, Character.MAX_RADIX);<br/>
+  }<br/>
+  /** Converts a string-encoded date into a Date object. */<br/>
+  public static Date stringToDate(String s) {<br/>
+    return new Date(stringToTime(s));<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

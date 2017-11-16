@@ -1,0 +1,697 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_TraceCarol_1.7.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2004 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: TraceCarol.java,v 1.7 2004-09-01 11:02:41 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.util.configuration;<br/>
+<br/>
+import java.util.Properties;<br/>
+<br/>
+import org.objectweb.util.monolog.api.BasicLevel;<br/>
+import org.objectweb.util.monolog.api.HandlerFactory;<br/>
+import org.objectweb.util.monolog.api.LevelFactory;<br/>
+import org.objectweb.util.monolog.api.Logger;<br/>
+import org.objectweb.util.monolog.api.LoggerFactory;<br/>
+import org.objectweb.util.monolog.file.monolog.PropertiesConfAccess;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt; TraceCarol &lt;/code&gt; for Carol Trace configuration<br/>
+ */<br/>
+public class TraceCarol {<br/>
+<br/>
+    /**<br/>
+     * prefix used to identify CAROL loggers<br/>
+     */<br/>
+    public static final String prefix = "org.objectweb.carol";<br/>
+<br/>
+    /**<br/>
+     * the carol logger jndiCarol and rmiCarol logger are children of carol<br/>
+     * logger<br/>
+     */<br/>
+    protected static Logger carolLogger = null;<br/>
+<br/>
+    protected static Logger jndiCarolLogger = null;<br/>
+<br/>
+    protected static Logger rmiCarolLogger = null;<br/>
+<br/>
+    protected static Logger exportCarolLogger = null;<br/>
+<br/>
+    protected static Logger cmiDesLogger = null;<br/>
+<br/>
+    protected static Logger cmiJndiLogger = null;<br/>
+<br/>
+    protected static Logger cmiRegistryLogger = null;<br/>
+<br/>
+    /**<br/>
+     * Configure the log for CAROL. Log configuration is stored in a property<br/>
+     * file, &lt;code&gt;trace.properties&lt;/code&gt;, which should be available from<br/>
+     * the classpath.<br/>
+     */<br/>
+    public static void configure() {<br/>
+        if (carolLogger == null) {<br/>
+            Properties props = new Properties();<br/>
+            try {<br/>
+                props.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("trace.properties"));<br/>
+            } catch (Exception e) {<br/>
+                System.err.println("Configuration file for log not found. Traces are disabled: " + e);<br/>
+                return;<br/>
+            }<br/>
+            // Instanciate the LoggerFactory<br/>
+            String lfClassName = props.getProperty("log.config.classname", null);<br/>
+            if (lfClassName == null) {<br/>
+                System.err.println("Malformed log configuration file: log.config.classname not available");<br/>
+                return;<br/>
+            }<br/>
+            try {<br/>
+                LoggerFactory lf = (LoggerFactory) Class.forName(lfClassName).newInstance();<br/>
+                // Configure the LoggerFactory with the properties<br/>
+                PropertiesConfAccess.load(props, lf, (HandlerFactory) lf, (LevelFactory) lf);<br/>
+                TraceCarol.configure(lf);<br/>
+            } catch (Exception e) {<br/>
+                System.err.println("Logs are disabled:" + e);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Configure the log for CAROL<br/>
+     * @param &lt;code&gt;lf&lt;/code&gt; the LoggerFactory<br/>
+     */<br/>
+    public static void configure(LoggerFactory lf) {<br/>
+        carolLogger = lf.getLogger(prefix);<br/>
+        jndiCarolLogger = lf.getLogger(prefix + ".jndi");<br/>
+        rmiCarolLogger = lf.getLogger(prefix + ".rmi");<br/>
+        exportCarolLogger = lf.getLogger(prefix + ".rmi.export");<br/>
+        cmiDesLogger = lf.getLogger(prefix + ".cmi.des");<br/>
+        cmiJndiLogger = lf.getLogger(prefix + ".cmi.jndi");<br/>
+        cmiRegistryLogger = lf.getLogger(prefix + ".cmi.registry");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a verbose message<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; verbose message<br/>
+     */<br/>
+    public static void verbose(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.INFO, msg);<br/>
+        } else {<br/>
+            System.out.println("CAROL Verbose message:" + msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log an error message.<br/>
+     * @param &lt;code&gt;msg &lt;/code&gt; error message<br/>
+     */<br/>
+    public static void error(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.ERROR, msg);<br/>
+        } else {<br/>
+            System.err.println("CAROL Error:" + msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log an error message and a stack trace from a Throwable object.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; error message<br/>
+     * @param &lt;code&gt;th&lt;/code&gt; Throwable object<br/>
+     */<br/>
+    public static void error(String msg, Throwable th) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.ERROR, msg, th);<br/>
+        } else {<br/>
+            System.err.println("CAROL Error:" + msg);<br/>
+            th.printStackTrace();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Carol debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Carol debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCarol() {<br/>
+        return (carolLogger != null) &amp;&amp; carolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Carol debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; CAROL debug message<br/>
+     */<br/>
+    public static void debugCarol(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Carol info messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Carol debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isInfoCarol() {<br/>
+        return (carolLogger != null) &amp;&amp; carolLogger.isLoggable(BasicLevel.INFO);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Carol Info message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; CAROL debug message<br/>
+     */<br/>
+    public static void infoCarol(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.INFO, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Jndi debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Jndi debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugJndiCarol() {<br/>
+        return (jndiCarolLogger != null) &amp;&amp; jndiCarolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Jndi debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Jndi debug message<br/>
+     */<br/>
+    public static void debugJndiCarol(String msg) {<br/>
+        if (jndiCarolLogger != null) {<br/>
+            jndiCarolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Rmi debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Rmi debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugRmiCarol() {<br/>
+        return (rmiCarolLogger != null) &amp;&amp; rmiCarolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Rmi debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Rmi debug message<br/>
+     */<br/>
+    public static void debugRmiCarol(String msg) {<br/>
+        if (rmiCarolLogger != null) {<br/>
+            rmiCarolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return boolean true is is debug export<br/>
+     */<br/>
+    public static boolean isDebugExportCarol() {<br/>
+        return (exportCarolLogger != null) &amp;&amp; exportCarolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param string<br/>
+     */<br/>
+    public static void debugExportCarol(String msg) {<br/>
+        if (exportCarolLogger != null) {<br/>
+            exportCarolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi DES debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi DES debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCmiDes() {<br/>
+        return (cmiDesLogger != null) &amp;&amp; cmiDesLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Cmi DES debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi DES debug message<br/>
+     */<br/>
+    public static void debugCmiDes(String msg) {<br/>
+        if (cmiDesLogger != null) {<br/>
+            cmiDesLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi JNDI debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi JNDI debug messages are<br/>
+     *         logged, &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCmiJndi() {<br/>
+        return (cmiJndiLogger != null) &amp;&amp; cmiJndiLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Cmi JNDI debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi JNDI debug message<br/>
+     */<br/>
+    public static void debugCmiJndi(String msg) {<br/>
+        if (cmiJndiLogger != null) {<br/>
+            cmiJndiLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi registry debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi registry debug messages are<br/>
+     *         logged, &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCmiRegistry() {<br/>
+        return (cmiRegistryLogger != null) &amp;&amp; cmiRegistryLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Cmi registry debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi registry debug message<br/>
+     */<br/>
+    public static void debugCmiRegistry(String msg) {<br/>
+        if (cmiRegistryLogger != null) {<br/>
+            cmiRegistryLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi info messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi info messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    /*<br/>
+     * static public boolean isInfoCmiCarol() { return (cmiCarolLogger != null) &amp;&amp;<br/>
+     * cmiCarolLogger.isLoggable(BasicLevel.INFO); }<br/>
+     */<br/>
+    /**<br/>
+     * Log a Cmi info message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi info message<br/>
+     */<br/>
+    /*<br/>
+     * public static void infoCmiCarol(String msg) { if (cmiCarolLogger != null) {<br/>
+     * cmiCarolLogger.log(BasicLevel.INFO, msg); } }<br/>
+     */<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_TraceCarol_1.8.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2004 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: TraceCarol.java,v 1.8 2005-03-10 16:52:06 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.util.configuration;<br/>
+<br/>
+import java.util.Properties;<br/>
+<br/>
+import org.objectweb.util.monolog.api.BasicLevel;<br/>
+import org.objectweb.util.monolog.api.HandlerFactory;<br/>
+import org.objectweb.util.monolog.api.LevelFactory;<br/>
+import org.objectweb.util.monolog.api.Logger;<br/>
+import org.objectweb.util.monolog.api.LoggerFactory;<br/>
+import org.objectweb.util.monolog.file.monolog.PropertiesConfAccess;<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">objectweb</span></span>.<span class="add">util</span></span>.<span class="add">monolog</span></span>.<span class="add">wrapper</span></span>.<span class="add">printwriter</span></span>.<span class="add">LoggerImpl</span></span>;</span><br/>
+<br/>
+<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt; TraceCarol &lt;/code&gt; for Carol Trace configuration<br/>
+ */<br/>
+public class TraceCarol {<br/>
+<br/>
+    /**<br/>
+     * prefix used to identify CAROL loggers<br/>
+     */<br/>
+    public static final String prefix = "org.objectweb.carol";<br/>
+<br/>
+    /**<br/>
+     * the carol logger jndiCarol and rmiCarol logger are children of carol<br/>
+     * logger<br/>
+     */<br/>
+    protected static Logger carolLogger = null;<br/>
+<br/>
+    protected static Logger jndiCarolLogger = null;<br/>
+<br/>
+    protected static Logger rmiCarolLogger = null;<br/>
+<br/>
+    protected static Logger exportCarolLogger = null;<br/>
+<br/>
+    protected static Logger cmiDesLogger = null;<br/>
+<br/>
+    protected static Logger cmiJndiLogger = null;<br/>
+<br/>
+    protected static Logger cmiRegistryLogger = null;<br/>
+<br/>
+    /**<br/>
+     * Configure the log for CAROL. Log configuration is stored in a property<br/>
+     * file, &lt;code&gt;trace.properties&lt;/code&gt;, which should be available from<br/>
+     * the classpath.<br/>
+     */<br/>
+    public static void configure() {<br/>
+        if (carolLogger == null) {<br/>
+            Properties props = new Properties();<br/>
+            try {<br/>
+                props.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("trace.properties"));<br/>
+            } catch (Exception e) {<br/>
+                System.err.println("Configuration file for log not found. Traces are disabled: " + e);<br/>
+                return;<br/>
+            }<br/>
+            // Instanciate the LoggerFactory<br/>
+            String lfClassName = props.getProperty("log.config.classname", null);<br/>
+            if (lfClassName == null) {<br/>
+                System.err.println("Malformed log configuration file: log.config.classname not available");<br/>
+                return;<br/>
+            }<br/>
+            try {<br/>
+                LoggerFactory lf = (LoggerFactory) Class.forName(lfClassName).newInstance();<br/>
+                // Configure the LoggerFactory with the properties<br/>
+                PropertiesConfAccess.load(props, lf, (HandlerFactory) lf, (LevelFactory) lf);<br/>
+                TraceCarol.configure(lf);<br/>
+            } catch (Exception e) {<br/>
+                System.err.println("Logs are disabled:" + e);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Configure the log for CAROL<br/>
+     * @param &lt;code&gt;lf&lt;/code&gt; the LoggerFactory<br/>
+     */<br/>
+    public static void configure(LoggerFactory lf) {<br/>
+        carolLogger = lf.getLogger(prefix);<br/>
+        jndiCarolLogger = lf.getLogger(prefix + ".jndi");<br/>
+        rmiCarolLogger = lf.getLogger(prefix + ".rmi");<br/>
+        exportCarolLogger = lf.getLogger(prefix + ".rmi.export");<br/>
+        cmiDesLogger = lf.getLogger(prefix + ".cmi.des");<br/>
+        cmiJndiLogger = lf.getLogger(prefix + ".cmi.jndi");<br/>
+        cmiRegistryLogger = lf.getLogger(prefix + ".cmi.registry");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a verbose message<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; verbose message<br/>
+     */<br/>
+    public static void verbose(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.INFO, msg);<br/>
+        } else {<br/>
+            System.out.println("CAROL Verbose message:" + msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log an error message.<br/>
+     * @param &lt;code&gt;msg &lt;/code&gt; error message<br/>
+     */<br/>
+    public static void error(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.ERROR, msg);<br/>
+        } else {<br/>
+            System.err.println("CAROL Error:" + msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log an error message and a stack trace from a Throwable object.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; error message<br/>
+     * @param &lt;code&gt;th&lt;/code&gt; Throwable object<br/>
+     */<br/>
+    public static void error(String msg, Throwable th) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.ERROR, msg, th);<br/>
+        } else {<br/>
+            System.err.println("CAROL Error:" + msg);<br/>
+            th.printStackTrace();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Carol debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Carol debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCarol() {<br/>
+        return (carolLogger != null) &amp;&amp; carolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Carol debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; CAROL debug message<br/>
+     */<br/>
+    public static void debugCarol(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Carol info messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Carol debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isInfoCarol() {<br/>
+        return (carolLogger != null) &amp;&amp; carolLogger.isLoggable(BasicLevel.INFO);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Carol Info message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; CAROL debug message<br/>
+     */<br/>
+    public static void infoCarol(String msg) {<br/>
+        if (carolLogger != null) {<br/>
+            carolLogger.log(BasicLevel.INFO, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Jndi debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Jndi debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugJndiCarol() {<br/>
+        return (jndiCarolLogger != null) &amp;&amp; jndiCarolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Jndi debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Jndi debug message<br/>
+     */<br/>
+    public static void debugJndiCarol(String msg) {<br/>
+        if (jndiCarolLogger != null) {<br/>
+            jndiCarolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Rmi debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Rmi debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugRmiCarol() {<br/>
+        return (rmiCarolLogger != null) &amp;&amp; rmiCarolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Rmi debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Rmi debug message<br/>
+     */<br/>
+    public static void debugRmiCarol(String msg) {<br/>
+        if (rmiCarolLogger != null) {<br/>
+            rmiCarolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return boolean true is is debug export<br/>
+     */<br/>
+    public static boolean isDebugExportCarol() {<br/>
+        return (exportCarolLogger != null) &amp;&amp; exportCarolLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @param string<br/>
+     */<br/>
+    public static void debugExportCarol(String msg) {<br/>
+        if (exportCarolLogger != null) {<br/>
+            exportCarolLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi DES debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi DES debug messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCmiDes() {<br/>
+        return (cmiDesLogger != null) &amp;&amp; cmiDesLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Cmi DES debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi DES debug message<br/>
+     */<br/>
+    public static void debugCmiDes(String msg) {<br/>
+        if (cmiDesLogger != null) {<br/>
+            cmiDesLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi JNDI debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi JNDI debug messages are<br/>
+     *         logged, &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCmiJndi() {<br/>
+        return (cmiJndiLogger != null) &amp;&amp; cmiJndiLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Cmi JNDI debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi JNDI debug message<br/>
+     */<br/>
+    public static void debugCmiJndi(String msg) {<br/>
+        if (cmiJndiLogger != null) {<br/>
+            cmiJndiLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi registry debug messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi registry debug messages are<br/>
+     *         logged, &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    static public boolean isDebugCmiRegistry() {<br/>
+        return (cmiRegistryLogger != null) &amp;&amp; cmiRegistryLogger.isLoggable(BasicLevel.DEBUG);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Log a Cmi registry debug message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi registry debug message<br/>
+     */<br/>
+    public static void debugCmiRegistry(String msg) {<br/>
+        if (cmiRegistryLogger != null) {<br/>
+            cmiRegistryLogger.log(BasicLevel.DEBUG, msg);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Test if Cmi info messages are logged.<br/>
+     * @return boolean &lt;code&gt;true&lt;/code&gt; if Cmi info messages are logged,<br/>
+     *         &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+     */<br/>
+    /*<br/>
+     * static public boolean isInfoCmiCarol() { return (cmiCarolLogger != null) &amp;&amp;<br/>
+     * cmiCarolLogger.isLoggable(BasicLevel.INFO); }<br/>
+     */<br/>
+    /**<br/>
+     * Log a Cmi info message.<br/>
+     * @param &lt;code&gt;msg&lt;/code&gt; Cmi info message<br/>
+     */<br/>
+    /*<br/>
+     * public static void infoCmiCarol(String msg) { if (cmiCarolLogger != null) {<br/>
+     * cmiCarolLogger.log(BasicLevel.INFO, msg); } }<br/>
+     */<br/>
+<br/>
+    <span class="add"><span class="add">/**<br/>
+     * @return the jndiCarolLogger.<br/>
+     */</span><br/>
+    <span class="add">public</span> <span class="add">static</span> <span class="add"><span class="add">Logger</span></span> <span class="add">getJndiCarolLogger</span>() <span class="add">{<br/>
+        <span class="add">if (<span class="add"><span class="add">jndiCarolLogger</span> == <span class="add">null</span></span>) <span class="add">{<br/>
+            <span class="add">return <span class="add">new <span class="add"><span class="add">DummyLogger</span></span>()</span>;</span><br/>
+        }</span> else <span class="add">{<br/>
+            <span class="add">return <span class="add">jndiCarolLogger</span>;</span><br/>
+        }</span></span><br/>
+<br/>
+    }</span></span><br/>
+<br/>
+}<br/>
+<br/>
+<br/>
+<span class="add">class <span class="add">DummyLogger</span> extends <span class="add"><span class="add">LoggerImpl</span></span> implements <span class="add"><span class="add">Logger</span></span> {<br/>
+<br/>
+    <span class="add"><span class="add">/**<br/>
+     * Dummy Logger used when jotm classes are used on client side<br/>
+     */</span><br/>
+    <span class="add">public</span> <span class="add">void</span> <span class="add">log</span>(<span class="add"><span class="add">int</span> <span class="add">level</span></span>, <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">java</span>.<span class="add">lang</span></span>.<span class="add">Object</span></span></span> <span class="add">o</span></span>) <span class="add">{<br/>
+        <span class="add">if (<span class="add"><span class="add">level</span> &gt;= <span class="add"><span class="add">BasicLevel</span>.<span class="add">INFO</span></span></span>) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add"><span class="add">System</span>.<span class="add">out</span></span>.<span class="add">println</span>(<span class="add">o</span>)</span>;</span><br/>
+        }</span></span><br/>
+    }</span></span><br/>
+}</span><br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

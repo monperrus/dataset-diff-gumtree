@@ -1,0 +1,446 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_IIOPCosNaming_1.11.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2005 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: IIOPCosNaming.java,v 1.11 2005-03-10 12:21:46 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jndi.ns;<br/>
+<br/>
+import java.io.InputStream;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.InitialContext;<br/>
+<br/>
+import org.omg.CORBA.ORB;<br/>
+<br/>
+import org.objectweb.carol.util.configuration.TraceCarol;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt; IIOPCosNaming &lt;/code&gt; Start in a separated process (see the sun<br/>
+ * orbd documentation)<br/>
+ * @author Guillaume Riviere<br/>
+ * @author Florent Benoit (add POA model / Refactoring)<br/>
+ */<br/>
+public class IIOPCosNaming extends AbsRegistry implements NameService {<br/>
+<br/>
+    /**<br/>
+     * Default port number ( 12350 for default)<br/>
+     */<br/>
+    private static final int DEFAULT_PORT_NUMBER = 12350;<br/>
+<br/>
+    /**<br/>
+     * Sleep time to wait<br/>
+     */<br/>
+    private static final int SLEEP_TIME = 2000;<br/>
+<br/>
+    /**<br/>
+     * process of the cosnaming<br/>
+     */<br/>
+    private Process cosNamingProcess = null;<br/>
+<br/>
+    /**<br/>
+     * Unique instance of the ORB running in the JVM<br/>
+     */<br/>
+    private static ORB orb = null;<br/>
+<br/>
+    /**<br/>
+     * Default constructor<br/>
+     */<br/>
+    public IIOPCosNaming() {<br/>
+        super(DEFAULT_PORT_NUMBER);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * start Method, Start a new NameService or do nothing if the name service<br/>
+     * is all ready start<br/>
+     * @throws NameServiceException if a problem occurs<br/>
+     */<br/>
+    public void start() throws NameServiceException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("IIOPCosNaming.start() on port:" + getPort());<br/>
+        }<br/>
+        try {<br/>
+            if (!isStarted()) {<br/>
+                // start a new orbd procees<br/>
+                if (getPort() &gt;= 0) {<br/>
+                    cosNamingProcess = Runtime.getRuntime().exec(<br/>
+                            System.getProperty("java.home") + System.getProperty("file.separator") + "bin"<br/>
+                                    + System.getProperty("file.separator") + "tnameserv -ORBInitialPort " + getPort());<br/>
+                    // wait for starting<br/>
+                    Thread.sleep(SLEEP_TIME);<br/>
+<br/>
+                    // trace the start execution<br/>
+                    InputStream cosError = cosNamingProcess.getErrorStream();<br/>
+                    if (cosError.available() != 0) {<br/>
+                        byte[] b = new byte[cosError.available()];<br/>
+                        cosError.read(b);<br/>
+                        cosError.close();<br/>
+                        throw new NameServiceException("can not start cosnaming daemon:" + new String(b));<br/>
+                    }<br/>
+<br/>
+                    InputStream cosOut = cosNamingProcess.getInputStream();<br/>
+                    if (cosOut.available() != 0) {<br/>
+                        byte[] b = new byte[cosOut.available()];<br/>
+                        cosOut.read(b);<br/>
+                        cosOut.close();<br/>
+                        if (TraceCarol.isDebugJndiCarol()) {<br/>
+                            TraceCarol.debugJndiCarol("IIOPCosNaming:");<br/>
+                            TraceCarol.debugJndiCarol(new String(b));<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+                    // add a shudown hook for this process<br/>
+                    Runtime.getRuntime().addShutdownHook(new Thread() {<br/>
+<br/>
+                        public void run() {<br/>
+                            try {<br/>
+                                IIOPCosNaming.this.stop();<br/>
+                            } catch (Exception e) {<br/>
+                                TraceCarol.error("IIOPCosNaming ShutdownHook problem", e);<br/>
+                            }<br/>
+                        }<br/>
+                    });<br/>
+                } else {<br/>
+                    if (TraceCarol.isDebugJndiCarol()) {<br/>
+                        TraceCarol.debugJndiCarol("Can't start IIOPCosNaming, port=" + getPort() + " is &lt; 0");<br/>
+                    }<br/>
+                }<br/>
+            } else {<br/>
+                if (TraceCarol.isDebugJndiCarol()) {<br/>
+                    TraceCarol.debugJndiCarol("IIOPCosNaming is already start on port:" + getPort());<br/>
+                }<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            TraceCarol.error("Can not start IIOPCosNaming for an unknow Reason", e);<br/>
+            throw new NameServiceException("can not start cosnaming daemon: " + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * stop Method, Stop a NameService or do nothing if the name service is all<br/>
+     * ready stop<br/>
+     * @throws NameServiceException if a problem occure<br/>
+     */<br/>
+    public void stop() throws NameServiceException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("IIOPCosNaming.stop()");<br/>
+        }<br/>
+        try {<br/>
+            // stop orbd procees<br/>
+            if (cosNamingProcess != null) {<br/>
+                cosNamingProcess.destroy();<br/>
+            }<br/>
+            cosNamingProcess = null;<br/>
+        } catch (Exception e) {<br/>
+            throw new NameServiceException("can not stop cosnaming daemon: " + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * isStarted Method, check if a name service is started<br/>
+     * @return boolean true if the name service is started<br/>
+     */<br/>
+    public boolean isStarted() {<br/>
+        if (cosNamingProcess != null) {<br/>
+            return true;<br/>
+        }<br/>
+        Properties prop = new Properties();<br/>
+        prop.put(Context.INITIAL_CONTEXT_FACTORY, <span class="upd">"com.sun.jndi.cosnaming.CNCtxFactory"</span>);<br/>
+        prop.put(Context.PROVIDER_URL, "iiop://localhost:" + getPort());<br/>
+<br/>
+        if (orb == null) {<br/>
+            initORB();<br/>
+        }<br/>
+<br/>
+        prop.put("java.naming.corba.orb", orb);<br/>
+<br/>
+        try {<br/>
+            new InitialContext(prop);<br/>
+        } catch (javax.naming.NamingException ex) {<br/>
+            return false;<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return the orb.<br/>
+     */<br/>
+    public static ORB getOrb() {<br/>
+        if (orb == null) {<br/>
+            initORB();<br/>
+        }<br/>
+        return orb;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Initialize the ORB<br/>
+     * @return<br/>
+     */<br/>
+    private static void initORB() {<br/>
+        orb = ORB.init(new String[0], null);<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_IIOPCosNaming_1.12.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2005 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: IIOPCosNaming.java,v 1.12 2005-08-02 21:28:41 ashah Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jndi.ns;<br/>
+<br/>
+import java.io.InputStream;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.InitialContext;<br/>
+<br/>
+import org.omg.CORBA.ORB;<br/>
+<br/>
+import org.objectweb.carol.util.configuration.TraceCarol;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt; IIOPCosNaming &lt;/code&gt; Start in a separated process (see the sun<br/>
+ * orbd documentation)<br/>
+ * @author Guillaume Riviere<br/>
+ * @author Florent Benoit (add POA model / Refactoring)<br/>
+ */<br/>
+public class IIOPCosNaming extends AbsRegistry implements NameService {<br/>
+<br/>
+    /**<br/>
+     * Default port number ( 12350 for default)<br/>
+     */<br/>
+    private static final int DEFAULT_PORT_NUMBER = 12350;<br/>
+<br/>
+    /**<br/>
+     * Sleep time to wait<br/>
+     */<br/>
+    private static final int SLEEP_TIME = 2000;<br/>
+<br/>
+    /**<br/>
+     * process of the cosnaming<br/>
+     */<br/>
+    private Process cosNamingProcess = null;<br/>
+<br/>
+    /**<br/>
+     * Unique instance of the ORB running in the JVM<br/>
+     */<br/>
+    private static ORB orb = null;<br/>
+<br/>
+    /**<br/>
+     * Default constructor<br/>
+     */<br/>
+    public IIOPCosNaming() {<br/>
+        super(DEFAULT_PORT_NUMBER);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * start Method, Start a new NameService or do nothing if the name service<br/>
+     * is all ready start<br/>
+     * @throws NameServiceException if a problem occurs<br/>
+     */<br/>
+    public void start() throws NameServiceException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("IIOPCosNaming.start() on port:" + getPort());<br/>
+        }<br/>
+        try {<br/>
+            if (!isStarted()) {<br/>
+                // start a new orbd procees<br/>
+                if (getPort() &gt;= 0) {<br/>
+                    cosNamingProcess = Runtime.getRuntime().exec(<br/>
+                            System.getProperty("java.home") + System.getProperty("file.separator") + "bin"<br/>
+                                    + System.getProperty("file.separator") + "tnameserv -ORBInitialPort " + getPort());<br/>
+                    // wait for starting<br/>
+                    Thread.sleep(SLEEP_TIME);<br/>
+<br/>
+                    // trace the start execution<br/>
+                    InputStream cosError = cosNamingProcess.getErrorStream();<br/>
+                    if (cosError.available() != 0) {<br/>
+                        byte[] b = new byte[cosError.available()];<br/>
+                        cosError.read(b);<br/>
+                        cosError.close();<br/>
+                        throw new NameServiceException("can not start cosnaming daemon:" + new String(b));<br/>
+                    }<br/>
+<br/>
+                    InputStream cosOut = cosNamingProcess.getInputStream();<br/>
+                    if (cosOut.available() != 0) {<br/>
+                        byte[] b = new byte[cosOut.available()];<br/>
+                        cosOut.read(b);<br/>
+                        cosOut.close();<br/>
+                        if (TraceCarol.isDebugJndiCarol()) {<br/>
+                            TraceCarol.debugJndiCarol("IIOPCosNaming:");<br/>
+                            TraceCarol.debugJndiCarol(new String(b));<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+                    // add a shudown hook for this process<br/>
+                    Runtime.getRuntime().addShutdownHook(new Thread() {<br/>
+<br/>
+                        public void run() {<br/>
+                            try {<br/>
+                                IIOPCosNaming.this.stop();<br/>
+                            } catch (Exception e) {<br/>
+                                TraceCarol.error("IIOPCosNaming ShutdownHook problem", e);<br/>
+                            }<br/>
+                        }<br/>
+                    });<br/>
+                } else {<br/>
+                    if (TraceCarol.isDebugJndiCarol()) {<br/>
+                        TraceCarol.debugJndiCarol("Can't start IIOPCosNaming, port=" + getPort() + " is &lt; 0");<br/>
+                    }<br/>
+                }<br/>
+            } else {<br/>
+                if (TraceCarol.isDebugJndiCarol()) {<br/>
+                    TraceCarol.debugJndiCarol("IIOPCosNaming is already start on port:" + getPort());<br/>
+                }<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            TraceCarol.error("Can not start IIOPCosNaming for an unknow Reason", e);<br/>
+            throw new NameServiceException("can not start cosnaming daemon: " + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * stop Method, Stop a NameService or do nothing if the name service is all<br/>
+     * ready stop<br/>
+     * @throws NameServiceException if a problem occure<br/>
+     */<br/>
+    public void stop() throws NameServiceException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("IIOPCosNaming.stop()");<br/>
+        }<br/>
+        try {<br/>
+            // stop orbd procees<br/>
+            if (cosNamingProcess != null) {<br/>
+                cosNamingProcess.destroy();<br/>
+            }<br/>
+            cosNamingProcess = null;<br/>
+        } catch (Exception e) {<br/>
+            throw new NameServiceException("can not stop cosnaming daemon: " + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * isStarted Method, check if a name service is started<br/>
+     * @return boolean true if the name service is started<br/>
+     */<br/>
+    public boolean isStarted() {<br/>
+        if (cosNamingProcess != null) {<br/>
+            return true;<br/>
+        }<br/>
+        Properties prop = new Properties();<br/>
+        prop.put(Context.INITIAL_CONTEXT_FACTORY, <span class="upd">"org.objectweb.carol.jndi.spi.URLInitialContextFactory"</span>);<br/>
+        prop.put(Context.PROVIDER_URL, "iiop://localhost:" + getPort());<br/>
+<br/>
+        if (orb == null) {<br/>
+            initORB();<br/>
+        }<br/>
+<br/>
+        prop.put("java.naming.corba.orb", orb);<br/>
+<br/>
+        try {<br/>
+            new InitialContext(prop);<br/>
+        } catch (javax.naming.NamingException ex) {<br/>
+            return false;<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return the orb.<br/>
+     */<br/>
+    public static ORB getOrb() {<br/>
+        if (orb == null) {<br/>
+            initORB();<br/>
+        }<br/>
+        return orb;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Initialize the ORB<br/>
+     * @return<br/>
+     */<br/>
+    private static void initORB() {<br/>
+        orb = ORB.init(new String[0], null);<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

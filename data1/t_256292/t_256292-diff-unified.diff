@@ -1,0 +1,13 @@
+--- t_256292/left_CompilationResult_1.23.java	2013-03-17 15:47:14.000000000 +0100
++++ t_256292/right_CompilationResult_1.24.java	2013-03-17 15:47:14.000000000 +0100
+@@ -232,6 +232,10 @@
+ 		return false;
+ 	}
+ 
++	public boolean hasTasks() {
++		return this.taskCount != 0;
++	}
++	
+ 	public boolean hasWarnings() {
+ 
+ 		if (problems != null)

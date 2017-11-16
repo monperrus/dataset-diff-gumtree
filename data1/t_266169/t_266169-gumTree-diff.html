@@ -1,0 +1,1245 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_FormatterCommentParser_1.10.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2008 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.formatter;<br/>
+<br/>
+import java.util.List;<br/>
+<br/>
+import org.eclipse.jdt.core.compiler.CharOperation;<br/>
+import org.eclipse.jdt.core.compiler.InvalidInputException;<br/>
+import org.eclipse.jdt.internal.compiler.parser.JavadocParser;<br/>
+import org.eclipse.jdt.internal.compiler.parser.Parser;<br/>
+import org.eclipse.jdt.internal.compiler.parser.ScannerHelper;<br/>
+import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;<br/>
+import org.eclipse.jdt.internal.formatter.comment.IJavaDocTagConstants;<br/>
+<br/>
+/**<br/>
+ * Internal parser used for formatting javadoc comments.<br/>
+ */<br/>
+public class FormatterCommentParser extends JavadocParser implements IJavaDocTagConstants {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;char[][] htmlTags;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int htmlTagsPtr = -1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean invalidTagName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+FormatterCommentParser(Parser sourceParser) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(sourceParser);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.kind = FORMATTER_COMMENT_PARSER | TEXT_PARSE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.reportProblems = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.checkDocComment = true;<br/>
+}<br/>
+<br/>
+public boolean parse(int start, int end) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Init<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.javadocStart = start;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.javadocEnd = end;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.firstTagPosition = this.javadocStart;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// parse comment<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = commentParse();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid &amp;&amp; this.docComment != null;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createArgumentReference(char[], int, boolean, java.lang.Object, long[], long)<br/>
+ */<br/>
+protected Object createArgumentReference(char[] name, int dim, boolean isVarargs, Object ref, long[] dimPositions, long argNamePos) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocReference typeRef = (FormatJavadocReference) ref;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (dim &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;typeRef.sourceEnd = (int) dimPositions[dim-1];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (argNamePos &gt;= 0) typeRef.sourceEnd = (int) argNamePos;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ref;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createFieldReference(java.lang.Object)<br/>
+ */<br/>
+protected Object createFieldReference(Object receiver) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = receiver == null ? this.memberStart : ((FormatJavadocReference)receiver).sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference(start, (int) this.identifierPositionStack[0], lineStart);<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createMethodReference(java.lang.Object, java.util.List)<br/>
+ */<br/>
+protected Object createMethodReference(Object receiver, List arguments) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = receiver == null ? this.memberStart : ((FormatJavadocReference) receiver).sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference(start, this.scanner.getCurrentTokenEndPosition(), lineStart);<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createTag()<br/>
+ */<br/>
+protected void createTag() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.inlineTagStart, this.tagSourceEnd, lineStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = new FormatJavadocBlock(this.inlineTagStart, this.tagSourceEnd, lineStart, NO_TAG_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(previousBlock, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.addBlock(block, this.htmlTagsPtr == -1 ? 0 : this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createTypeReference(int)<br/>
+ */<br/>
+protected Object createTypeReference(int primitiveToken) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int size = this.identifierLengthStack[this.identifierLengthPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (size == 0) return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = (int) (this.identifierPositionStack[this.identifierPtr] &gt;&gt;&gt; 32);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (size == 1) { <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference(this.identifierPositionStack[this.identifierPtr], lineStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;long[] positions = new long[size];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.identifierPositionStack, this.identifierPtr - size + 1, positions, 0, size);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference((int) (positions[0] &gt;&gt;&gt; 32), (int) positions[positions.length-1], lineStart);<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Return the html tag index in the various arrays of IJavaDocTagConstants.<br/>
+ * The returned int is set as follow:<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;- the array index is set on bits 0 to 7<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;- the tag category is set on bit 8 to 15 (0xFF00 if no array includes the tag)<br/>
+ */<br/>
+private int getHtmlTagIndex(char[] htmlTag) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = htmlTag == null ? 0 : htmlTag.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int tagId = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_SPECIAL_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_SPECIAL_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tagId = JAVADOC_SPECIAL_TAGS_ID;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_SINGLE_BREAK_TAG.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_SINGLE_BREAK_TAG[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_SINGLE_BREAK_TAG_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_CODE_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_CODE_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_CODE_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_BREAK_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_BREAK_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_BREAK_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_IMMUTABLE_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_IMMUTABLE_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_IMMUTABLE_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_SEPARATOR_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_SEPARATOR_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_SEPARATOR_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return JAVADOC_TAGS_ID_MASK;<br/>
+}<br/>
+<br/>
+protected char[] getTagName(int previousPosition, int currentPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.invalidTagName = false;<br/>
+    if (currentPosition != this.scanner.startPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.invalidTagName = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.index &gt;= this.scanner.eofPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.invalidTagName = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.tagSourceStart = this.scanner.getCurrentTokenStartPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.tagSourceEnd = this.scanner.getCurrentTokenEndPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;char[] tagName = this.scanner.getCurrentIdentifierSource();<br/>
+    return tagName;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Parse an HTML tag expected to be either opening (e.g. &lt;tag_name&gt; ) or<br/>
+ * closing (e.g. &lt;/tag_name&gt;).<br/>
+ */<br/>
+protected boolean parseHtmlTag(int previousPosition, int endTextPosition) throws InvalidInputException {<br/>
+    boolean closing = false;<br/>
+    boolean valid = false;<br/>
+    boolean incremented = false;<br/>
+    int start = this.scanner.currentPosition;<br/>
+    int htmlPtr = this.htmlTagsPtr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int token = readTokenAndConsume();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    char[] htmlTag;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int htmlIndex;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    switch (token) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;case TerminalTokens.TokenNameIdentifier:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// HTML tag opening<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlTag = this.scanner.getCurrentIdentifierSource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlIndex = getHtmlTagIndex(htmlTag);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlIndex == JAVADOC_TAGS_ID_MASK) return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlPtr &gt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int lastHtmlTagIndex = getHtmlTagIndex(this.htmlTags[htmlPtr]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((lastHtmlTagIndex &amp; JAVADOC_TAGS_ID_MASK) == JAVADOC_IMMUTABLE_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Do not accept tags inside immutable tags except the &lt;pre&gt; tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((htmlIndex &amp; JAVADOC_TAGS_ID_MASK) == JAVADOC_CODE_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode parentNode = previousBlock;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode lastNode = parentNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode.getLastNode() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentNode = lastNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = lastNode.getLastNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode.isText()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocText text = (FormatJavadocText) lastNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (text.separatorsPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((htmlIndex &amp; JAVADOC_TAGS_ID_MASK) &gt; JAVADOC_SINGLE_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == -1 || !CharOperation.equals(this.htmlTags[this.htmlTagsPtr], htmlTag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (++this.htmlTagsPtr == 0) { // lazy initialization<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTags = new char[AST_STACK_INCREMENT][];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else { // resize if needed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == this.htmlTags.length) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.htmlTags, 0, (this.htmlTags = new char[this.htmlTags.length + AST_STACK_INCREMENT][]), 0, this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTags[this.htmlTagsPtr] = htmlTag;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;incremented = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;case TerminalTokens.TokenNameDIVIDE:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// HTML tag closing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == -1) return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlTag = this.htmlTags[this.htmlTagsPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((token = readTokenAndConsume()) != TerminalTokens.TokenNameIdentifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// not a closing html tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] identifier = this.scanner.getCurrentIdentifierSource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlIndex = getHtmlTagIndex(identifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlIndex == JAVADOC_TAGS_ID_MASK) return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ptr = this.htmlTagsPtr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (!CharOperation.equals(htmlTag, identifier, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlTagsPtr &lt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// consider the closing tag as invalid<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr = ptr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlTag = this.htmlTags[this.htmlTagsPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set closing flag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlIndex |= JAVADOC_CLOSED_TAG;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closing = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;default:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ((token = readTokenAndConsume()) != TerminalTokens.TokenNameGREATER) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;if ((htmlIndex &amp; JAVADOC_SPECIAL_TAGS_ID) == JAVADOC_SPECIAL_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Special tags may have attributes, so consume tokens until the greater token is encountered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (token != TerminalTokens.TokenNameGREATER) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;token = readTokenAndConsume();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (token == TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;// invalid syntax<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Push texts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.lineStarted &amp;&amp; this.textStart != -1 &amp;&amp; this.textStart &lt; endTextPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushText(this.textStart, endTextPosition, -1, htmlPtr == -1 ? 0 : htmlPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushText(previousPosition, this.index, htmlIndex, this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = -1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;valid = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;finally {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (closing) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (!this.abort) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;if (incremented) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == -1) this.htmlTags = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(start, this.scanner.eofPosition-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;this.index = start;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    return valid;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#parseParam()<br/>
+ */<br/>
+protected boolean parseParam() throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseParam();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.tagSourceEnd+1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char ch = peekChar();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Try to push an identifier in the stack, otherwise restart from the end tag position<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ch == ' ' || ScannerHelper.isWhitespace(ch)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int token = this.scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (token == TerminalTokens.TokenNameIdentifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ch = peekChar();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ch == ' ' || ScannerHelper.isWhitespace(ch)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushIdentifier(true, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushParamName(false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.scanner.currentPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;valid = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#parseReference()<br/>
+ */<br/>
+protected boolean parseReference() throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseReference();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.tagSourceEnd+1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Parse @return tag declaration<br/>
+ */<br/>
+protected boolean parseReturn() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;createTag();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#parseTag(int)<br/>
+ */<br/>
+protected boolean parseTag(int previousPosition) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int ptr = this.astPtr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseTag(previousPosition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = -1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;consumeToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the javadoc parser may not create tag for some valid tags: force tag creation for such tag. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (this.tagValue) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case TAG_INHERITDOC_VALUE:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case TAG_DEPRECATED_VALUE:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createTag();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (this.invalidTagName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = previousPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (this.astPtr == ptr) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.tagValue = TAG_OTHERS_VALUE; // tag is invalid, do not keep the parsed tag value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createTag();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#parseThrows()<br/>
+ */<br/>
+protected boolean parseThrows() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseThrows();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If invalid, restart from the end tag position<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.tagSourceEnd+1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#pushParamName(boolean)<br/>
+ */<br/>
+protected boolean pushParamName(boolean isTypeParam) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineTagStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineTagStart, TAG_PARAM_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = (int) (this.identifierPositionStack[0] &gt;&gt;&gt; 32);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocReference reference;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;reference = new FormatJavadocReference(start, (int) this.identifierPositionStack[isTypeParam ? 2 : 0], lineStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.reference = reference;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.sourceEnd = reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#pushSeeRef(java.lang.Object)<br/>
+ */<br/>
+protected boolean pushSeeRef(Object statement) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocReference reference = (FormatJavadocReference) statement;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineTagStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineTagStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.reference = reference;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.sourceEnd = reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.sourceStart = this.inlineTagStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(this.inlineTagStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = new FormatJavadocBlock(this.inlineTagStart, this.tagSourceEnd, lineStart, NO_TAG_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.sourceEnd = reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(previousBlock, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.addBlock(block, this.htmlTagsPtr == -1 ? 0 : this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.flags |= FormatJavadocBlock.INLINED;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#pushText(int, int)<br/>
+ */<br/>
+protected void pushText(int start, int end) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pushText(start, end, -1, this.htmlTagsPtr == -1 ? 0 : this.htmlTagsPtr);<br/>
+}<br/>
+<br/>
+private void pushText(int start, int end, int htmlIndex, int htmlDepth) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Search previous tag on which to add the text element<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int previousStart = start;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = new FormatJavadocBlock(start, start, lineStart, NO_TAG_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(previousBlock, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousStart = previousBlock.sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// If we're in a inline tag, then retrieve previous tag in its fragments<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (previousBlock.nodes == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no existing fragment =&gt; just add the element<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If last fragment is a tag, then use it as previous tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode lastNode = previousBlock.nodes[previousBlock.nodesPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode != null &amp;&amp; lastNode.isText()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = lastNode.getLastNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) lastNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousStart = previousBlock.sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add the text<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int textEnd = end;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.javadocTextEnd &gt; 0 &amp;&amp; end &gt;= this.javadocTextEnd) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Special case on javadoc text end, need to retrieve the space<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// position by rescanning the text<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int restart = this.spacePosition == -1 ? start : this.spacePosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(restart, end-1/* before last star*/);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.scanner.getNextToken() == TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textEnd = this.spacePosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (InvalidInputException iie) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// do nothing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocText text = new FormatJavadocText(start, textEnd-1, lineStart, htmlIndex, htmlDepth);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.addText(text);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.sourceStart = previousStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lineStart == previousBlock.lineStart) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.flags |= FormatJavadocBlock.TEXT_ON_TAG_LINE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = -1;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * (non-Javadoc)<br/>
+ * <br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#pushThrowName(java.lang.Object)<br/>
+ */<br/>
+protected boolean pushThrowName(Object typeRef) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.reference = (FormatJavadocReference) typeRef;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.sourceEnd = block.reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * (non-Javadoc)<br/>
+ * Will update the inline tag position (end position) once tag was fully parsed.<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#refreshInlineTagPosition(int)<br/>
+ */<br/>
+protected void refreshInlineTagPosition(int previousPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr != -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode previousBlock = (FormatJavadocNode) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode lastNode = previousBlock;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode.sourceEnd = previousPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = lastNode.getLastNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+public String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer buffer = new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append("FormatterCommentParser\n"); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(super.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return buffer.toString();<br/>
+}<br/>
+<br/>
+public String toDebugString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.docComment == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "No javadoc!";&nbsp;&nbsp;&nbsp;&nbsp;//$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((FormatJavadoc)this.docComment).toDebugString(this.source);<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Add stored tag elements to associated comment.<br/>
+ * Clean all blocks (i.e. resize arrays to avoid null slots)<br/>
+ * Set extra information on block about line relative positions.<br/>
+ */<br/>
+protected void updateDocComment() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = this.astPtr + 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadoc formatJavadoc = new FormatJavadoc(this.javadocStart, this.javadocEnd, length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.blocks = new FormatJavadocBlock[length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0; i&lt;length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = (FormatJavadocBlock) this.astStack[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.clean();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int blockEnd = this.scanner.getLineNumber(block.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (block.lineStart == blockEnd) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.flags |= FormatJavadocBlock.ONE_LINE_TAG;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.blocks[i] = block;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (i== 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.flags |= FormatJavadocBlock.FIRST;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.textStart = this.javadocTextStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.textEnd = this.javadocTextEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.lineStart = this.scanner.getLineNumber(this.javadocTextStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.lineEnd = this.scanner.getLineNumber(this.javadocTextEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock firstBlock = formatJavadoc.getFirstBlock();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (firstBlock != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;firstBlock.setHeaderLine(formatJavadoc.lineStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.docComment = formatJavadoc;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (DefaultCodeFormatter.DEBUG) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(toDebugString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+protected boolean verifySpaceOrEndComment() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Don't care if there's no spaces after a reference...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_FormatterCommentParser_1.11.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2008 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.formatter;<br/>
+<br/>
+import java.util.List;<br/>
+<br/>
+import org.eclipse.jdt.core.compiler.CharOperation;<br/>
+import org.eclipse.jdt.core.compiler.InvalidInputException;<br/>
+import org.eclipse.jdt.internal.compiler.parser.JavadocParser;<br/>
+import org.eclipse.jdt.internal.compiler.parser.Parser;<br/>
+import org.eclipse.jdt.internal.compiler.parser.ScannerHelper;<br/>
+import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;<br/>
+import org.eclipse.jdt.internal.formatter.comment.IJavaDocTagConstants;<br/>
+<br/>
+/**<br/>
+ * Internal parser used for formatting javadoc comments.<br/>
+ */<br/>
+public class FormatterCommentParser extends JavadocParser implements IJavaDocTagConstants {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;char[][] htmlTags;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int htmlTagsPtr = -1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean invalidTagName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+FormatterCommentParser(Parser sourceParser) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(sourceParser);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.kind = FORMATTER_COMMENT_PARSER | TEXT_PARSE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.reportProblems = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.checkDocComment = true;<br/>
+}<br/>
+<br/>
+public boolean parse(int start, int end) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Init<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.javadocStart = start;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.javadocEnd = end;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.firstTagPosition = this.javadocStart;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// parse comment<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = commentParse();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid &amp;&amp; this.docComment != null;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createArgumentReference(char[], int, boolean, java.lang.Object, long[], long)<br/>
+ */<br/>
+protected Object createArgumentReference(char[] name, int dim, boolean isVarargs, Object ref, long[] dimPositions, long argNamePos) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocReference typeRef = (FormatJavadocReference) ref;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (dim &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;typeRef.sourceEnd = (int) dimPositions[dim-1];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (argNamePos &gt;= 0) typeRef.sourceEnd = (int) argNamePos;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ref;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createFieldReference(java.lang.Object)<br/>
+ */<br/>
+protected Object createFieldReference(Object receiver) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = receiver == null ? this.memberStart : ((FormatJavadocReference)receiver).sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference(start, (int) this.identifierPositionStack[0], lineStart);<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createMethodReference(java.lang.Object, java.util.List)<br/>
+ */<br/>
+protected Object createMethodReference(Object receiver, List arguments) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = receiver == null ? this.memberStart : ((FormatJavadocReference) receiver).sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference(start, this.scanner.getCurrentTokenEndPosition(), lineStart);<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createTag()<br/>
+ */<br/>
+protected void createTag() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.inlineTagStart, this.tagSourceEnd, lineStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = new FormatJavadocBlock(this.inlineTagStart, this.tagSourceEnd, lineStart, NO_TAG_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(previousBlock, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.addBlock(block, this.htmlTagsPtr == -1 ? 0 : this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#createTypeReference(int)<br/>
+ */<br/>
+protected Object createTypeReference(int primitiveToken) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int size = this.identifierLengthStack[this.identifierLengthPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (size == 0) return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = (int) (this.identifierPositionStack[this.identifierPtr] &gt;&gt;&gt; 32);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (size == 1) { <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference(this.identifierPositionStack[this.identifierPtr], lineStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;long[] positions = new long[size];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.identifierPositionStack, this.identifierPtr - size + 1, positions, 0, size);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new FormatJavadocReference((int) (positions[0] &gt;&gt;&gt; 32), (int) positions[positions.length-1], lineStart);<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Return the html tag index in the various arrays of IJavaDocTagConstants.<br/>
+ * The returned int is set as follow:<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;- the array index is set on bits 0 to 7<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;- the tag category is set on bit 8 to 15 (0xFF00 if no array includes the tag)<br/>
+ */<br/>
+private int getHtmlTagIndex(char[] htmlTag) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = htmlTag == null ? 0 : htmlTag.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int tagId = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_SPECIAL_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_SPECIAL_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tagId = JAVADOC_SPECIAL_TAGS_ID;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_SINGLE_BREAK_TAG.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_SINGLE_BREAK_TAG[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_SINGLE_BREAK_TAG_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_CODE_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_CODE_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_CODE_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_BREAK_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_BREAK_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_BREAK_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_IMMUTABLE_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_IMMUTABLE_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_IMMUTABLE_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0, max=JAVADOC_SEPARATOR_TAGS.length; i&lt;max; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] tag = JAVADOC_SEPARATOR_TAGS[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (length == tag.length &amp;&amp; CharOperation.equals(htmlTag, tag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return (tagId | JAVADOC_SEPARATOR_TAGS_ID) + i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return JAVADOC_TAGS_ID_MASK;<br/>
+}<br/>
+<br/>
+protected char[] getTagName(int previousPosition, int currentPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.invalidTagName = false;<br/>
+    if (currentPosition != this.scanner.startPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.invalidTagName = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.index &gt;= this.scanner.eofPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.invalidTagName = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.tagSourceStart = this.scanner.getCurrentTokenStartPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.tagSourceEnd = this.scanner.getCurrentTokenEndPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;char[] tagName = this.scanner.getCurrentIdentifierSource();<br/>
+    return tagName;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Parse an HTML tag expected to be either opening (e.g. &lt;tag_name&gt; ) or<br/>
+ * closing (e.g. &lt;/tag_name&gt;).<br/>
+ */<br/>
+protected boolean parseHtmlTag(int previousPosition, int endTextPosition) throws InvalidInputException {<br/>
+    boolean closing = false;<br/>
+    boolean valid = false;<br/>
+    boolean incremented = false;<br/>
+    int start = this.scanner.currentPosition;<br/>
+    int htmlPtr = this.htmlTagsPtr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int token = readTokenAndConsume();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    char[] htmlTag;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int htmlIndex;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    switch (token) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;case TerminalTokens.TokenNameIdentifier:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// HTML tag opening<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlTag = this.scanner.getCurrentIdentifierSource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlIndex = getHtmlTagIndex(htmlTag);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlIndex == JAVADOC_TAGS_ID_MASK) return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlPtr &gt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int lastHtmlTagIndex = getHtmlTagIndex(this.htmlTags[htmlPtr]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((lastHtmlTagIndex &amp; JAVADOC_TAGS_ID_MASK) == JAVADOC_IMMUTABLE_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Do not accept tags inside immutable tags except the &lt;pre&gt; tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((htmlIndex &amp; JAVADOC_TAGS_ID_MASK) == JAVADOC_CODE_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode parentNode = previousBlock;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode lastNode = parentNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode.getLastNode() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parentNode = lastNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = lastNode.getLastNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode.isText()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocText text = (FormatJavadocText) lastNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (text.separatorsPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((htmlIndex &amp; JAVADOC_TAGS_ID_MASK) &gt; JAVADOC_SINGLE_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == -1 || !CharOperation.equals(this.htmlTags[this.htmlTagsPtr], htmlTag, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (++this.htmlTagsPtr == 0) { // lazy initialization<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTags = new char[AST_STACK_INCREMENT][];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else { // resize if needed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == this.htmlTags.length) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.htmlTags, 0, (this.htmlTags = new char[this.htmlTags.length + AST_STACK_INCREMENT][]), 0, this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTags[this.htmlTagsPtr] = htmlTag;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;incremented = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;case TerminalTokens.TokenNameDIVIDE:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// HTML tag closing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == -1) return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlTag = this.htmlTags[this.htmlTagsPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((token = readTokenAndConsume()) != TerminalTokens.TokenNameIdentifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// not a closing html tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char[] identifier = this.scanner.getCurrentIdentifierSource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlIndex = getHtmlTagIndex(identifier);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlIndex == JAVADOC_TAGS_ID_MASK) return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ptr = this.htmlTagsPtr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (!CharOperation.equals(htmlTag, identifier, false)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (htmlTagsPtr &lt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// consider the closing tag as invalid<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr = ptr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlTag = this.htmlTags[this.htmlTagsPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set closing flag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;htmlIndex |= JAVADOC_CLOSED_TAG;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closing = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;default:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ((token = readTokenAndConsume()) != TerminalTokens.TokenNameGREATER) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;if ((htmlIndex &amp; JAVADOC_SPECIAL_TAGS_ID) == JAVADOC_SPECIAL_TAGS_ID) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Special tags may have attributes, so consume tokens until the greater token is encountered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (token != TerminalTokens.TokenNameGREATER) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;token = readTokenAndConsume();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (token == TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;// invalid syntax<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Push texts<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.lineStarted &amp;&amp; this.textStart != -1 &amp;&amp; this.textStart &lt; endTextPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushText(this.textStart, endTextPosition, -1, htmlPtr == -1 ? 0 : htmlPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushText(previousPosition, this.index, htmlIndex, this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = -1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;valid = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;finally {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (closing) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (!this.abort) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;if (incremented) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.htmlTagsPtr--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.htmlTagsPtr == -1) this.htmlTags = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(start, this.scanner.eofPosition-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    &nbsp;&nbsp;&nbsp;&nbsp;this.index = start;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    return valid;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#parseParam()<br/>
+ */<br/>
+protected boolean parseParam() throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseParam();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.tagSourceEnd+1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char ch = peekChar();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Try to push an identifier in the stack, otherwise restart from the end tag position<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ch == ' ' || ScannerHelper.isWhitespace(ch)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int token = this.scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (token == TerminalTokens.TokenNameIdentifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ch = peekChar();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ch == ' ' || ScannerHelper.isWhitespace(ch)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushIdentifier(true, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushParamName(false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.scanner.currentPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;valid = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#parseReference()<br/>
+ */<br/>
+protected boolean parseReference() throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseReference();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.tagSourceEnd+1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Parse @return tag declaration<br/>
+ */<br/>
+protected boolean parseReturn() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;createTag();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#parseTag(int)<br/>
+ */<br/>
+protected boolean parseTag(int previousPosition) throws InvalidInputException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int ptr = this.astPtr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseTag(previousPosition);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = -1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;consumeToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// the javadoc parser may not create tag for some valid tags: force tag creation for such tag. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (this.tagValue) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case TAG_INHERITDOC_VALUE:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case TAG_DEPRECATED_VALUE:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createTag();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (this.invalidTagName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = previousPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (this.astPtr == ptr) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.tagValue = TAG_OTHERS_VALUE; // tag is invalid, do not keep the parsed tag value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createTag();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#parseThrows()<br/>
+ */<br/>
+protected boolean parseThrows() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean valid = super.parseThrows();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!valid) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If invalid, restart from the end tag position<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(this.tagSourceEnd+1, this.javadocEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.index = this.tagSourceEnd+1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return valid;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#pushParamName(boolean)<br/>
+ */<br/>
+protected boolean pushParamName(boolean isTypeParam) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineTagStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineTagStart, TAG_PARAM_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int start = (int) (this.identifierPositionStack[0] &gt;&gt;&gt; 32);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocReference reference;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;reference = new FormatJavadocReference(start, (int) this.identifierPositionStack[isTypeParam ? 2 : 0], lineStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.reference = reference;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.sourceEnd = reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.JavadocParser#pushSeeRef(java.lang.Object)<br/>
+ */<br/>
+protected boolean pushSeeRef(Object statement) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocReference reference = (FormatJavadocReference) statement;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineTagStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineTagStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.reference = reference;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.sourceEnd = reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.sourceStart = this.inlineTagStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(this.inlineTagStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = new FormatJavadocBlock(this.inlineTagStart, this.tagSourceEnd, lineStart, NO_TAG_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.sourceEnd = reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(previousBlock, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.addBlock(block, this.htmlTagsPtr == -1 ? 0 : this.htmlTagsPtr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.flags |= FormatJavadocBlock.INLINED;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#pushText(int, int)<br/>
+ */<br/>
+protected void pushText(int start, int end) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pushText(start, end, -1, this.htmlTagsPtr == -1 ? 0 : this.htmlTagsPtr);<br/>
+}<br/>
+<br/>
+private void pushText(int start, int end, int htmlIndex, int htmlDepth) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Search previous tag on which to add the text element<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock previousBlock = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int previousStart = start;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(start);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr == -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = new FormatJavadocBlock(start, start, lineStart, NO_TAG_VALUE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(previousBlock, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousStart = previousBlock.sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// If we're in a inline tag, then retrieve previous tag in its fragments<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (previousBlock.nodes == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// no existing fragment =&gt; just add the element<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If last fragment is a tag, then use it as previous tag<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode lastNode = previousBlock.nodes[previousBlock.nodesPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode != null &amp;&amp; lastNode.isText()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = lastNode.getLastNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock = (FormatJavadocBlock) lastNode;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousStart = previousBlock.sourceStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Add the text<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int textEnd = end;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.javadocTextEnd &gt; 0 &amp;&amp; end &gt;= this.javadocTextEnd) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Special case on javadoc text end, need to retrieve the space<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// position by rescanning the text<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int restart = this.spacePosition == -1 ? start : this.spacePosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.scanner.resetTo(restart, end-1/* before last star*/);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.scanner.getNextToken() == TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textEnd = this.spacePosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (InvalidInputException iie) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// do nothing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocText text = new FormatJavadocText(start, textEnd-1, lineStart, htmlIndex, htmlDepth);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.addText(text);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.sourceStart = previousStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lineStart == previousBlock.lineStart) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previousBlock.flags |= FormatJavadocBlock.TEXT_ON_TAG_LINE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.textStart = -1;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * (non-Javadoc)<br/>
+ * <br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#pushThrowName(java.lang.Object)<br/>
+ */<br/>
+protected boolean pushThrowName(Object typeRef) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = this.scanner.getLineNumber(this.tagSourceStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = new FormatJavadocBlock(this.tagSourceStart, this.tagSourceEnd, lineStart, this.tagValue);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.reference = (FormatJavadocReference) typeRef;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;block.sourceEnd = block.reference.sourceEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pushOnAstStack(block, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+<br/>
+/*<br/>
+ * (non-Javadoc)<br/>
+ * Will update the inline tag position (end position) once tag was fully parsed.<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#refreshInlineTagPosition(int)<br/>
+ */<br/>
+protected void refreshInlineTagPosition(int previousPosition) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.astPtr != -1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode previousBlock = (FormatJavadocNode) this.astStack[this.astPtr];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (this.inlineTagStarted) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocNode lastNode = previousBlock;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode.sourceEnd = previousPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = lastNode.getLastNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+public String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer buffer = new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append("FormatterCommentParser\n"); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(super.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return buffer.toString();<br/>
+}<br/>
+<br/>
+public String toDebugString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.docComment == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "No javadoc!";&nbsp;&nbsp;&nbsp;&nbsp;//$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((FormatJavadoc)this.docComment).toDebugString(this.source);<br/>
+}<br/>
+<br/>
+/*<br/>
+ * Add stored tag elements to associated comment.<br/>
+ * Clean all blocks (i.e. resize arrays to avoid null slots)<br/>
+ * Set extra information on block about line relative positions.<br/>
+ */<br/>
+protected void updateDocComment() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = this.astPtr + 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadoc formatJavadoc = new FormatJavadoc(this.javadocStart, this.javadocEnd, length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.blocks = new FormatJavadocBlock[length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i=0; i&lt;length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock block = (FormatJavadocBlock) this.astStack[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.clean();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int blockEnd = this.scanner.getLineNumber(block.sourceEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (block.lineStart == blockEnd) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.flags |= FormatJavadocBlock.ONE_LINE_TAG;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.blocks[i] = block;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (i== 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block.flags |= FormatJavadocBlock.FIRST;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.textStart = this.javadocTextStart;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.textEnd = this.javadocTextEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.lineStart = this.scanner.getLineNumber(this.javadocTextStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;formatJavadoc.lineEnd = this.scanner.getLineNumber(this.javadocTextEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;FormatJavadocBlock firstBlock = formatJavadoc.getFirstBlock();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (firstBlock != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;firstBlock.setHeaderLine(formatJavadoc.lineStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.docComment = formatJavadoc;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (DefaultCodeFormatter.DEBUG) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(toDebugString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+/* (non-Javadoc)<br/>
+ * @see org.eclipse.jdt.internal.compiler.parser.AbstractCommentParser#verifyEndLine(int)<br/>
+ */<br/>
+<span class="add"><span class="add">protected</span> <span class="add">boolean</span> <span class="add">verifyEndLine</span>(<span class="add"><span class="add">int</span> <span class="add">textPosition</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">int</span> <span class="add"><span class="add">endPosition</span> = <span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">currentPosition</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">resetTo</span>(<span class="add">textPosition</span>, <span class="add"><span class="add">this</span>.<span class="add">javadocEnd</span></span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">boolean</span> <span class="add"><span class="add">tokenizeWhiteSpace</span> = <span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">tokenizeWhiteSpace</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">tokenizeWhiteSpace</span></span> = <span class="add">true</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">try <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">int</span> <span class="add"><span class="add">token</span> = <span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">getNextToken</span>()</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">int</span> <span class="add"><span class="add">startPosition</span> = <span class="add">textPosition</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add">token</span> == <span class="add"><span class="add">TerminalTokens</span>.<span class="add">TokenNameWHITESPACE</span></span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">while (<span class="add"><span class="add"><span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">currentCharacter</span></span> == <span class="add">'*'</span></span> || <span class="add"><span class="add">ScannerHelper</span>.<span class="add">isWhitespace</span>(<span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">currentCharacter</span></span>)</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">token</span> = <span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">getNextToken</span>()</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">startPosition</span> = <span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">currentPosition</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">createTag</span>()</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">pushText</span>(<span class="add">startPosition</span>, <span class="add">endPosition</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">catch (<span class="add"><span class="add"><span class="add">InvalidInputException</span></span> <span class="add">iie</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// skip<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;finally <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">tokenizeWhiteSpace</span></span> = <span class="add">tokenizeWhiteSpace</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add"><span class="add">this</span>.<span class="add">scanner</span></span>.<span class="add">resetTo</span>(<span class="add">endPosition</span>, <span class="add"><span class="add">this</span>.<span class="add">javadocEnd</span></span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add"><span class="add">this</span>.<span class="add">index</span></span> = <span class="add">endPosition</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="add">true</span>;</span><br/>
+}</span></span><br/>
+<br/>
+protected boolean verifySpaceOrEndComment() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Don't care if there's no spaces after a reference...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

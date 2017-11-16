@@ -1,0 +1,11 @@
+--- t_247654/left_BaseLocalContainerInvoker_1.5.java	2013-03-17 15:47:00.000000000 +0100
++++ t_247654/right_BaseLocalContainerInvoker_1.6.java	2013-03-17 15:47:00.000000000 +0100
+@@ -350,7 +350,7 @@
+        
+        protected Object getId()
+        {
+-           return cacheKey.id;
++           return cacheKey.getId();
+        }
+       
+       

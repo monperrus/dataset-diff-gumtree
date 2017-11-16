@@ -1,0 +1,11 @@
+--- t_223542/left_BoardView1_1.214.java	2013-03-17 15:47:12.000000000 +0100
++++ t_223542/right_BoardView1_1.215.java	2013-03-17 15:47:12.000000000 +0100
+@@ -3496,7 +3496,7 @@
+                 costStringBuf.append("+]"); //$NON-NLS-1$
+             }
+             
+-            if (step.getMovementType() == IEntityMovementType.MOVE_VTOL_RUN ||
++            if (step.getMovementType() == IEntityMovementType.MOVE_VTOL_WALK ||
+                 step.getMovementType() == IEntityMovementType.MOVE_VTOL_RUN) {
+                 costStringBuf.append("{").append(step.getElevation()).append("}");
+             }

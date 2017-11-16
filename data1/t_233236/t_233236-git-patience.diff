@@ -1,0 +1,12 @@
+diff --git a/t_233236/left_Mutex_1.8.java b/t_233236/right_Mutex_1.9.java
+index c7347d2..81f5b4a 100644
+--- a/t_233236/left_Mutex_1.8.java
++++ b/t_233236/right_Mutex_1.9.java
+@@ -45,6 +45,6 @@ public class Mutex {
+ 
+     public synchronized void release() {
+         mutex = false;
+-        notifyAll();
++        notify();
+     }
+ }

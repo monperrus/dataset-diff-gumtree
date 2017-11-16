@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_IRMILocalContext_1.1.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2005 - Bull S.A.<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: IRMILocalContext.java,v 1.1 2005-09-15 13:04:16 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jndi.spi;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import org.objectweb.carol.jndi.registry.IRMIRegistryWrapperContext;<br/>
+import org.objectweb.carol.jndi.wrapping.JNDIRemoteResource;<br/>
+import org.objectweb.carol.jndi.wrapping.RemoteReference;<br/>
+import org.objectweb.carol.rmi.exception.NamingExceptionHelper;<br/>
+<br/>
+<br/>
+<span class="del"><span class="mv">/**<br/>
+ * Use the wrapper on registry object defined by RegistryWrapperContext class.<br/>
+ * This class has been refactored to split :<br/>
+ * &lt;ul&gt;<br/>
+ * &lt;li&gt;- wrapper on registry object&lt;/li&gt;<br/>
+ * &lt;li&gt;- Single instance&lt;/li&gt;<br/>
+ * &lt;li&gt;- Wrapping of Serializable/Referenceable/... objects&lt;/li&gt;<br/>
+ * &lt;/ul&gt;<br/>
+ * @author Florent Benoit<br/>
+ */</span><br/>
+<span class="mv">public</span> class <span class="mv">IRMILocalContext</span> extends <span class="mv">IRMIContext</span> implements <span class="mv">Context</span> {<br/>
+<br/>
+    <span class="mv">/**<br/>
+     * Constructs an IRMI local Wrapper context<br/>
+     * @param irmiLocalContext the inital Local IRMI context<br/>
+     * @throws NamingException if the registry wrapper cannot be build<br/>
+     */<br/>
+    public IRMILocalContext(Context irmiLocalContext) throws NamingException {<br/>
+        super(new IRMIRegistryWrapperContext(irmiLocalContext.getEnvironment()));<br/>
+    }</span><br/>
+<br/>
+    <span class="del"><span class="del">/**<br/>
+     * If this object is a reference wrapper return the reference If this object<br/>
+     * is a resource wrapper return the resource<br/>
+     * @param o the object to resolve<br/>
+     * @param name name of the object to unwrap<br/>
+     * @return the unwrapped object<br/>
+     * @throws NamingException if the object cannot be unwraped<br/>
+     */</span><br/>
+    <span class="del">protected</span> <span class="del"><span class="del">Object</span></span> <span class="del">unwrapObject</span>(<span class="del"><span class="del"><span class="del">Object</span></span> <span class="del">o</span></span>, <span class="del"><span class="del"><span class="del">Name</span></span> <span class="del">name</span></span>) throws <span class="del">NamingException</span> <span class="del">{<br/>
+        <span class="del">try <span class="del">{<br/>
+            <span class="del">if (<span class="del"><span class="del">o</span> instanceof <span class="del"><span class="del">RemoteReference</span></span></span>) <span class="del">{<br/>
+                // build of the Referenceable object with is Reference<br/>
+                <span class="del"><span class="del"><span class="del">Reference</span></span> <span class="del"><span class="del">objRef</span> = <span class="del"><span class="del">(<span class="del">(<span class="del"><span class="del">RemoteReference</span></span>) <span class="del">o</span></span>)</span>.<span class="del">getReference</span>()</span></span>;</span><br/>
+                <span class="del"><span class="del"><span class="del">ObjectFactory</span></span> <span class="del"><span class="del">objFact</span> = <span class="del">(<span class="del"><span class="del">ObjectFactory</span></span>) <span class="del"><span class="del">(<span class="del"><span class="del">Class</span>.<span class="del">forName</span>(<span class="del"><span class="del">objRef</span>.<span class="del">getFactoryClassName</span>()</span>)</span>)</span>.<span class="del">newInstance</span>()</span></span></span>;</span><br/>
+                <span class="del">return <span class="del"><span class="del">objFact</span>.<span class="del">getObjectInstance</span>(<span class="del">objRef</span>, <span class="del">name</span>, <span class="del">this</span>, <span class="del"><span class="del">getEnvironment</span>()</span>)</span>;</span><br/>
+            }</span> else <span class="del">if (<span class="del"><span class="del">o</span> instanceof <span class="del"><span class="del">JNDIRemoteResource</span></span></span>) <span class="del">{<br/>
+                <span class="del">return <span class="del"><span class="del">(<span class="del">(<span class="del"><span class="del">JNDIRemoteResource</span></span>) <span class="del">o</span></span>)</span>.<span class="del">getResource</span>()</span>;</span><br/>
+            }</span> else <span class="del">{<br/>
+                <span class="del">return <span class="del">o</span>;</span><br/>
+            }</span></span></span><br/>
+        }</span> <span class="del">catch (<span class="del"><span class="del"><span class="del">Exception</span></span> <span class="del">e</span></span>) <span class="del">{<br/>
+            <span class="del">throw <span class="del"><span class="del">NamingExceptionHelper</span>.<span class="del">create</span>(<span class="del"><span class="del">"Cannot unwrap object '"</span> + <span class="del">o</span> + <span class="del">"' with name '"</span> + <span class="del">name</span> + <span class="del">"'."</span></span>, <span class="del">e</span>)</span>;</span><br/>
+        }</span></span></span><br/>
+    }</span></span><br/>
+<br/>
+}</span><br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_IRMILocalContext_1.2.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2005 - Bull S.A.<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: IRMILocalContext.java,v 1.2 2005-10-21 07:17:44 ashah Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jndi.spi;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import org.objectweb.carol.jndi.registry.IRMIRegistryWrapperContext;<br/>
+import org.objectweb.carol.jndi.wrapping.JNDIRemoteResource;<br/>
+import org.objectweb.carol.jndi.wrapping.RemoteReference;<br/>
+import org.objectweb.carol.rmi.exception.NamingExceptionHelper;<br/>
+<br/>
+<br/>
+<span class="add"><span class="mv">/**<br/>
+ * Use the wrapper on registry object defined by RegistryWrapperContext class.<br/>
+ * This class has been refactored to split :<br/>
+ * &lt;ul&gt;<br/>
+ * &lt;li&gt;- wrapper on registry object&lt;/li&gt;<br/>
+ * &lt;li&gt;- Single instance&lt;/li&gt;<br/>
+ * &lt;li&gt;- Wrapping of Serializable/Referenceable/... objects&lt;/li&gt;<br/>
+ * &lt;/ul&gt;<br/>
+ * @author Florent Benoit<br/>
+ */</span><br/>
+<span class="mv">public</span> class <span class="mv">IRMILocalContext</span> extends <span class="mv">IRMIContext</span> implements <span class="mv">Context</span> {<br/>
+<br/>
+    <span class="mv">/**<br/>
+     * Constructs an IRMI local Wrapper context<br/>
+     * @param irmiLocalContext the inital Local IRMI context<br/>
+     * @throws NamingException if the registry wrapper cannot be build<br/>
+     */<br/>
+    public IRMILocalContext(Context irmiLocalContext) throws NamingException {<br/>
+        super(new IRMIRegistryWrapperContext(irmiLocalContext.getEnvironment()));<br/>
+    }</span><br/>
+}</span><br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

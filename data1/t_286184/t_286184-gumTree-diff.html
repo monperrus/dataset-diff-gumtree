@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_IgnoreClassTest_1.1.java</h1>
+<div class="code">
+<div class="id">
+package org.junit.tests.running.classes;<br/>
+<br/>
+import static org.junit.Assert.assertEquals;<br/>
+import static org.junit.Assert.fail;<br/>
+import org.junit.Ignore;<br/>
+import org.junit.Test;<br/>
+import org.junit.runner.JUnitCore;<br/>
+import org.junit.runner.Result;<br/>
+<br/>
+public class IgnoreClassTest {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">@<span class="mv">Ignore</span></span> public static class IgnoreMe {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Test public void iFail() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Test public void iFailToo() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Test public void ignoreClass() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Result result= JUnitCore.runClasses(IgnoreMe.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(0, result.getFailureCount());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(1, result.getIgnoreCount());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_IgnoreClassTest_1.2.java</h1>
+<div class="code">
+<div class="id">
+package org.junit.tests.running.classes;<br/>
+<br/>
+import static org.junit.Assert.assertEquals;<br/>
+<span class="add">import static <span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">junit</span></span>.<span class="add">Assert</span></span>.<span class="add">assertThat</span></span>;</span><br/>
+import static org.junit.Assert.fail;<br/>
+<span class="add">import static <span class="add"><span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">junit</span></span>.<span class="add">experimental</span></span>.<span class="add">results</span></span>.<span class="add">PrintableResult</span></span>.<span class="add">testResult</span></span>;</span><br/>
+<span class="add">import static <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">junit</span></span>.<span class="add">matchers</span></span>.<span class="add">JUnitMatchers</span></span>.<span class="add">containsString</span></span>;</span><br/>
+import org.junit.Ignore;<br/>
+import org.junit.Test;<br/>
+import org.junit.runner.JUnitCore;<br/>
+import org.junit.runner.Result;<br/>
+<br/>
+public class IgnoreClassTest {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">@<span class="mv">Ignore</span>(<span class="add">"For a good reason"</span>)</span> public static class IgnoreMe {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Test public void iFail() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Test public void iFailToo() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fail();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@Test public void ignoreClass() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Result result= JUnitCore.runClasses(IgnoreMe.class);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(0, result.getFailureCount());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assertEquals(1, result.getIgnoreCount());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">@<span class="add">Test</span></span> <span class="add">public</span> <span class="add">void</span> <span class="add">includeReasonWhenClassIsIgnored</span>() <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">assertThat</span>(<span class="add"><span class="add"><span class="add">testResult</span>(<span class="add"><span class="add"><span class="add">IgnoreMe</span></span>.class</span>)</span>.<span class="add">toString</span>()</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">containsString</span>(<span class="add">"For a good reason"</span>)</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

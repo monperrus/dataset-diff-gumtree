@@ -1,0 +1,26 @@
+diff --git a/t_273121/left_DefaultPartPresentation_1.25.java b/t_273121/right_DefaultPartPresentation_1.26.java
+index c1b238d..4744318 100644
+--- a/t_273121/left_DefaultPartPresentation_1.25.java
++++ b/t_273121/right_DefaultPartPresentation_1.26.java
+@@ -802,8 +802,10 @@ public class DefaultPartPresentation extends StackPresentation {
+ 	}
+ 	
+ 	private CTabItem createPartTab(IPresentablePart part, int tabIndex) {
+-    	Assert.isTrue(!isDisposed());
+-    	
++		Assert.isTrue(!isDisposed());
++		
++		tabIndex = Math.min(tabIndex, tabFolder.getItemCount());
++		
+ 		CTabItem tabItem;
+ 
+ 		int style = SWT.NONE;
+@@ -823,7 +825,7 @@ public class DefaultPartPresentation extends StackPresentation {
+ 		
+ 		part.addPropertyListener(childPropertyChangeListener);
+ 		tabItem.addDisposeListener(tabDisposeListener);
+-
++	
+ 		initTab(tabItem, part);
+ 		
+ 		return tabItem;

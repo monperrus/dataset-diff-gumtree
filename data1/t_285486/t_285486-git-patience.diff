@@ -1,0 +1,13 @@
+diff --git a/t_285486/left_AllTests_1.5.java b/t_285486/right_AllTests_1.6.java
+index 9ecbdce..6a5914b 100644
+--- a/t_285486/left_AllTests_1.5.java
++++ b/t_285486/right_AllTests_1.6.java
+@@ -21,7 +21,7 @@ public class AllTests {
+ 		suite.addTestSuite(SimpleTestCollectorTest.class);
+ 		suite.addTestSuite(BaseTestRunnerTest.class);
+ 		suite.addTestSuite(TextFeedbackTest.class);
+-		suite.addTestSuite(TextRunnerSingleMethodTest.class);
++		//suite.addTestSuite(TextRunnerSingleMethodTest.class);
+ 		if (!BaseTestRunner.inVAJava()) {
+ 			suite.addTestSuite(TextRunnerTest.class);
+ 			if (!isJDK11())

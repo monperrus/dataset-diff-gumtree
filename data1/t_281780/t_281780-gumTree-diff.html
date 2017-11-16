@@ -1,0 +1,347 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ELFrameTagBeanInfo_1.1.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/contrib/struts-el/src/share/org/apache/strutsel/taglib/html/ELFrameTagBeanInfo.java,v 1.1 2002-10-14 03:11:08 dmkarr Exp $<br/>
+ * $Revision: 1.1 $<br/>
+ * $Date: 2002-10-14 03:11:08 $<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999-2002 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowledgement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Struts", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+<br/>
+package org.apache.strutsel.taglib.html;<br/>
+<br/>
+import java.beans.PropertyDescriptor;<br/>
+import java.beans.IntrospectionException;<br/>
+import java.beans.SimpleBeanInfo;<br/>
+<br/>
+/**<br/>
+ * This is the &lt;code&gt;BeanInfo&lt;/code&gt; descriptor for the<br/>
+ * &lt;code&gt;org.apache.strutsel.taglib.html.ELFrameTag&lt;/code&gt; class.  It is needed<br/>
+ * to override the default mapping of custom tag attribute names to class<br/>
+ * attribute names.<br/>
+ *&lt;p&gt;<br/>
+ * This is necessary because the base class,<br/>
+ * &lt;code&gt;org.apache.struts.taglib.html.FrameTag&lt;/code&gt; defines some<br/>
+ * attributes whose type is not &lt;code&gt;java.lang.String&lt;/code&gt;, so the subclass<br/>
+ * needs to define setter methods of a different name, which this class maps<br/>
+ * to.<br/>
+ *&lt;p&gt;<br/>
+ * Unfortunately, if a &lt;code&gt;BeanInfo&lt;/code&gt; class needs to be provided to<br/>
+ * change the mapping of one attribute, it has to specify the mappings of ALL<br/>
+ * attributes, even if all the others use the expected mappings of "name" to<br/>
+ * "method".<br/>
+ */<br/>
+public class ELFrameTagBeanInfo extends SimpleBeanInfo<br/>
+{<br/>
+    public  PropertyDescriptor[] getPropertyDescriptors()<br/>
+    {<br/>
+        <span class="del"><span class="del"><span class="del"><span class="del">System</span>.<span class="del">out</span></span>.<span class="del">println</span>(<span class="del">"In ELFrameTagBeanInfo.getPropertyDescriptors."</span>)</span>;</span><br/>
+        PropertyDescriptor[]  result   = new PropertyDescriptor[24];<br/>
+<br/>
+        try {<br/>
+            result[0] = new PropertyDescriptor("anchor", ELFrameTag.class,<br/>
+                                               null, "setAnchor");<br/>
+            result[1] = new PropertyDescriptor("forward", ELFrameTag.class,<br/>
+                                               null, "setForward");<br/>
+            result[2] = new PropertyDescriptor("frameborder", ELFrameTag.class,<br/>
+                                               null, "setFrameborder");<br/>
+            result[3] = new PropertyDescriptor("frameName", ELFrameTag.class,<br/>
+                                               null, "setFrameName");<br/>
+            result[4] = new PropertyDescriptor("href", ELFrameTag.class,<br/>
+                                               null, "setHref");<br/>
+            result[5] = new PropertyDescriptor("longdesc", ELFrameTag.class,<br/>
+                                               null, "setLongdesc");<br/>
+            result[6] = new PropertyDescriptor("marginheight", ELFrameTag.class,<br/>
+                                               null, "setMarginheightExpr");<br/>
+            result[7] = new PropertyDescriptor("marginwidth", ELFrameTag.class,<br/>
+                                               null, "setMarginwidthExpr");<br/>
+            result[8] = new PropertyDescriptor("name", ELFrameTag.class,<br/>
+                                               null, "setName");<br/>
+            result[9] = new PropertyDescriptor("noresize",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setNoresizeExpr");<br/>
+            result[10] = new PropertyDescriptor("page", ELFrameTag.class,<br/>
+                                               null, "setPage");<br/>
+            result[11] = new PropertyDescriptor("paramId",<br/>
+                                                ELFrameTag.class,<br/>
+                                               null, "setParamId");<br/>
+            result[12] = new PropertyDescriptor("paramName",<br/>
+                                                ELFrameTag.class,<br/>
+                                               null, "setParamName");<br/>
+            result[13] = new PropertyDescriptor("paramProperty",<br/>
+                                                ELFrameTag.class,<br/>
+                                               null, "setParamProperty");<br/>
+            result[14] = new PropertyDescriptor("paramScope",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setParamScope");<br/>
+            result[15] = new PropertyDescriptor("property",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setProperty");<br/>
+            result[16] = new PropertyDescriptor("scope",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setScope");<br/>
+            result[17] = new PropertyDescriptor("scrolling",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setScrolling");<br/>
+            result[18] = new PropertyDescriptor("style", ELFrameTag.class,<br/>
+                                               null, "setStyle");<br/>
+            result[19] = new PropertyDescriptor("styleClass",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setStyleClass");<br/>
+            result[20] = new PropertyDescriptor("styleId", ELFrameTag.class,<br/>
+                                               null, "setStyleId");<br/>
+            result[21] = new PropertyDescriptor("title", ELFrameTag.class,<br/>
+                                               null, "setTitle");<br/>
+            result[22] = new PropertyDescriptor("titleKey", ELFrameTag.class,<br/>
+                                               null, "setTitleKey");<br/>
+            result[23] = new PropertyDescriptor("transaction", ELFrameTag.class,<br/>
+                                               null, "setTransactionExpr");<br/>
+        }<br/>
+        catch (IntrospectionException ex) {<br/>
+            ex.printStackTrace();<br/>
+        }<br/>
+        <br/>
+        return (result);<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ELFrameTagBeanInfo_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/contrib/struts-el/src/share/org/apache/strutsel/taglib/html/ELFrameTagBeanInfo.java,v 1.2 2002-10-15 03:11:04 dmkarr Exp $<br/>
+ * $Revision: 1.2 $<br/>
+ * $Date: 2002-10-15 03:11:04 $<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999-2002 The Apache Software Foundation.  All rights<br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer.<br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowledgement:<br/>
+ *       "This product includes software developed by the<br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Struts", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written<br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ */<br/>
+<br/>
+package org.apache.strutsel.taglib.html;<br/>
+<br/>
+import java.beans.PropertyDescriptor;<br/>
+import java.beans.IntrospectionException;<br/>
+import java.beans.SimpleBeanInfo;<br/>
+<br/>
+/**<br/>
+ * This is the &lt;code&gt;BeanInfo&lt;/code&gt; descriptor for the<br/>
+ * &lt;code&gt;org.apache.strutsel.taglib.html.ELFrameTag&lt;/code&gt; class.  It is needed<br/>
+ * to override the default mapping of custom tag attribute names to class<br/>
+ * attribute names.<br/>
+ *&lt;p&gt;<br/>
+ * This is necessary because the base class,<br/>
+ * &lt;code&gt;org.apache.struts.taglib.html.FrameTag&lt;/code&gt; defines some<br/>
+ * attributes whose type is not &lt;code&gt;java.lang.String&lt;/code&gt;, so the subclass<br/>
+ * needs to define setter methods of a different name, which this class maps<br/>
+ * to.<br/>
+ *&lt;p&gt;<br/>
+ * Unfortunately, if a &lt;code&gt;BeanInfo&lt;/code&gt; class needs to be provided to<br/>
+ * change the mapping of one attribute, it has to specify the mappings of ALL<br/>
+ * attributes, even if all the others use the expected mappings of "name" to<br/>
+ * "method".<br/>
+ */<br/>
+public class ELFrameTagBeanInfo extends SimpleBeanInfo<br/>
+{<br/>
+    public  PropertyDescriptor[] getPropertyDescriptors()<br/>
+    {<br/>
+        PropertyDescriptor[]  result   = new PropertyDescriptor[24];<br/>
+<br/>
+        try {<br/>
+            result[0] = new PropertyDescriptor("anchor", ELFrameTag.class,<br/>
+                                               null, "setAnchor");<br/>
+            result[1] = new PropertyDescriptor("forward", ELFrameTag.class,<br/>
+                                               null, "setForward");<br/>
+            result[2] = new PropertyDescriptor("frameborder", ELFrameTag.class,<br/>
+                                               null, "setFrameborder");<br/>
+            result[3] = new PropertyDescriptor("frameName", ELFrameTag.class,<br/>
+                                               null, "setFrameName");<br/>
+            result[4] = new PropertyDescriptor("href", ELFrameTag.class,<br/>
+                                               null, "setHref");<br/>
+            result[5] = new PropertyDescriptor("longdesc", ELFrameTag.class,<br/>
+                                               null, "setLongdesc");<br/>
+            result[6] = new PropertyDescriptor("marginheight", ELFrameTag.class,<br/>
+                                               null, "setMarginheightExpr");<br/>
+            result[7] = new PropertyDescriptor("marginwidth", ELFrameTag.class,<br/>
+                                               null, "setMarginwidthExpr");<br/>
+            result[8] = new PropertyDescriptor("name", ELFrameTag.class,<br/>
+                                               null, "setName");<br/>
+            result[9] = new PropertyDescriptor("noresize",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setNoresizeExpr");<br/>
+            result[10] = new PropertyDescriptor("page", ELFrameTag.class,<br/>
+                                               null, "setPage");<br/>
+            result[11] = new PropertyDescriptor("paramId",<br/>
+                                                ELFrameTag.class,<br/>
+                                               null, "setParamId");<br/>
+            result[12] = new PropertyDescriptor("paramName",<br/>
+                                                ELFrameTag.class,<br/>
+                                               null, "setParamName");<br/>
+            result[13] = new PropertyDescriptor("paramProperty",<br/>
+                                                ELFrameTag.class,<br/>
+                                               null, "setParamProperty");<br/>
+            result[14] = new PropertyDescriptor("paramScope",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setParamScope");<br/>
+            result[15] = new PropertyDescriptor("property",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setProperty");<br/>
+            result[16] = new PropertyDescriptor("scope",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setScope");<br/>
+            result[17] = new PropertyDescriptor("scrolling",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setScrolling");<br/>
+            result[18] = new PropertyDescriptor("style", ELFrameTag.class,<br/>
+                                               null, "setStyle");<br/>
+            result[19] = new PropertyDescriptor("styleClass",<br/>
+                                               ELFrameTag.class,<br/>
+                                               null, "setStyleClass");<br/>
+            result[20] = new PropertyDescriptor("styleId", ELFrameTag.class,<br/>
+                                               null, "setStyleId");<br/>
+            result[21] = new PropertyDescriptor("title", ELFrameTag.class,<br/>
+                                               null, "setTitle");<br/>
+            result[22] = new PropertyDescriptor("titleKey", ELFrameTag.class,<br/>
+                                               null, "setTitleKey");<br/>
+            result[23] = new PropertyDescriptor("transaction", ELFrameTag.class,<br/>
+                                               null, "setTransactionExpr");<br/>
+        }<br/>
+        catch (IntrospectionException ex) {<br/>
+            ex.printStackTrace();<br/>
+        }<br/>
+        <br/>
+        return (result);<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

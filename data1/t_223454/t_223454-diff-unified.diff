@@ -1,0 +1,11 @@
+--- t_223454/left_EntityListFile_1.17.java	2013-03-17 15:47:12.000000000 +0100
++++ t_223454/right_EntityListFile_1.18.java	2013-03-17 15:47:12.000000000 +0100
+@@ -439,7 +439,7 @@
+ 
+         // Open up the file.
+         InputStream listStream = new FileInputStream
+-            ( new File(filePath, fileName), "UTF-8" );
++            ( new File(filePath, fileName) );
+ 
+         // Read a Vector from the file.
+         try {

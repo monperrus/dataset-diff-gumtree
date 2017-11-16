@@ -1,0 +1,21 @@
+--- t_281780/left_ELFrameTagBeanInfo_1.1.java	2013-03-17 15:47:24.000000000 +0100
++++ t_281780/right_ELFrameTagBeanInfo_1.2.java	2013-03-17 15:47:24.000000000 +0100
+@@ -1,7 +1,7 @@
+ /*
+- * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/contrib/struts-el/src/share/org/apache/strutsel/taglib/html/ELFrameTagBeanInfo.java,v 1.1 2002-10-14 03:11:08 dmkarr Exp $
+- * $Revision: 1.1 $
+- * $Date: 2002-10-14 03:11:08 $
++ * $Header: /home/matmarti/develop/repositories/cvs/cvs-vintage/struts-cvs/contrib/struts-el/src/share/org/apache/strutsel/taglib/html/ELFrameTagBeanInfo.java,v 1.2 2002-10-15 03:11:04 dmkarr Exp $
++ * $Revision: 1.2 $
++ * $Date: 2002-10-15 03:11:04 $
+  * ====================================================================
+  *
+  * The Apache Software License, Version 1.1
+@@ -85,7 +85,6 @@
+ {
+     public  PropertyDescriptor[] getPropertyDescriptors()
+     {
+-        System.out.println("In ELFrameTagBeanInfo.getPropertyDescriptors.");
+         PropertyDescriptor[]  result   = new PropertyDescriptor[24];
+ 
+         try {

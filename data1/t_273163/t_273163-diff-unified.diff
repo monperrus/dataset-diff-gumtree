@@ -1,0 +1,10 @@
+--- t_273163/left_FastViewPane_1.37.java	2013-03-17 15:47:20.000000000 +0100
++++ t_273163/right_FastViewPane_1.38.java	2013-03-17 15:47:20.000000000 +0100
+@@ -418,7 +418,6 @@
+         ctrl.setEnabled(true); // Add focus support.
+         Composite parent = ctrl.getParent();
+ 
+-        pane.setVisible(true);
+         pane.setFocus();
+ 
+         boolean horizontal = Geometry.isHorizontal(side);

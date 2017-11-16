@@ -1,0 +1,20 @@
+--- t_231627/left_XmlIO_1.8.java	2013-03-17 15:47:30.000000000 +0100
++++ t_231627/right_XmlIO_1.9.java	2013-03-17 15:47:32.000000000 +0100
+@@ -30,6 +30,8 @@
+ import javax.xml.parsers.SAXParserFactory;
+ 
+ import org.columba.core.logging.ColumbaLogger;
++import org.columba.core.io.DiskIO;
++
+ import org.xml.sax.Attributes;
+ import org.xml.sax.SAXException;
+ import org.xml.sax.XMLReader;
+@@ -110,7 +112,7 @@
+ 
+ 			SAXParser saxParser = factory.newSAXParser();
+ 
+-			saxParser.parse(inputURL.openStream(), this);
++			saxParser.parse(inputURL.toString(), this);
+ 
+ 		} catch (javax.xml.parsers.ParserConfigurationException ex) {
+ 			ColumbaLogger.log.error(

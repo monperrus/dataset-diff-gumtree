@@ -1,0 +1,804 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_WebXmlReader_1.30.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.tomcat.context;<br/>
+<br/>
+import org.apache.tomcat.core.*;<br/>
+import org.apache.tomcat.util.*;<br/>
+import org.apache.tomcat.util.xml.*;<br/>
+import org.apache.tomcat.logging.*;<br/>
+import org.apache.tomcat.facade.ServletWrapper;<br/>
+import java.beans.*;<br/>
+import java.io.*;<br/>
+import java.io.IOException;<br/>
+import java.lang.reflect.*;<br/>
+import java.util.*;<br/>
+import java.util.StringTokenizer;<br/>
+import org.xml.sax.InputSource;<br/>
+import org.xml.sax.SAXException;<br/>
+import org.xml.sax.*;<br/>
+import org.xml.sax.helpers.*;<br/>
+import org.w3c.dom.*;<br/>
+<br/>
+/**<br/>
+ * @author costin@dnt.ro<br/>
+ */<br/>
+public class WebXmlReader extends BaseInterceptor {<br/>
+    public static final String defaultWelcomeList[]={"index.jsp", "index.html", "index.htm"};<br/>
+    public static final int DEFAULT_SESSION_TIMEOUT=30;<br/>
+<br/>
+    private static StringManager sm =StringManager.getManager("org.apache.tomcat.resources");<br/>
+    boolean validate=true;<br/>
+<br/>
+    public WebXmlReader() {<br/>
+    }<br/>
+<br/>
+    public void setValidate( boolean b ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;validate=b;<br/>
+    }<br/>
+<br/>
+    private ServletWrapper addServlet( Context ctx, String name, String classN )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper sw=new ServletWrapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setServletName( name );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setServletClass( classN);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServlet( sw );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setLoadOnStartUp( -2147483646 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return sw;<br/>
+    }<br/>
+    <br/>
+    private void setDefaults( Context ctx )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;&nbsp;&nbsp;&nbsp;addServlet( ctx, "default", "org.apache.tomcat.servlets.DefaultServlet");<br/>
+// &nbsp;&nbsp;&nbsp;&nbsp;addServlet( ctx, "invoker", "org.apache.tomcat.servlets.InvokerServlet");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper sw=addServlet( ctx, "jsp", "org.apache.jasper.servlet.JspServlet");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;&nbsp;&nbsp;&nbsp;sw.addInitParam("jspCompilerPlugin", "org.apache.jasper.compiler.JikesJavaCompiler");<br/>
+<br/>
+// &nbsp;&nbsp;&nbsp;&nbsp;ctx.addServletMapping( "/servlet/*", "invoker");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServletMapping( "*.jsp", "jsp");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setSessionTimeOut( 30 );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// mime-mapping - are build into MimeMap.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Note that default mappings are based on existing registered types.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// index pages - still use the hack, but it'll go away soon<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; defaultWelcomeList.length; i++ )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.addWelcomeFile( defaultWelcomeList[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.expectUserWelcomeFiles();<br/>
+    }<br/>
+<br/>
+<br/>
+    private void readDefaultWebXml( Context ctx ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ContextManager cm=ctx.getContextManager();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String home = cm.getHome();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File default_xml=new File( home + "/conf/web.xml" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// try the default ( installation )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! default_xml.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String tchome=ctx.getContextManager().getInstallDir();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( tchome != null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default_xml=new File( tchome + "/conf/web.xml");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! default_xml.exists() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;processWebXmlFile(ctx , default_xml.getPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.expectUserWelcomeFiles();<br/>
+    }<br/>
+    <br/>
+    public void contextInit(Context ctx) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ctx.getDebug() &gt; 0 ) ctx.log("XmlReader - init  " + ctx.getPath() + " " + ctx.getDocBase() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ContextManager cm=ctx.getContextManager();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Default init<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    setDefaults( ctx );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // We may read a "default" web.xml from INSTALL/conf/web.xml -<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // the code is commented out right now because we want to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // consolidate the config in server.xml ( or API calls ),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // we may put it back for 3.2 if needed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // note that web.xml have to be cleaned up - only diff from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // default should be inside<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // readDefaultWebXml( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    File inf_xml = cm.getAbsolute( new File(ctx.getDocBase() +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    "/WEB-INF/web.xml"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( inf_xml.exists() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processWebXmlFile(ctx, inf_xml.getPath() );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String msg = sm.getString("context.getConfig.e",ctx.getPath() + " " + ctx.getDocBase());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log(msg, e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    }<br/>
+<br/>
+    void processWebXmlFile( Context ctx, String file) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    File f=new File(FileUtil.patch(file));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! f.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.log( "File not found " + f + ", using only defaults" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.getDebug() &gt; 0 ) ctx.log("Reading " + file );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    XmlMapper xh=new XmlMapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( validate ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xh.setValidating(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.getDebug() &gt; 5 ) xh.setDebug( 3 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // By using dtdURL you brake most parsers ( at least xerces )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.registerDTDRes("-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      "/org/apache/tomcat/resources/web.dtd");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/context-param", xh.methodSetter("addInitParameter", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/context-param/param-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/context-param/param-value", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/description", xh.methodSetter("setDescription", 0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/icon/small-icon", xh.methodSetter("setIcon", 0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/distributable", xh.methodSetter("setDistributable", 0) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet-mapping", xh.methodSetter("addServletMapping", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet-mapping/servlet-name", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet-mapping/url-pattern", xh.methodParam(0) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/taglib", xh.methodSetter("addTaglib", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/taglib/taglib-uri", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/taglib/taglib-location", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry", xh.methodSetter("addEnvEntry", 4) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/env-entry-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/env-entry-type", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/env-entry-value", xh.methodParam(2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/description", xh.methodParam(3) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config", xh.methodSetter("setLoginConfig", 4) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/auth-method", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/realm-name", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/form-login-config/form-login-page", xh.methodParam(2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/form-login-config/form-error-page", xh.methodParam(3) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/mime-mapping", xh.methodSetter("addContentType", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/mime-mapping/extension", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/mime-mapping/mime-type", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/welcome-file-list/welcome-file", xh.methodSetter("addWelcomeFile", 0) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page", xh.methodSetter("addErrorPage",2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page/error-code", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page/exception-type", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page/location", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/session-config", xh.methodSetter("setSessionTimeOut", 1, new String[]{"int"}));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/session-config/session-timeout", xh.methodParam(0));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Servlet<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet", xh.objectCreate(<span class="upd">"org.apache.tomcat.core.ServletWrapper"</span>) ); // servlet-wrapper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet", xh.setParent( "setContext") ); // remove it from stack when done<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet", xh.addChild("addServlet", "org.apache.tomcat.core.Handler") );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // remove it from stack when done<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/servlet-name", xh.methodSetter("setServletName",0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/servlet-class", xh.methodSetter("setServletClass",0));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/jsp-file",xh.methodSetter("setPath",0));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref", xh.methodSetter("addSecurityMapping", 3) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref/role-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref/role-link", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref/description", xh.methodParam(2) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/init-param", xh.methodSetter("addInitParam", 2) ); // addXXX<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/init-param/param-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/init-param/param-value", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/icon/small-icon", xh.methodSetter("setIcon",0 )); // icon, body<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/description", xh.methodSetter("setDescription", 0) ); // description, body<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/load-on-startup", xh.methodSetter("setLoadOnStartUp", 0 ));<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addSecurity( xh );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object ctx1=xh.readXml(f, ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("ERROR reading " + file, ex);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // XXX we should invalidate the context and un-load it !!!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // Add security rules - complex code<br/>
+    void addSecurity( XmlMapper xh ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new SCAction() );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/user-data-constraint/transport-guarantee",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       SecurityConstraint rc=(SecurityConstraint)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.setTransport( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/auth-constraint/role-name",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       SecurityConstraint rc=(SecurityConstraint)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.addRole( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/web-resource-collection",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void start( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       st.push(new ResourceCollection());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       ResourceCollection rc=(ResourceCollection)st.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       SecurityConstraint sc=(SecurityConstraint)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       st.push( rc );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sc.addResourceCollection( rc );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void cleanup( SaxContext ctx) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Object o=st.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/web-resource-collection/url-pattern",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       ResourceCollection rc=(ResourceCollection)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.addUrlPattern( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/web-resource-collection/http-method",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       ResourceCollection rc=(ResourceCollection)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.addHttpMethod( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+/** Specific action for Security-constraint<br/>
+ */<br/>
+class SCAction extends XmlAction {<br/>
+    public void start( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;st.push(new SecurityConstraint());<br/>
+    }<br/>
+    public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String tag=ctx.getTag(ctx.getTagCount()-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SecurityConstraint sc=(SecurityConstraint)st.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context context=(Context)st.peek();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;st.push( sc ); // restore stack<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// add all patterns that will need security<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String roles[]=sc.getRoles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String transport=sc.getTransport();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration en=sc.getResourceCollections();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while( en.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ResourceCollection rc=(ResourceCollection)en.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String paths[]=rc.getPatterns();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String meths[]=rc.getMethods();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    context.addSecurityConstraint(  paths, meths ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    roles, transport);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    public void cleanup( SaxContext ctx) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object o=st.pop();<br/>
+    }<br/>
+}<br/>
+<br/>
+class SecurityConstraint {<br/>
+    Vector roles=new Vector();<br/>
+    String transport;<br/>
+    Vector resourceC=new Vector();<br/>
+<br/>
+    public SecurityConstraint() {<br/>
+    }<br/>
+<br/>
+    public void setTransport( String transport ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.transport=transport;<br/>
+    }<br/>
+<br/>
+    public String getTransport() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return this.transport;<br/>
+    }<br/>
+<br/>
+    public void addRole(String role ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;roles.addElement( role );<br/>
+    }<br/>
+<br/>
+    public void addResourceCollection( ResourceCollection rc ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;resourceC.addElement( rc );<br/>
+    }<br/>
+<br/>
+    public String []getRoles() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String rolesA[]=new String[roles.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; rolesA.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    rolesA[i]=(String)roles.elementAt( i );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return rolesA;<br/>
+    }<br/>
+    public Enumeration getResourceCollections() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return resourceC.elements();<br/>
+    }<br/>
+}<br/>
+<br/>
+class ResourceCollection {<br/>
+    Vector urlP=new Vector();<br/>
+    Vector methods=new Vector();<br/>
+<br/>
+    public ResourceCollection() {<br/>
+    }<br/>
+<br/>
+    public void addUrlPattern( String pattern ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;urlP.addElement( pattern );<br/>
+    }<br/>
+<br/>
+    public void addHttpMethod( String method ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;methods.addElement( method );<br/>
+    }<br/>
+<br/>
+    public String []getMethods() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String methodsA[]=new String[methods.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; methodsA.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    methodsA[i]=(String)methods.elementAt( i );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return methodsA;<br/>
+    }<br/>
+<br/>
+    public String []getPatterns() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String patternsA[]=new String[urlP.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; patternsA.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    patternsA[i]=(String)urlP.elementAt( i );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return patternsA;<br/>
+    }<br/>
+<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_WebXmlReader_1.31.java</h1>
+<div class="code">
+<div class="id">
+package org.apache.tomcat.context;<br/>
+<br/>
+import org.apache.tomcat.core.*;<br/>
+import org.apache.tomcat.util.*;<br/>
+import org.apache.tomcat.util.xml.*;<br/>
+import org.apache.tomcat.logging.*;<br/>
+import org.apache.tomcat.facade.ServletWrapper;<br/>
+import java.beans.*;<br/>
+import java.io.*;<br/>
+import java.io.IOException;<br/>
+import java.lang.reflect.*;<br/>
+import java.util.*;<br/>
+import java.util.StringTokenizer;<br/>
+import org.xml.sax.InputSource;<br/>
+import org.xml.sax.SAXException;<br/>
+import org.xml.sax.*;<br/>
+import org.xml.sax.helpers.*;<br/>
+import org.w3c.dom.*;<br/>
+<br/>
+/**<br/>
+ * @author costin@dnt.ro<br/>
+ */<br/>
+public class WebXmlReader extends BaseInterceptor {<br/>
+    public static final String defaultWelcomeList[]={"index.jsp", "index.html", "index.htm"};<br/>
+    public static final int DEFAULT_SESSION_TIMEOUT=30;<br/>
+<br/>
+    private static StringManager sm =StringManager.getManager("org.apache.tomcat.resources");<br/>
+    boolean validate=true;<br/>
+<br/>
+    public WebXmlReader() {<br/>
+    }<br/>
+<br/>
+    public void setValidate( boolean b ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;validate=b;<br/>
+    }<br/>
+<br/>
+    private ServletWrapper addServlet( Context ctx, String name, String classN )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper sw=new ServletWrapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setContext(ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setServletName( name );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setServletClass( classN);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServlet( sw );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sw.setLoadOnStartUp( -2147483646 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return sw;<br/>
+    }<br/>
+    <br/>
+    private void setDefaults( Context ctx )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws TomcatException<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;&nbsp;&nbsp;&nbsp;addServlet( ctx, "default", "org.apache.tomcat.servlets.DefaultServlet");<br/>
+// &nbsp;&nbsp;&nbsp;&nbsp;addServlet( ctx, "invoker", "org.apache.tomcat.servlets.InvokerServlet");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ServletWrapper sw=addServlet( ctx, "jsp", "org.apache.jasper.servlet.JspServlet");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;&nbsp;&nbsp;&nbsp;sw.addInitParam("jspCompilerPlugin", "org.apache.jasper.compiler.JikesJavaCompiler");<br/>
+<br/>
+// &nbsp;&nbsp;&nbsp;&nbsp;ctx.addServletMapping( "/servlet/*", "invoker");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.addServletMapping( "*.jsp", "jsp");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.setSessionTimeOut( 30 );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// mime-mapping - are build into MimeMap.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// Note that default mappings are based on existing registered types.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// index pages - still use the hack, but it'll go away soon<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; defaultWelcomeList.length; i++ )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ctx.addWelcomeFile( defaultWelcomeList[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.expectUserWelcomeFiles();<br/>
+    }<br/>
+<br/>
+<br/>
+    private void readDefaultWebXml( Context ctx ) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ContextManager cm=ctx.getContextManager();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String home = cm.getHome();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;File default_xml=new File( home + "/conf/web.xml" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// try the default ( installation )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! default_xml.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String tchome=ctx.getContextManager().getInstallDir();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( tchome != null )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default_xml=new File( tchome + "/conf/web.xml");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ! default_xml.exists() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;processWebXmlFile(ctx , default_xml.getPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.expectUserWelcomeFiles();<br/>
+    }<br/>
+    <br/>
+    public void contextInit(Context ctx) throws TomcatException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( ctx.getDebug() &gt; 0 ) ctx.log("XmlReader - init  " + ctx.getPath() + " " + ctx.getDocBase() );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ContextManager cm=ctx.getContextManager();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Default init<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    setDefaults( ctx );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // We may read a "default" web.xml from INSTALL/conf/web.xml -<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // the code is commented out right now because we want to<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // consolidate the config in server.xml ( or API calls ),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // we may put it back for 3.2 if needed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // note that web.xml have to be cleaned up - only diff from<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // default should be inside<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // readDefaultWebXml( ctx );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    File inf_xml = cm.getAbsolute( new File(ctx.getDocBase() +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    "/WEB-INF/web.xml"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( inf_xml.exists() )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processWebXmlFile(ctx, inf_xml.getPath() );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String msg = sm.getString("context.getConfig.e",ctx.getPath() + " " + ctx.getDocBase());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log(msg, e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    }<br/>
+<br/>
+    void processWebXmlFile( Context ctx, String file) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    File f=new File(FileUtil.patch(file));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ! f.exists() ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.log( "File not found " + f + ", using only defaults" );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.getDebug() &gt; 0 ) ctx.log("Reading " + file );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    XmlMapper xh=new XmlMapper();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if( validate ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xh.setValidating(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;&nbsp;&nbsp;&nbsp;    if( ctx.getDebug() &gt; 5 ) xh.setDebug( 3 );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // By using dtdURL you brake most parsers ( at least xerces )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.registerDTDRes("-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      "/org/apache/tomcat/resources/web.dtd");<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/context-param", xh.methodSetter("addInitParameter", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/context-param/param-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/context-param/param-value", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/description", xh.methodSetter("setDescription", 0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/icon/small-icon", xh.methodSetter("setIcon", 0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/distributable", xh.methodSetter("setDistributable", 0) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet-mapping", xh.methodSetter("addServletMapping", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet-mapping/servlet-name", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet-mapping/url-pattern", xh.methodParam(0) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/taglib", xh.methodSetter("addTaglib", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/taglib/taglib-uri", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/taglib/taglib-location", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry", xh.methodSetter("addEnvEntry", 4) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/env-entry-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/env-entry-type", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/env-entry-value", xh.methodParam(2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/env-entry/description", xh.methodParam(3) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config", xh.methodSetter("setLoginConfig", 4) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/auth-method", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/realm-name", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/form-login-config/form-login-page", xh.methodParam(2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/login-config/form-login-config/form-error-page", xh.methodParam(3) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/mime-mapping", xh.methodSetter("addContentType", 2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/mime-mapping/extension", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/mime-mapping/mime-type", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/welcome-file-list/welcome-file", xh.methodSetter("addWelcomeFile", 0) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page", xh.methodSetter("addErrorPage",2) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page/error-code", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page/exception-type", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/error-page/location", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/session-config", xh.methodSetter("setSessionTimeOut", 1, new String[]{"int"}));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/session-config/session-timeout", xh.methodParam(0));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Servlet<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet", xh.objectCreate(<span class="upd">"org.apache.tomcat.facade.ServletWrapper"</span>) ); // servlet-wrapper<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet", xh.setParent( "setContext") ); // remove it from stack when done<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet", xh.addChild("addServlet", "org.apache.tomcat.core.Handler") );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // remove it from stack when done<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/servlet-name", xh.methodSetter("setServletName",0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/servlet-class", xh.methodSetter("setServletClass",0));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/jsp-file",xh.methodSetter("setPath",0));<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref", xh.methodSetter("addSecurityMapping", 3) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref/role-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref/role-link", xh.methodParam(1) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/security-role-ref/description", xh.methodParam(2) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/init-param", xh.methodSetter("addInitParam", 2) ); // addXXX<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/init-param/param-name", xh.methodParam(0) );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/init-param/param-value", xh.methodParam(1) );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/icon/small-icon", xh.methodSetter("setIcon",0 )); // icon, body<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/description", xh.methodSetter("setDescription", 0) ); // description, body<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    xh.addRule("web-app/servlet/load-on-startup", xh.methodSetter("setLoadOnStartUp", 0 ));<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    addSecurity( xh );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object ctx1=xh.readXml(f, ctx);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    log("ERROR reading " + file, ex);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // XXX we should invalidate the context and un-load it !!!<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    // Add security rules - complex code<br/>
+    void addSecurity( XmlMapper xh ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new SCAction() );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/user-data-constraint/transport-guarantee",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       SecurityConstraint rc=(SecurityConstraint)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.setTransport( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/auth-constraint/role-name",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       SecurityConstraint rc=(SecurityConstraint)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.addRole( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/web-resource-collection",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void start( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       st.push(new ResourceCollection());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       ResourceCollection rc=(ResourceCollection)st.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       SecurityConstraint sc=(SecurityConstraint)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       st.push( rc );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       sc.addResourceCollection( rc );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void cleanup( SaxContext ctx) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Object o=st.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/web-resource-collection/url-pattern",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       ResourceCollection rc=(ResourceCollection)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.addUrlPattern( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;xh.addRule("web-app/security-constraint/web-resource-collection/http-method",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new XmlAction() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       ResourceCollection rc=(ResourceCollection)st.peek();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       String  body=ctx.getBody().trim();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       rc.addHttpMethod( body );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   );<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+/** Specific action for Security-constraint<br/>
+ */<br/>
+class SCAction extends XmlAction {<br/>
+    public void start( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;st.push(new SecurityConstraint());<br/>
+    }<br/>
+    public void end( SaxContext ctx) throws Exception {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String tag=ctx.getTag(ctx.getTagCount()-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SecurityConstraint sc=(SecurityConstraint)st.pop();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Context context=(Context)st.peek();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;st.push( sc ); // restore stack<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// add all patterns that will need security<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String roles[]=sc.getRoles();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String transport=sc.getTransport();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration en=sc.getResourceCollections();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while( en.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ResourceCollection rc=(ResourceCollection)en.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String paths[]=rc.getPatterns();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String meths[]=rc.getMethods();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    context.addSecurityConstraint(  paths, meths ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    roles, transport);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    public void cleanup( SaxContext ctx) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Stack st=ctx.getObjectStack();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object o=st.pop();<br/>
+    }<br/>
+}<br/>
+<br/>
+class SecurityConstraint {<br/>
+    Vector roles=new Vector();<br/>
+    String transport;<br/>
+    Vector resourceC=new Vector();<br/>
+<br/>
+    public SecurityConstraint() {<br/>
+    }<br/>
+<br/>
+    public void setTransport( String transport ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.transport=transport;<br/>
+    }<br/>
+<br/>
+    public String getTransport() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return this.transport;<br/>
+    }<br/>
+<br/>
+    public void addRole(String role ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;roles.addElement( role );<br/>
+    }<br/>
+<br/>
+    public void addResourceCollection( ResourceCollection rc ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;resourceC.addElement( rc );<br/>
+    }<br/>
+<br/>
+    public String []getRoles() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String rolesA[]=new String[roles.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; rolesA.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    rolesA[i]=(String)roles.elementAt( i );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return rolesA;<br/>
+    }<br/>
+    public Enumeration getResourceCollections() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return resourceC.elements();<br/>
+    }<br/>
+}<br/>
+<br/>
+class ResourceCollection {<br/>
+    Vector urlP=new Vector();<br/>
+    Vector methods=new Vector();<br/>
+<br/>
+    public ResourceCollection() {<br/>
+    }<br/>
+<br/>
+    public void addUrlPattern( String pattern ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;urlP.addElement( pattern );<br/>
+    }<br/>
+<br/>
+    public void addHttpMethod( String method ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;methods.addElement( method );<br/>
+    }<br/>
+<br/>
+    public String []getMethods() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String methodsA[]=new String[methods.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; methodsA.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    methodsA[i]=(String)methods.elementAt( i );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return methodsA;<br/>
+    }<br/>
+<br/>
+    public String []getPatterns() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String patternsA[]=new String[urlP.size()];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for( int i=0; i&lt; patternsA.length; i++ ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    patternsA[i]=(String)urlP.elementAt( i );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return patternsA;<br/>
+    }<br/>
+<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

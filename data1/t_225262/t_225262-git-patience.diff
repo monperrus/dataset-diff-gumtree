@@ -1,0 +1,16 @@
+diff --git a/t_225262/left_FieldInfos_1.9.java b/t_225262/right_FieldInfos_1.10.java
+index dc71ee7..050b71e 100644
+--- a/t_225262/left_FieldInfos_1.9.java
++++ b/t_225262/right_FieldInfos_1.10.java
+@@ -158,8 +158,10 @@ final class FieldInfos {
+   public boolean hasVectors() {
+     boolean hasVectors = false;
+     for (int i = 0; i < size(); i++) {
+-      if (fieldInfo(i).storeTermVector)
++      if (fieldInfo(i).storeTermVector) {
+         hasVectors = true;
++        break;
++      }
+     }
+     return hasVectors;
+   }

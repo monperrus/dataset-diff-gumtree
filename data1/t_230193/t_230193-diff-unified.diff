@@ -1,0 +1,11 @@
+--- t_230193/left_Install_1.9.java	2013-03-17 15:47:02.000000000 +0100
++++ t_230193/right_Install_1.10.java	2013-03-17 15:47:02.000000000 +0100
+@@ -58,7 +58,7 @@
+ 		props = new Properties();
+ 		try
+ 		{
+-			InputStream in = getClass().getResourceAsStream("install.props");
++			InputStream in = getClass().getResourceAsStream("/installer/install.props");
+ 			props.load(in);
+ 			in.close();
+ 		}

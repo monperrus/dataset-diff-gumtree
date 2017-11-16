@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_StorageFormatManager_1.3.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)StorageFormatManager.java<br/>
+ *<br/>
+ * Project:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JHotdraw - a GUI framework for technical drawings<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.jhotdraw.org<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://jhotdraw.sourceforge.net<br/>
+ * Copyright:&nbsp;&nbsp;&nbsp;&nbsp;? by the original author(s) and all contributors<br/>
+ * License:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lesser GNU Public License (LGPL)<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.opensource.org/licenses/lgpl-license.html<br/>
+ */<br/>
+ <br/>
+package CH.ifa.draw.util;<br/>
+<br/>
+import javax.swing.JFileChooser;<br/>
+import javax.swing.filechooser.FileFilter;<br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+<br/>
+/**<br/>
+ * The StorageFormatManager is a contains StorageFormats.<br/>
+ * It is not a Singleton because it could be necessary to deal with different<br/>
+ * format managers, e.g. one for importing Drawings, one for exporting Drawings.<br/>
+ * If one StorageFormat matches the file extension of the Drawing file, then this<br/>
+ * StorageFormat can be used to store or restore the Drawing.<br/>
+ *<br/>
+ * @see StorageFormat<br/>
+ *<br/>
+ * @author  Wolfram Kaiser &lt;mrfloppy@sourceforge.net&gt;<br/>
+ * @version &lt;$CURRENT_VERSION$&gt;<br/>
+ */<br/>
+public class StorageFormatManager {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * List containing all registered storage formats<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List myStorageFormats;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Default storage format that should be selected in a javax.swing.JFileChooser<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private StorageFormat myDefaultStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Create a new StorageFormatManager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StorageFormatManager() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myStorageFormats = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Add a StorageFormat that should be supported by this StorageFormatManager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param newStorageFormat new StorageFormat to be supported<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addStorageFormat(StorageFormat newStorageFormat) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myStorageFormats.add(newStorageFormat);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Remove a StorageFormat that should no longer be supported by this StorageFormatManager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The StorageFormat is excluded in when search for a StorageFormat.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param oldStorageFormat old StorageFormat no longer to be supported<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeStorageFormat(StorageFormat oldStorageFormat) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myStorageFormats.remove(oldStorageFormat);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Test, whether a StorageFormat is supported by this StorageFormat<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean containsStorageFormat(StorageFormat checkStorageFormat){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return myStorageFormats.contains(checkStorageFormat);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Set a StorageFormat as the default storage format which is selected in a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * javax.swing.JFileChooser. The default storage format must be already<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * added with addStorageFormat. Setting the default storage format to null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * does not automatically remove the StorageFormat from the list of<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * supported StorageFormats.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param newDefaultStorageFormat StorageFormat that should be selected in a JFileChooser<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setDefaultStorageFormat(StorageFormat newDefaultStorageFormat) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDefaultStorageFormat = newDefaultStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Return the StorageFormat which is used as selected file format in a javax.swing.JFileChooser<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return default storage format<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StorageFormat getDefaultStorageFormat() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return myDefaultStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Register all FileFilters supported by StorageFormats<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param fileChooser javax.swing.JFileChooser to which FileFilters are added<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void registerFileFilters(JFileChooser fileChooser) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator formatsIterator = myStorageFormats.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (formatsIterator.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fileChooser.addChoosableFileFilter(((StorageFormat)formatsIterator.next()).getFileFilter());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set a current activated file filter if a default storage Format has been defined<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getDefaultStorageFormat() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fileChooser.setFileFilter(getDefaultStorageFormat().getFileFilter());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Find a StorageFormat that can be used according to a FileFilter to store a Drawing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in a file or restore it from a file respectively.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param findFileFilter FileFilter used to identify a StorageFormat<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return StorageFormat, if a matching file extension could be found, false otherwise<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StorageFormat findStorageFormat(FileFilter findFileFilter) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator formatsIterator = myStorageFormats.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;StorageFormat currentStorageFormat = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (formatsIterator.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentStorageFormat = (StorageFormat)formatsIterator.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentStorageFormat.getFileFilter().equals(findFileFilter)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return currentStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_StorageFormatManager_1.4.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)StorageFormatManager.java<br/>
+ *<br/>
+ * Project:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JHotdraw - a GUI framework for technical drawings<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.jhotdraw.org<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://jhotdraw.sourceforge.net<br/>
+ * Copyright:&nbsp;&nbsp;&nbsp;&nbsp;? by the original author(s) and all contributors<br/>
+ * License:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lesser GNU Public License (LGPL)<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.opensource.org/licenses/lgpl-license.html<br/>
+ */<br/>
+ <br/>
+package CH.ifa.draw.util;<br/>
+<br/>
+import javax.swing.JFileChooser;<br/>
+import javax.swing.filechooser.FileFilter;<br/>
+<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add">java</span>.<span class="add">io</span></span>.<span class="add">File</span></span>;</span><br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+<br/>
+/**<br/>
+ * The StorageFormatManager is a contains StorageFormats.<br/>
+ * It is not a Singleton because it could be necessary to deal with different<br/>
+ * format managers, e.g. one for importing Drawings, one for exporting Drawings.<br/>
+ * If one StorageFormat matches the file extension of the Drawing file, then this<br/>
+ * StorageFormat can be used to store or restore the Drawing.<br/>
+ *<br/>
+ * @see StorageFormat<br/>
+ *<br/>
+ * @author  Wolfram Kaiser &lt;mrfloppy@sourceforge.net&gt;<br/>
+ * @version &lt;$CURRENT_VERSION$&gt;<br/>
+ */<br/>
+public class StorageFormatManager {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * List containing all registered storage formats<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private List myStorageFormats;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Default storage format that should be selected in a javax.swing.JFileChooser<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private StorageFormat myDefaultStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Create a new StorageFormatManager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StorageFormatManager() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myStorageFormats = CollectionsFactory.current().createList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Add a StorageFormat that should be supported by this StorageFormatManager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param newStorageFormat new StorageFormat to be supported<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void addStorageFormat(StorageFormat newStorageFormat) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myStorageFormats.add(newStorageFormat);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Remove a StorageFormat that should no longer be supported by this StorageFormatManager.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The StorageFormat is excluded in when search for a StorageFormat.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param oldStorageFormat old StorageFormat no longer to be supported<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void removeStorageFormat(StorageFormat oldStorageFormat) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myStorageFormats.remove(oldStorageFormat);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Test, whether a StorageFormat is supported by this StorageFormat<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean containsStorageFormat(StorageFormat checkStorageFormat){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return myStorageFormats.contains(checkStorageFormat);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Set a StorageFormat as the default storage format which is selected in a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * javax.swing.JFileChooser. The default storage format must be already<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * added with addStorageFormat. Setting the default storage format to null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * does not automatically remove the StorageFormat from the list of<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * supported StorageFormats.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param newDefaultStorageFormat StorageFormat that should be selected in a JFileChooser<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setDefaultStorageFormat(StorageFormat newDefaultStorageFormat) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDefaultStorageFormat = newDefaultStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Return the StorageFormat which is used as selected file format in a javax.swing.JFileChooser<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return default storage format<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StorageFormat getDefaultStorageFormat() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return myDefaultStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Register all FileFilters supported by StorageFormats<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param fileChooser javax.swing.JFileChooser to which FileFilters are added<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void registerFileFilters(JFileChooser fileChooser) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator formatsIterator = myStorageFormats.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (formatsIterator.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fileChooser.addChoosableFileFilter(((StorageFormat)formatsIterator.next()).getFileFilter());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set a current activated file filter if a default storage Format has been defined<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getDefaultStorageFormat() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fileChooser.setFileFilter(getDefaultStorageFormat().getFileFilter());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Find a StorageFormat that can be used according to a FileFilter to store a Drawing<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in a file or restore it from a file respectively.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param findFileFilter FileFilter used to identify a StorageFormat<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return StorageFormat, if a matching file extension could be found, false otherwise<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public StorageFormat findStorageFormat(FileFilter findFileFilter) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator formatsIterator = myStorageFormats.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;StorageFormat currentStorageFormat = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (formatsIterator.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentStorageFormat = (StorageFormat)formatsIterator.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentStorageFormat.getFileFilter().equals(findFileFilter)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return currentStorageFormat;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Find a StorageFormat that can be used according to a file object to store a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Drawing in a file or restore it from a file respectively.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param file a File object to be matched<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return StorageFormat, if a matching file extension could be found, &lt;code&gt;null&lt;/code&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * otherwise<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">public</span> <span class="add"><span class="add">StorageFormat</span></span> <span class="add">findStorageFormat</span>(<span class="add"><span class="add"><span class="add">File</span></span> <span class="add">file</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">Iterator</span></span> <span class="add"><span class="add">formatsIterator</span> = <span class="add"><span class="add">myStorageFormats</span>.<span class="add">iterator</span>()</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">StorageFormat</span></span> <span class="add"><span class="add">currentStorageFormat</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">while (<span class="add"><span class="add">formatsIterator</span>.<span class="add">hasNext</span>()</span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">currentStorageFormat</span> = <span class="add">(<span class="add"><span class="add">StorageFormat</span></span>) <span class="add"><span class="add">formatsIterator</span>.<span class="add">next</span>()</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add"><span class="add">currentStorageFormat</span>.<span class="add">getFileFilter</span>()</span>.<span class="add">accept</span>(<span class="add">file</span>)</span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="add">currentStorageFormat</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="add">null</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

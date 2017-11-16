@@ -1,0 +1,12 @@
+diff --git a/t_221070/left_Server_1.68.java b/t_221070/right_Server_1.69.java
+index a60bf62..5bf0062 100644
+--- a/t_221070/left_Server_1.68.java
++++ b/t_221070/right_Server_1.69.java
+@@ -2431,7 +2431,6 @@ public class Server
+                 e.crew.setUnconcious(false);
+             } else {
+                 roundReport.append("fails.");
+-                break;
+             }
+         }
+         if (anyRolls) {

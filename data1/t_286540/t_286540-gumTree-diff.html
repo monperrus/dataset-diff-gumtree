@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_JacORBPRODelegate_1.1.java</h1>
+<div class="code">
+<div class="id">
+<span class="del"><span class="mv">/**<br/>
+ * JOnAS: Java(TM) Open Application Server<br/>
+ * Copyright (C) 2004 Bull S.A.<br/>
+ * Contact: jonas-team@objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: JacORBPRODelegate.java,v 1.1 2004-12-13 16:24:13 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.rmi.multi;</span><br/>
+<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del">java</span>.<span class="del">rmi</span></span>.<span class="del">Remote</span></span>;</span><br/>
+<span class="del">import <span class="del"><span class="del"><span class="del">java</span>.<span class="del">rmi</span></span>.<span class="del">RemoteException</span></span>;</span><br/>
+<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del"><span class="del">javax</span>.<span class="del">rmi</span></span>.<span class="del">CORBA</span></span>.<span class="del">Tie</span></span>;</span><br/>
+<span class="del">import <span class="del"><span class="del"><span class="del"><span class="del">javax</span>.<span class="del">rmi</span></span>.<span class="del">CORBA</span></span>.<span class="del">Util</span></span>;</span><br/>
+<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del"><span class="del"><span class="del"><span class="del">org</span>.<span class="del">objectweb</span></span>.<span class="del">carol</span></span>.<span class="del">jndi</span></span>.<span class="del">spi</span></span>.<span class="del">JacORBIIOPContext</span></span>;</span><br/>
+<span class="del">import <span class="del"><span class="del"><span class="del"><span class="del"><span class="del"><span class="del">org</span>.<span class="del">objectweb</span></span>.<span class="del">carol</span></span>.<span class="del">util</span></span>.<span class="del">configuration</span></span>.<span class="del">TraceCarol</span></span>;</span><br/>
+<br/>
+<span class="mv">import com.sun.corba.se.internal.javax.rmi.PortableRemoteObject;</span><br/>
+<br/>
+<span class="del"><span class="mv">/**<br/>
+ * TODO : should extends non com.sun classes.<br/>
+ * For example an OpenOrb class or implements our own Class, or use Classpath project<br/>
+ * It seems to be javax.rmi.CORBA.PortableRemoteObjectDelegateImpl class<br/>
+ * @author Florent Benoit<br/>
+ */</span><br/>
+<span class="mv">public</span> class <span class="mv">JacORBPRODelegate</span> extends <span class="mv">PortableRemoteObject</span> {<br/>
+<br/>
+    <span class="del"><span class="del">/**<br/>
+     * Makes a server object ready to receive remote calls. Note that subclasses<br/>
+     * of PortableRemoteObject do not need to call this method, as it is called<br/>
+     * by the constructor.<br/>
+     * @param obj the server object to export.<br/>
+     * @exception RemoteException if export fails.<br/>
+     */</span><br/>
+    <span class="del">public</span> <span class="del">void</span> <span class="del">exportObject</span>(<span class="del"><span class="del"><span class="del">Remote</span></span> <span class="del">obj</span></span>) throws <span class="del">RemoteException</span> <span class="del">{<br/>
+<br/>
+        // For JacORB, we need first to unexport object as it is not associated<br/>
+        // to an ORB<br/>
+        <span class="del">try <span class="del">{<br/>
+            <span class="del"><span class="del"><span class="del">unexportObject</span>(<span class="del">obj</span>)</span>;</span><br/>
+        }</span> <span class="del">catch (<span class="del"><span class="del"><span class="del">Exception</span></span> <span class="del">eee</span></span>) <span class="del">{<br/>
+            <span class="del"><span class="del"><span class="del">TraceCarol</span>.<span class="del">debugExportCarol</span>(<span class="del"><span class="del">"JacORBPRODelegate :exportObject() unexport = "</span> + <span class="del">eee</span></span>)</span>;</span><br/>
+        }</span></span></span><br/>
+<br/>
+        /* Now export it */<br/>
+        <span class="del">try <span class="del">{<br/>
+            <span class="del"><span class="del">super.<span class="del">exportObject</span>(<span class="del">obj</span>)</span>;</span><br/>
+        }</span> <span class="del">catch (<span class="del"><span class="del"><span class="del">Exception</span></span> <span class="del">ee</span></span>) <span class="del">{<br/>
+            <span class="del"><span class="del"><span class="del">TraceCarol</span>.<span class="del">debugExportCarol</span>(<span class="del"><span class="del">"JacORBPRODelegate: exportObject()  export:"</span> + <span class="del">ee</span></span>)</span>;</span><br/>
+        }</span></span></span><br/>
+<br/>
+        <span class="del"><span class="del"><span class="del">Tie</span></span> <span class="del"><span class="del">theTie</span> = <span class="del"><span class="del">Util</span>.<span class="del">getTie</span>(<span class="del">obj</span>)</span></span>;</span><br/>
+<br/>
+        // Then connect it to the ORB<br/>
+        <span class="del">if (<span class="del"><span class="del">theTie</span> != <span class="del">null</span></span>) <span class="del">{<br/>
+            <span class="del"><span class="del"><span class="del">theTie</span>.<span class="del">orb</span>(<span class="del"><span class="del">JacORBIIOPContext</span>.<span class="del">getOrb</span>()</span>)</span>;</span><br/>
+        }</span></span><br/>
+<br/>
+<br/>
+<br/>
+    }</span></span><br/>
+}</span><br/>
+</span></div>
+</div>
+</div>
+<div class="right">
+<h1>right_JacORBPRODelegate_1.2.java</h1>
+<div class="code">
+<div class="id">
+<span class="add"><span class="mv">/**<br/>
+ * JOnAS: Java(TM) Open Application Server<br/>
+ * Copyright (C) 2004 Bull S.A.<br/>
+ * Contact: jonas-team@objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: JacORBPRODelegate.java,v 1.2 2005-01-10 09:31:55 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.rmi.multi;</span><br/>
+<br/>
+<span class="mv">import com.sun.corba.se.internal.javax.rmi.PortableRemoteObject;</span><br/>
+<br/>
+<span class="add"><span class="mv">/**<br/>
+ * TODO : should extends non com.sun classes.<br/>
+ * For example an OpenOrb class or implements our own Class, or use Classpath project<br/>
+ * It seems to be javax.rmi.CORBA.PortableRemoteObjectDelegateImpl class<br/>
+ * @author Florent Benoit<br/>
+ */</span><br/>
+<span class="mv">public</span> class <span class="mv">JacORBPRODelegate</span> extends <span class="mv">PortableRemoteObject</span> {<br/>
+<br/>
+<br/>
+}</span><br/>
+</span></div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

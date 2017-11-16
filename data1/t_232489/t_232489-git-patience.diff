@@ -1,0 +1,18 @@
+diff --git a/t_232489/left_ByteArrayOutputStream_1.1.java b/t_232489/right_ByteArrayOutputStream_1.2.java
+index cde1067..4c5e3da 100644
+--- a/t_232489/left_ByteArrayOutputStream_1.1.java
++++ b/t_232489/right_ByteArrayOutputStream_1.2.java
+@@ -57,13 +57,6 @@ public class ByteArrayOutputStream extends OutputStream {
+ 		buffer[pos++] = (byte)b;
+ 	}
+ 
+-	/**
+-	 * @see java.io.OutputStream#close()
+-	 */
+-	public void close() throws IOException {
+-		buffer = null;
+-	}
+-
+ 	/**
+ 	 * @see java.io.OutputStream#write(byte[], int, int)
+ 	 */

@@ -1,0 +1,16 @@
+--- t_280319/left_InvokerInterceptor_1.1.java	2013-03-17 15:47:28.000000000 +0100
++++ t_280319/right_InvokerInterceptor_1.2.java	2013-03-17 15:47:28.000000000 +0100
+@@ -76,6 +76,13 @@
+     String prefix="/servlet/";
+     int prefixLen=prefix.length();
+ 
++    public void setPrefix(String prefix) {
++        if( prefix != null ) {
++            this.prefix = prefix;
++            prefixLen=this.prefix.length();
++        }
++    }
++
+     public int requestMap(Request req) {
+ 	// If we have an explicit mapper - return
+ 	Container ct=req.getContainer();

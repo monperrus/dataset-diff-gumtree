@@ -1,0 +1,13 @@
+diff --git a/t_224890/left_DateField_1.4.java b/t_224890/right_DateField_1.5.java
+index b555490..f917cfe 100644
+--- a/t_224890/left_DateField_1.4.java
++++ b/t_224890/right_DateField_1.5.java
+@@ -109,7 +109,7 @@ public class DateField {
+     if (s.length() < DATE_LEN) {
+       StringBuffer sb = new StringBuffer(s);
+       while (sb.length() < DATE_LEN)
+-        sb.insert(0, ' ');
++        sb.insert(0, 0);
+       s = sb.toString();
+     }
+ 

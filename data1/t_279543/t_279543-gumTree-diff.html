@@ -1,0 +1,404 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_HeaderMatch_1.1.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */ <br/>
+package org.apache.tomcat.util.test.matchers;<br/>
+<br/>
+import org.apache.tomcat.util.test.*;<br/>
+import java.net.*;<br/>
+import java.io.*;<br/>
+import java.util.*;<br/>
+import java.net.*;<br/>
+<br/>
+/** Check if the response has ( or has not ) some headers<br/>
+ */<br/>
+public class HeaderMatch extends Matcher {<br/>
+    String name;<br/>
+    String value;<br/>
+    <br/>
+    // the response should include the following headers<br/>
+    Vector headerVector=new Vector(); // workaround for introspection problems<br/>
+    Hashtable expectHeaders=new Hashtable();<br/>
+<br/>
+    public HeaderMatch() {<br/>
+    }<br/>
+<br/>
+    // -------------------- <br/>
+<br/>
+    public void setName( String n ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;name=n;<br/>
+    }<br/>
+<br/>
+    public void setValue( String v ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;value=v;<br/>
+    }<br/>
+<br/>
+    // Multiple headers ?<br/>
+    public void addHeader( Header rh ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;headerVector.addElement( rh );<br/>
+    }<br/>
+<br/>
+    /** Verify that response includes the expected headers.<br/>
+     *  The value is a "|" separated list of headers to expect.<br/>
+     *  ?? Do we need that ?<br/>
+     */<br/>
+    public void setExpectHeaders( String s ) {<br/>
+       Header.parseHeadersAsString( s, headerVector );<br/>
+    }<br/>
+<br/>
+    public Hashtable getExpectHeaders() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( name!=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    headerVector.addElement( new Header( name, value ));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( headerVector.size() &gt; 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration en=headerVector.elements();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while( en.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header rh=(Header)en.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expectHeaders.put( rh.getName(), rh );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    headerVector=new Vector();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return expectHeaders;<br/>
+    }<br/>
+    <br/>
+    public String getTestDescription() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer desc=new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean needAND=false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( getExpectHeaders().size() &gt; 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration e=expectHeaders.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while( e.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( needAND ) desc.append( " &amp;&amp; " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;needAND=true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String key=(String)e.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header h=(Header)expectHeaders.get(key);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;desc.append("( responseHeader '" + h.getName() +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ": " + h.getValue() + "' ) ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;desc.append( " == " ).append( magnitude );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return desc.toString();<br/>
+    }<br/>
+<br/>
+    // -------------------- Execute the request --------------------<br/>
+<br/>
+    public void execute() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    result=checkResponse( magnitude );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ex.printStackTrace();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    result=false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    private boolean checkResponse(boolean testCondition)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws Exception<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String responseLine=response.getResponseLine();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Hashtable headers=response.getHeaders();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        boolean responseStatus = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;getExpectHeaders();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( expectHeaders.size() &gt; 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Check if we got the expected headers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(headers==null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("ERROR no response header, expecting header");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration e=expectHeaders.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while( e.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String key=(String)e.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header expH=(Header)expectHeaders.get(key);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String value=expH.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header resH=(Header)headers.get(key);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String respValue=(resH==null)? "": resH.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( respValue==null || respValue.indexOf( value ) &lt;0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("ERROR expecting header " + key + ":" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value + <span class="upd">" \nGOT: "</span> + respValue+ " HEADERS(" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header.toString(headers) + ")");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return responseStatus;<br/>
+    }<br/>
+    <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_HeaderMatch_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * The Apache Software License, Version 1.1<br/>
+ *<br/>
+ * Copyright (c) 1999 The Apache Software Foundation.  All rights <br/>
+ * reserved.<br/>
+ *<br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions<br/>
+ * are met:<br/>
+ *<br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer. <br/>
+ *<br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ *    notice, this list of conditions and the following disclaimer in<br/>
+ *    the documentation and/or other materials provided with the<br/>
+ *    distribution.<br/>
+ *<br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ *    any, must include the following acknowlegement:  <br/>
+ *       "This product includes software developed by the <br/>
+ *        Apache Software Foundation (http://www.apache.org/)."<br/>
+ *    Alternately, this acknowlegement may appear in the software itself,<br/>
+ *    if and wherever such third-party acknowlegements normally appear.<br/>
+ *<br/>
+ * 4. The names "The Jakarta Project", "Tomcat", and "Apache Software<br/>
+ *    Foundation" must not be used to endorse or promote products derived<br/>
+ *    from this software without prior written permission. For written <br/>
+ *    permission, please contact apache@apache.org.<br/>
+ *<br/>
+ * 5. Products derived from this software may not be called "Apache"<br/>
+ *    nor may "Apache" appear in their names without prior written<br/>
+ *    permission of the Apache Group.<br/>
+ *<br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES<br/>
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE<br/>
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR<br/>
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,<br/>
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT<br/>
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF<br/>
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND<br/>
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,<br/>
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT<br/>
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF<br/>
+ * SUCH DAMAGE.<br/>
+ * ====================================================================<br/>
+ *<br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of the Apache Software Foundation.  For more<br/>
+ * information on the Apache Software Foundation, please see<br/>
+ * &lt;http://www.apache.org/&gt;.<br/>
+ *<br/>
+ * [Additional notices, if required by prior licensing conditions]<br/>
+ *<br/>
+ */ <br/>
+package org.apache.tomcat.util.test.matchers;<br/>
+<br/>
+import org.apache.tomcat.util.test.*;<br/>
+import java.net.*;<br/>
+import java.io.*;<br/>
+import java.util.*;<br/>
+import java.net.*;<br/>
+<br/>
+/** Check if the response has ( or has not ) some headers<br/>
+ */<br/>
+public class HeaderMatch extends Matcher {<br/>
+    String name;<br/>
+    String value;<br/>
+    <br/>
+    // the response should include the following headers<br/>
+    Vector headerVector=new Vector(); // workaround for introspection problems<br/>
+    Hashtable expectHeaders=new Hashtable();<br/>
+<br/>
+    public HeaderMatch() {<br/>
+    }<br/>
+<br/>
+    // -------------------- <br/>
+<br/>
+    public void setName( String n ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;name=n;<br/>
+    }<br/>
+<br/>
+    public void setValue( String v ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;value=v;<br/>
+    }<br/>
+<br/>
+    // Multiple headers ?<br/>
+    public void addHeader( Header rh ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;headerVector.addElement( rh );<br/>
+    }<br/>
+<br/>
+    /** Verify that response includes the expected headers.<br/>
+     *  The value is a "|" separated list of headers to expect.<br/>
+     *  ?? Do we need that ?<br/>
+     */<br/>
+    public void setExpectHeaders( String s ) {<br/>
+       Header.parseHeadersAsString( s, headerVector );<br/>
+    }<br/>
+<br/>
+    public Hashtable getExpectHeaders() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( name!=null ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    headerVector.addElement( new Header( name, value ));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( headerVector.size() &gt; 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration en=headerVector.elements();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while( en.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header rh=(Header)en.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expectHeaders.put( rh.getName(), rh );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    headerVector=new Vector();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return expectHeaders;<br/>
+    }<br/>
+    <br/>
+    public String getTestDescription() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;StringBuffer desc=new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean needAND=false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( getExpectHeaders().size() &gt; 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration e=expectHeaders.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while( e.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( needAND ) desc.append( " &amp;&amp; " );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;needAND=true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String key=(String)e.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header h=(Header)expectHeaders.get(key);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;desc.append("( responseHeader '" + h.getName() +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ": " + h.getValue() + "' ) ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;desc.append( " == " ).append( magnitude );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return desc.toString();<br/>
+    }<br/>
+<br/>
+    // -------------------- Execute the request --------------------<br/>
+<br/>
+    public void execute() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    result=checkResponse( magnitude );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(Exception ex ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ex.printStackTrace();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    result=false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    private boolean checkResponse(boolean testCondition)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;throws Exception<br/>
+    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String responseLine=response.getResponseLine();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Hashtable headers=response.getHeaders();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        boolean responseStatus = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;getExpectHeaders();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if( expectHeaders.size() &gt; 0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // Check if we got the expected headers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(headers==null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("ERROR no response header, expecting header");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Enumeration e=expectHeaders.keys();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while( e.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String key=(String)e.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header expH=(Header)expectHeaders.get(key);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String value=expH.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header resH=(Header)headers.get(key);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String respValue=(resH==null)? "": resH.getValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( respValue==null || respValue.indexOf( value ) &lt;0 ) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    log("ERROR expecting header " + key + ":" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value + <span class="upd">" \r\nGOT: "</span> + respValue+ " HEADERS(" +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header.toString(headers) + ")");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return responseStatus;<br/>
+    }<br/>
+    <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

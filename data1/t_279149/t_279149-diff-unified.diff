@@ -1,0 +1,11 @@
+--- t_279149/left_IntrospectionUtils_1.1.java	2013-03-17 15:47:26.000000000 +0100
++++ t_279149/right_IntrospectionUtils_1.2.java	2013-03-17 15:47:26.000000000 +0100
+@@ -83,7 +83,7 @@
+ 		    // if the method is declared in a top level class
+ 		    // like BaseInterceptor parent is Object, otherwise
+ 		    // parent is BaseInterceptor or an intermediate class
+-		    if( ! "java.jang.Object".
++		    if( ! "java.lang.Object".
+ 			equals(parentOfDeclaring.getName() )) {
+ 			return true;
+ 		    }

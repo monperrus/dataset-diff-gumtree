@@ -1,0 +1,23 @@
+diff --git a/t_281562/left_ExceptionHandler_1.3.java b/t_281562/right_ExceptionHandler_1.4.java
+index 96f6483..a876d61 100644
+--- a/t_281562/left_ExceptionHandler_1.3.java
++++ b/t_281562/right_ExceptionHandler_1.4.java
+@@ -85,12 +85,12 @@ public class ExceptionHandler {
+      *
+      * @exception ServletException if a servlet exception occurs
+      */
+-    protected ActionForward execute(Exception ex,
+-                                    ExceptionConfig ae,
+-                                    ActionMapping mapping,
+-                                    ActionForm formInstance,
+-                                    HttpServletRequest request,
+-                                    HttpServletResponse response)
++    public ActionForward execute(Exception ex,
++                                 ExceptionConfig ae,
++                                 ActionMapping mapping,
++                                 ActionForm formInstance,
++                                 HttpServletRequest request,
++                                 HttpServletResponse response)
+         throws ServletException {
+ 
+ 	ActionForward forward = null;

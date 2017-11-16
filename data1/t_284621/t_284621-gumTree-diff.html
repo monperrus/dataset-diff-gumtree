@@ -1,0 +1,192 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_RelativeTimeDateFormat_1.4.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ * <br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ * <br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ * <br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.helpers;<br/>
+<br/>
+import java.util.Date;<br/>
+import java.util.TimeZone;<br/>
+import java.text.FieldPosition;<br/>
+import java.text.ParsePosition;<br/>
+import java.text.DateFormat;<br/>
+<span class="del">import <span class="del"><span class="del"><span class="del">java</span>.<span class="del">text</span></span>.<span class="del">NumberFormat</span></span>;</span><br/>
+<br/>
+/**<br/>
+   Formats a {@link Date} by printing the number of milliseconds<br/>
+   elapsed since the start of the application.  This is the fastest<br/>
+   printing DateFormat in the package.<br/>
+   <br/>
+   @author Ceki G&amp;uuml;lc&amp;uuml;<br/>
+   <br/>
+   @since 0.7.5<br/>
+*/<br/>
+public class RelativeTimeDateFormat extends DateFormat {<br/>
+<br/>
+  protected final long startTime;<br/>
+<br/>
+  public<br/>
+  RelativeTimeDateFormat() {<br/>
+    this.startTime = System.currentTimeMillis();<br/>
+  }<br/>
+  <br/>
+  /**<br/>
+     Appends to &lt;code&gt;sbuf&lt;/code&gt; the number of milliseconds elapsed<br/>
+     since the start of the application. <br/>
+     <br/>
+     @since 0.7.5<br/>
+  */<br/>
+  public<br/>
+  StringBuffer format(Date date, StringBuffer sbuf,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      FieldPosition fieldPosition) {<br/>
+    //System.err.println(":"+ date.getTime() + " - " + startTime);<br/>
+    return sbuf.append((date.getTime() - startTime));<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     This method does not do anything but return &lt;code&gt;null&lt;/code&gt;.<br/>
+   */<br/>
+  public<br/>
+  Date parse(java.lang.String s, ParsePosition pos) {<br/>
+    return null;<br/>
+  }  <br/>
+  <br/>
+<br/>
+  <span class="del"><span class="del">/**<br/>
+   * Gets the number format.<br/>
+   * @return NumberFormat number format<br/>
+   */</span><br/>
+  <span class="del">public</span> <span class="del"><span class="del">NumberFormat</span></span> <span class="del">getNumberFormat</span>() <span class="del">{<br/>
+    <span class="del">return <span class="del"><span class="del">NumberFormat</span>.<span class="del">getIntegerInstance</span>()</span>;</span><br/>
+  }</span></span><br/>
+<br/>
+  /**<br/>
+   * Sets the timezone.<br/>
+   * @remarks Ignored by this formatter, but intercepted to prevent<br/>
+   * NullPointerException in superclass.<br/>
+   * @param tz TimeZone timezone<br/>
+   */<br/>
+  public void setTimeZone(final TimeZone tz) {<br/>
+  }<br/>
+  <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_RelativeTimeDateFormat_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * Copyright 1999,2004 The Apache Software Foundation.<br/>
+ * <br/>
+ * Licensed under the Apache License, Version 2.0 (the "License");<br/>
+ * you may not use this file except in compliance with the License.<br/>
+ * You may obtain a copy of the License at<br/>
+ * <br/>
+ *      http://www.apache.org/licenses/LICENSE-2.0<br/>
+ * <br/>
+ * Unless required by applicable law or agreed to in writing, software<br/>
+ * distributed under the License is distributed on an "AS IS" BASIS,<br/>
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br/>
+ * See the License for the specific language governing permissions and<br/>
+ * limitations under the License.<br/>
+ */<br/>
+<br/>
+package org.apache.log4j.helpers;<br/>
+<br/>
+import java.util.Date;<br/>
+import java.util.TimeZone;<br/>
+import java.text.FieldPosition;<br/>
+import java.text.ParsePosition;<br/>
+import java.text.DateFormat;<br/>
+<br/>
+/**<br/>
+   Formats a {@link Date} by printing the number of milliseconds<br/>
+   elapsed since the start of the application.  This is the fastest<br/>
+   printing DateFormat in the package.<br/>
+   <br/>
+   @author Ceki G&amp;uuml;lc&amp;uuml;<br/>
+   <br/>
+   @since 0.7.5<br/>
+*/<br/>
+public class RelativeTimeDateFormat extends DateFormat {<br/>
+<br/>
+  protected final long startTime;<br/>
+<br/>
+  public<br/>
+  RelativeTimeDateFormat() {<br/>
+    this.startTime = System.currentTimeMillis();<br/>
+  }<br/>
+  <br/>
+  /**<br/>
+     Appends to &lt;code&gt;sbuf&lt;/code&gt; the number of milliseconds elapsed<br/>
+     since the start of the application. <br/>
+     <br/>
+     @since 0.7.5<br/>
+  */<br/>
+  public<br/>
+  StringBuffer format(Date date, StringBuffer sbuf,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      FieldPosition fieldPosition) {<br/>
+    //System.err.println(":"+ date.getTime() + " - " + startTime);<br/>
+    return sbuf.append((date.getTime() - startTime));<br/>
+  }<br/>
+<br/>
+  /**<br/>
+     This method does not do anything but return &lt;code&gt;null&lt;/code&gt;.<br/>
+   */<br/>
+  public<br/>
+  Date parse(java.lang.String s, ParsePosition pos) {<br/>
+    return null;<br/>
+  }  <br/>
+<br/>
+  /**<br/>
+   * Sets the timezone.<br/>
+   * @remarks Ignored by this formatter, but intercepted to prevent<br/>
+   * NullPointerException in superclass.<br/>
+   * @param tz TimeZone timezone<br/>
+   */<br/>
+  public void setTimeZone(final TimeZone tz) {<br/>
+  }<br/>
+  <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

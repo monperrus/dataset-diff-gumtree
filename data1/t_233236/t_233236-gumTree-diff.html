@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Mutex_1.8.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.core.util;<br/>
+<br/>
+public class Mutex {<br/>
+    private boolean mutex;<br/>
+<br/>
+    public Mutex() {<br/>
+        mutex = false;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *<br/>
+     * @return true the mutex was indeed taken anew, false if calling thread already had mutex.<br/>
+     */<br/>
+    public synchronized void lock() {<br/>
+        while (mutex) {<br/>
+            try {<br/>
+                wait();<br/>
+            } catch (InterruptedException e) {<br/>
+                if (Thread.currentThread().isInterrupted()) {<br/>
+                    // gota go now<br/>
+                    throw new RuntimeException(e);<br/>
+                }<br/>
+<br/>
+                // else keep waiting<br/>
+            }<br/>
+        }<br/>
+<br/>
+        mutex = true;<br/>
+    }<br/>
+<br/>
+    public synchronized void release() {<br/>
+        mutex = false;<br/>
+        <span class="upd">notifyAll</span>();<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Mutex_1.9.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.core.util;<br/>
+<br/>
+public class Mutex {<br/>
+    private boolean mutex;<br/>
+<br/>
+    public Mutex() {<br/>
+        mutex = false;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *<br/>
+     * @return true the mutex was indeed taken anew, false if calling thread already had mutex.<br/>
+     */<br/>
+    public synchronized void lock() {<br/>
+        while (mutex) {<br/>
+            try {<br/>
+                wait();<br/>
+            } catch (InterruptedException e) {<br/>
+                if (Thread.currentThread().isInterrupted()) {<br/>
+                    // gota go now<br/>
+                    throw new RuntimeException(e);<br/>
+                }<br/>
+<br/>
+                // else keep waiting<br/>
+            }<br/>
+        }<br/>
+<br/>
+        mutex = true;<br/>
+    }<br/>
+<br/>
+    public synchronized void release() {<br/>
+        mutex = false;<br/>
+        <span class="upd">notify</span>();<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

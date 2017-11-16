@@ -1,0 +1,13 @@
+diff --git a/t_283221/left_Hierarchy_1.32.java b/t_283221/right_Hierarchy_1.33.java
+index 861cad3..a6c606c 100644
+--- a/t_283221/left_Hierarchy_1.32.java
++++ b/t_283221/right_Hierarchy_1.33.java
+@@ -122,7 +122,7 @@ public class Hierarchy implements LoggerRepository, RendererSupport {
+   public 
+   void emitNoAppenderWarning(Category cat) {
+     // No appenders in hierarchy, warn user only once.
+-    if(this.emittedNoAppenderWarning) {
++    if(!this.emittedNoAppenderWarning) {
+       LogLog.error("No appenders could be found for logger (" +
+ 		   cat.getName() + ").");
+       LogLog.error("Please initialize the log4j system properly.");

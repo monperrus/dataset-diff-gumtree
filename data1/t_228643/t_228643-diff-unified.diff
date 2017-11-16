@@ -1,0 +1,10 @@
+--- t_228643/left_ScopePeer_1.3.java	2013-03-17 15:47:24.000000000 +0100
++++ t_228643/right_ScopePeer_1.4.java	2013-03-17 15:47:24.000000000 +0100
+@@ -19,6 +19,6 @@
+     public static List getAllScopes()
+         throws Exception
+     {
+-        return doSelect(new Criteria());
++        return doSelect(new Criteria(0));
+     }
+ }
